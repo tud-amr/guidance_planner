@@ -11,7 +11,7 @@ using namespace GuidancePlanner;
 boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerConfig>> reconfigure_server_;
 boost::recursive_mutex reconfig_mutex_;
 
-HomotopyConfig *config_;
+Config *config_;
 
 bool first_reconfigure_callback_ = true;
 bool replan_ = false;
@@ -25,7 +25,7 @@ void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint3
     {
         first_reconfigure_callback_ = false;
 
-        config.debug = HomotopyConfig::debug_output_;
+        config.debug = Config::debug_output_;
 
         config.n_paths = config_->n_paths_;
         config.n_samples = config_->n_samples_;
@@ -38,7 +38,7 @@ void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint3
         config.spline_consistency = config_->selection_weight_consistency_;
     }
 
-    HomotopyConfig::debug_output_ = config.debug;
+    Config::debug_output_ = config.debug;
 
     config_->n_paths_ = config.n_paths;
     config_->n_samples_ = config.n_samples;
@@ -60,8 +60,8 @@ void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint3
 void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
 {
     obstacles.clear();
-    obstacles.emplace_back(0, Eigen::Vector2d(3.5, -2), Eigen::Vector2d(0, 1.0), HomotopyConfig::DT, HomotopyConfig::N, 0.5);
-    obstacles.emplace_back(1, Eigen::Vector2d(2.5, 2), Eigen::Vector2d(0, -1.0), HomotopyConfig::DT, HomotopyConfig::N, 0.5);
+    obstacles.emplace_back(0, Eigen::Vector2d(3.5, -2), Eigen::Vector2d(0, 1.0), Config::DT, Config::N, 0.5);
+    obstacles.emplace_back(1, Eigen::Vector2d(2.5, 2), Eigen::Vector2d(0, -1.0), Config::DT, Config::N, 0.5);
 }
 
 void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles) // Only for standalone PRM
@@ -74,7 +74,7 @@ void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles) // On
         Eigen::Vector2d goal(2.0 + obstacle_randomizer.Double() * 4.0, -2. + 2. * obstacle_randomizer.Double());
         Eigen::Vector2d vel = (goal - start).normalized();
 
-        obstacles.emplace_back(i, start, vel, HomotopyConfig::DT, HomotopyConfig::N, 0.5);
+        obstacles.emplace_back(i, start, vel, Config::DT, Config::N, 0.5);
     }
 }
 
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
         ROS_INFO("Preparing Obstacles");
         std::vector<Obstacle> obstacles;
         std::vector<std::vector<Halfspace>> static_obstacles;
-        static_obstacles.resize(HomotopyConfig::N);
+        static_obstacles.resize(Config::N);
 
         guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.);
         std::vector<Goal> goals;

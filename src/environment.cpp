@@ -4,7 +4,7 @@ namespace GuidancePlanner
 
 void Environment::ObstacleGrid::SetDimensions(double length, double width, double obstacle_radius)
 {
-  grid_.resize(HomotopyConfig::N + 1); // + 1 to accomodate for the initial state
+  grid_.resize(Config::N + 1); // + 1 to accomodate for the initial state
 
   // If the obstacle radius is larger, we should use a wider grid
   grid_size_ = 0.5;
@@ -165,10 +165,10 @@ bool Environment::IsVisibleRayCast(const SpaceTimePoint &point_one, const SpaceT
 
   for (auto &obstacle : dynamic_obstacles_)
   {
-    // for (int k = 0; k < HomotopyConfig::N - 1; k++) // For constant velocity, only one line segment
+    // for (int k = 0; k < Config::N - 1; k++) // For constant velocity, only one line segment
     // {
     c = Eigen::Vector3d(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
-    d = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), HomotopyConfig::N) - c;
+    d = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N) - c;
 
     e = a - c;
 

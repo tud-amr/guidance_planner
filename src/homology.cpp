@@ -19,7 +19,7 @@ Homology::Homology()
   }
   // gsl_params_.reset(new GSLParams()); // Is a pointer because the parameters and homology class depend on each other
 
-  fraction_ = 1. / ((double)HomotopyConfig::N);
+  fraction_ = 1. / ((double)Config::N);
 }
 
 Homology::~Homology()
@@ -140,7 +140,7 @@ void Homology::ComputeObstacleLoop(const Obstacle &obstacle)
 {
   // Retrieve and set the obstacle skeleton
   start_ = Eigen::Vector3d(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
-  end_ = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), HomotopyConfig::N);
+  end_ = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N);
 
   obstacle_p1_ = Line(start_, end_, -fraction_);               // A start below the actual start
   obstacle_p2_ = Line(start_, end_, 1 + fraction_);            // An end above the actual end

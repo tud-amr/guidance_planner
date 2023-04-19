@@ -11,7 +11,7 @@
 
 #include <guidance_planner/cubic_spline.h>
 #include <guidance_planner/graph_search.h>
-#include <guidance_planner/homotopy_config.h>
+#include <guidance_planner/config.h>
 #include <guidance_planner/paths.h>
 #include <guidance_planner/prm.h>
 
@@ -74,14 +74,14 @@ public:
   /** @brief Export data for external analysis */
   void ExportData(DataSaver &data_saver);
 
-  HomotopyConfig *GetConfig() const { return config_.get(); };
+  Config *GetConfig() const { return config_.get(); };
 
   Eigen::Vector2d GetStart() const { return prm_.GetStart(); };                 /** @brief Get the start position */
   Eigen::Vector2d GetStartVelocity() const { return prm_.GetStartVelocity(); }; /** @brief Get the start velocity */
 
 private:
   ros::NodeHandle nh_;
-  std::unique_ptr<HomotopyConfig> config_; // Owns the configuration
+  std::unique_ptr<Config> config_; // Owns the configuration
 
   // Classes for visualization
   std::unique_ptr<ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, ros_selected_visuals_, ros_obstacle_visuals_;

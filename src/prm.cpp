@@ -7,7 +7,7 @@ PRM::~PRM() {}
 
 PRM::PRM() {}
 
-void PRM::Init(ros::NodeHandle &nh, HomotopyConfig *config)
+void PRM::Init(ros::NodeHandle &nh, Config *config)
 {
   config_ = config;
 
@@ -76,8 +76,8 @@ void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<std
     {
 
       Eigen::Vector2d goal_copy = goal.pos;                               // Need to copy, because goal is const
-      environment_.ProjectToFreeSpace(goal_copy, HomotopyConfig::N, 0.5); // Project the goal if it is in collision
-      if (environment_.InCollision(SpaceTimePoint(goal_copy(0), goal_copy(1), HomotopyConfig::N)))
+      environment_.ProjectToFreeSpace(goal_copy, Config::N, 0.5); // Project the goal if it is in collision
+      if (environment_.InCollision(SpaceTimePoint(goal_copy(0), goal_copy(1), Config::N)))
       {
         PRM_LOG("Rejecting a goal (it is in collision after projection).");
       }
@@ -411,7 +411,7 @@ void PRM::PropagateNode(const Node &node, const GeometricPath *path)
   // (next iteration) All our current nodes will be the same nodes in the next time step, but one step earlier in time
   if (config_->dynamically_propagate_nodes_)
   {
-    propagated_node.point_.Time() = node.point_.Time() - (HomotopyConfig::CONTROL_DT / HomotopyConfig::DT); // Drop by however much discrete steps we
+    propagated_node.point_.Time() = node.point_.Time() - (Config::CONTROL_DT / Config::DT); // Drop by however much discrete steps we
                                                                                                             // are moving in one control iteration
 
     if (propagated_node.point_.Pos()(0) < start_(0)) /** @note Not robust */ //  Do not propagate nodes behind the
@@ -496,14 +496,14 @@ SpaceTimePoint PRM::SampleNewPoint()
   {
     // Uniform[0, 10][-5, 5]
     new_sample = SpaceTimePoint(random_generator_.Double() * (goals_.back().pos(0) - start_(0)), -3 + random_generator_.Double() * 6.,
-                                random_generator_.Int(HomotopyConfig::N - 2) + 1); // 1 - N-1
+                                random_generator_.Int(Config::N - 2) + 1); // 1 - N-1
   }
   else
   {
     double start_velocity = start_velocity_.norm(); // Get the forward speed in the non-rotated frame
 
     // Sample a time index
-    int random_k = random_generator_.Int(HomotopyConfig::N - 2) + 1; // 1 - (N-1)
+    int random_k = random_generator_.Int(Config::N - 2) + 1; // 1 - (N-1)
 
     // Radial sampling based on vehicle limits
     // Goal: similar amount of samples per "k", following roughly the actuation limits of the vehicle
@@ -520,14 +520,14 @@ SpaceTimePoint PRM::SampleNewPoint()
     double max_dist = 0., min_dist = 0.;
     for (int i = 0; i < random_k; i++)
     {
-      max_vel = std::min(max_vel + max_acceleration * HomotopyConfig::DT,
+      max_vel = std::min(max_vel + max_acceleration * Config::DT,
                          max_velocity); // Either maximum acceleration or maximum velocity
-      max_dist = std::min(max_dist + max_vel * HomotopyConfig::DT,
+      max_dist = std::min(max_dist + max_vel * Config::DT,
                           maximum_radius); // The distance we can travel increases with the maximum velocity
 
       // Account for maximum possible braking
-      min_vel = std::max(min_vel - max_acceleration * HomotopyConfig::DT, 0.);
-      min_dist = min_dist + min_vel * HomotopyConfig::DT;
+      min_vel = std::max(min_vel - max_acceleration * Config::DT, 0.);
+      min_dist = min_dist + min_vel * Config::DT;
     }
 
     // Sample u1 such that it spreads quadratically
@@ -553,10 +553,10 @@ SpaceTimePoint PRM::SampleNewPoint()
     double cur_vel = start_velocity;
     for (int k = 0; k < random_k; k++)
     {
-      cur_x += cur_vel * std::cos(cur_psi) * HomotopyConfig::DT; // Position
-      cur_y += cur_vel * std::sin(cur_psi) * HomotopyConfig::DT;
-      cur_psi += max_w * HomotopyConfig::DT;            // Orientation
-      cur_vel -= max_acceleration * HomotopyConfig::DT; // Velocity (under maximum braking)
+      cur_x += cur_vel * std::cos(cur_psi) * Config::DT; // Position
+      cur_y += cur_vel * std::sin(cur_psi) * Config::DT;
+      cur_psi += max_w * Config::DT;            // Orientation
+      cur_vel -= max_acceleration * Config::DT; // Velocity (under maximum braking)
 
       cur_vel = std::max(0., cur_vel);
 
@@ -705,7 +705,7 @@ bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePo
 
   // Connections have a limited velocity
   double dist = Helpers::dist(first_point.Pos(), second_point.Pos());
-  double vel = dist / ((double)std::abs(first_point.Time() - second_point.Time()) * HomotopyConfig::DT); // The average velocity of this connection
+  double vel = dist / ((double)std::abs(first_point.Time() - second_point.Time()) * Config::DT); // The average velocity of this connection
   bool vel_satisfies_limits = vel < config_->max_velocity_;
 
   if (!vel_satisfies_limits)
@@ -798,9 +798,9 @@ bool PRM::ConnectionIsValid(const Node *a, const Node *b, const SpaceTimePoint &
   SpaceTimePoint third_point = end_node->point_;
 
   std::vector<double> t, x, y;
-  t.push_back(first_point.Time() * HomotopyConfig::DT);
-  t.push_back(second_point.Time() * HomotopyConfig::DT);
-  t.push_back(third_point.Time() * HomotopyConfig::DT);
+  t.push_back(first_point.Time() * Config::DT);
+  t.push_back(second_point.Time() * Config::DT);
+  t.push_back(third_point.Time() * Config::DT);
 
   x.push_back(first_point.Pos()(0));
   x.push_back(second_point.Pos()(0));

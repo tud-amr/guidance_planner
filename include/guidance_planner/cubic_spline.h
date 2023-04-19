@@ -53,7 +53,7 @@ namespace GuidancePlanner
         void AddPoint(const SpaceTimePoint &point)
         {
             points_.col(cur_col) = point.Pos();
-            t_points_.push_back(point.Time() * HomotopyConfig::DT);
+            t_points_.push_back(point.Time() * Config::DT);
             cur_col++;
         }
 
@@ -138,7 +138,7 @@ namespace GuidancePlanner
             LMPCC_ASSERT(t_start_.size() == 0, "Only one start padding is supported");
 
             start_ = start_padding.Pos();
-            t_start_.push_back(start_padding.Time() * HomotopyConfig::DT);
+            t_start_.push_back(start_padding.Time() * Config::DT);
         }
 
         // Pad the end of the control points
@@ -147,7 +147,7 @@ namespace GuidancePlanner
             LMPCC_ASSERT(t_end_.size() == 0, "Only one end padding is supported");
 
             end_ = end_padding.Pos();
-            t_end_.push_back(end_padding.Time() * HomotopyConfig::DT);
+            t_end_.push_back(end_padding.Time() * Config::DT);
         }
 
         void GetStartVectorized(Eigen::VectorXd &start)
@@ -174,17 +174,17 @@ namespace GuidancePlanner
         double stored_cost_; // Needs to be set externally, but can then be used to easily sort splines
 
         /** @brief Initialize a Cubic Spline from an existing path (i.e., initial control points are on the path) */
-        CubicSpline3D(const GeometricPath &path, HomotopyConfig *config, const Eigen::Vector2d &current_velocity);
+        CubicSpline3D(const GeometricPath &path, Config *config, const Eigen::Vector2d &current_velocity);
 
         CubicSpline3D(const CubicSpline3D &other) = default;
 
         /** @brief Static function when an empty trajectory is needed */
-        static CubicSpline3D &Empty(const Eigen::Vector2d &start, HomotopyConfig *config)
+        static CubicSpline3D &Empty(const Eigen::Vector2d &start, Config *config)
         {
             // Get some points close to the start
             static Node a(-1, {start(0), start(1), 0.}, NodeType::NONE);
-            static Node mid(-1, {start(0) + 0.005, start(1), (double)HomotopyConfig::N / 2}, NodeType::NONE);
-            static Node b(-1, {start(0) + 0.01, start(1), (double)HomotopyConfig::N}, NodeType::NONE); // Small forward deviation to make the path valid
+            static Node mid(-1, {start(0) + 0.005, start(1), (double)Config::N / 2}, NodeType::NONE);
+            static Node b(-1, {start(0) + 0.01, start(1), (double)Config::N}, NodeType::NONE); // Small forward deviation to make the path valid
 
             // Create a path
             std::vector<Node *> nodes;
@@ -237,7 +237,7 @@ namespace GuidancePlanner
         tk::spline y_;
         tk::spline t_;
 
-        HomotopyConfig *config_;
+        Config *config_;
         int num_points_;
 
         Eigen::Vector2d previous_velocity_, current_velocity_;

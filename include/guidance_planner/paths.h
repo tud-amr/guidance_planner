@@ -253,7 +253,7 @@ private:
       cur_node = nodes_[i];
 
       // Aggregate the distances from node to node and save them in aggregated distances
-      cur_dist += cur_node->DistanceTo(*prev_node, HomotopyConfig::DT); // Note: Time scaled
+      cur_dist += cur_node->DistanceTo(*prev_node, Config::DT); // Note: Time scaled
       aggregated_distances_.push_back(cur_dist);
 
       prev_node = cur_node;

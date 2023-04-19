@@ -2,7 +2,7 @@
 
 using namespace GuidancePlanner;
 
-CubicSpline3D::CubicSpline3D(const GeometricPath &path, HomotopyConfig *config, const Eigen::Vector2d &current_velocity)
+CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Eigen::Vector2d &current_velocity)
     : id_(path.association_.id_), config_(config), current_velocity_(current_velocity)
 {
   // Convert the path in 3D to a 2D trajectory
@@ -46,14 +46,14 @@ void CubicSpline3D::ConvertToTrajectory(const GeometricPath &path)
 {
 
   // Initialize control points from [1 - N-1]
-  control_points_ = ControlPoints(config_->num_points_ - 2); // First point is the start / last the end // HomotopyConfig::N - 1);
+  control_points_ = ControlPoints(config_->num_points_ - 2); // First point is the start / last the end // Config::N - 1);
   // control_points_ = ControlPoints(path.nodes_.size() - 2); // config_->num_points_ - 2); // First point is the start / last the end //
-  // HomotopyConfig::N - 1);
+  // Config::N - 1);
 
   // Add the start (Point at k = 0!)
   control_points_.PadStart(path(0.));
 
-  Eigen::ArrayXd sampled_k = Eigen::ArrayXd::LinSpaced(config_->num_points_, 0., HomotopyConfig::N);
+  Eigen::ArrayXd sampled_k = Eigen::ArrayXd::LinSpaced(config_->num_points_, 0., Config::N);
 
   // Eigen::ArrayXd sampled_k = Eigen::ArrayXd::Zero(path.nodes_.size());
   // for (int k = 0; k < sampled_k.rows(); k++)
@@ -235,7 +235,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
       {
         // Index 1 - N
         Eigen::Vector2d obstacle_pos =
-            obstacle.positions_[std::round(control_points_.GetTime(i) / HomotopyConfig::DT)]; // std::round(control_points_(2, i))];
+            obstacle.positions_[std::round(control_points_.GetTime(i) / Config::DT)]; // std::round(control_points_(2, i))];
         Eigen::Vector2d control_pos = control_points_.GetPoint(i);
 
         // Compute the distance to the obstacle
@@ -290,7 +290,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
     for (int i = 0; i < control_points_.NumPoints(); i++)
     {
       Eigen::Vector2d cur_point = control_points_.GetPoint(i);
-      int k = std::round(control_points_.GetTime(i) / HomotopyConfig::DT);
+      int k = std::round(control_points_.GetTime(i) / Config::DT);
 
       for (auto &obstacle : obstacles)
       {
@@ -345,84 +345,84 @@ Eigen::MatrixXd CubicSpline3D::ComputeVelocitySplinePoints()
   // Normalize the velocities and multiply them with the reference velocity
   for (int i = 0; i < velocity_control_points_.cols(); i++)
     velocity_control_points_.col(i) =
-        velocity_control_points_.col(i).normalized().array() * HomotopyConfig::reference_velocity_; /** @todo input vref */
+        velocity_control_points_.col(i).normalized().array() * Config::reference_velocity_; /** @todo input vref */
 
   // SMOOTHNESS //
-  if (config_->smoothen_velocity_)
-  {
-    Eigen::MatrixXd H_s = Eigen::MatrixXd::Zero(2 * velocity_control_points_.cols(), 2 * velocity_control_points_.cols());
-    Eigen::VectorXd f_s;
+  // if (config_->smoothen_velocity_)
+  // {
+  //   Eigen::MatrixXd H_s = Eigen::MatrixXd::Zero(2 * velocity_control_points_.cols(), 2 * velocity_control_points_.cols());
+  //   Eigen::VectorXd f_s;
 
-    Eigen::MatrixXd M1 = Eigen::MatrixXd::Zero(2 * 2, velocity_control_points_.cols() * 2); // Start, 2 = num of not optimized points at the sides
-    Eigen::MatrixXd M3 = Eigen::MatrixXd::Zero(2 * 2, velocity_control_points_.cols() * 2); // End
-    for (int diag_id = 0; diag_id < velocity_control_points_.cols() && diag_id < 3; diag_id++)
-    {
-      double val;
-      switch (diag_id)
-      {
-      case 0:
-        val = 6;
-        break;
-      case 1:
-        val = -4;
-        break;
-      case 2:
-        val = 1;
-        break;
-      }
+  //   Eigen::MatrixXd M1 = Eigen::MatrixXd::Zero(2 * 2, velocity_control_points_.cols() * 2); // Start, 2 = num of not optimized points at the sides
+  //   Eigen::MatrixXd M3 = Eigen::MatrixXd::Zero(2 * 2, velocity_control_points_.cols() * 2); // End
+  //   for (int diag_id = 0; diag_id < velocity_control_points_.cols() && diag_id < 3; diag_id++)
+  //   {
+  //     double val;
+  //     switch (diag_id)
+  //     {
+  //     case 0:
+  //       val = 6;
+  //       break;
+  //     case 1:
+  //       val = -4;
+  //       break;
+  //     case 2:
+  //       val = 1;
+  //       break;
+  //     }
 
-      // Set each value along the selected diagonal
-      for (int j = 0; j < H_s.rows() - diag_id * 2; j++)
-      {
-        H_s(j + diag_id * 2, j) = val;   // Set the lower diagonal
-        if (diag_id > 0)                 // For diag_id == 0, lower = upper
-          H_s(j, j + diag_id * 2) = val; // Set the upper diagonal
-      }
+  //     // Set each value along the selected diagonal
+  //     for (int j = 0; j < H_s.rows() - diag_id * 2; j++)
+  //     {
+  //       H_s(j + diag_id * 2, j) = val;   // Set the lower diagonal
+  //       if (diag_id > 0)                 // For diag_id == 0, lower = upper
+  //         H_s(j, j + diag_id * 2) = val; // Set the upper diagonal
+  //     }
 
-      if (diag_id >= 2)
-        continue;
+  //     if (diag_id >= 2)
+  //       continue;
 
-      double f_val;
-      switch (diag_id)
-      {
-      case 0:
-        f_val = 1;
-        break;
-      case 1:
-        f_val = -4;
-        break;
-      }
+  //     double f_val;
+  //     switch (diag_id)
+  //     {
+  //     case 0:
+  //       f_val = 1;
+  //       break;
+  //     case 1:
+  //       f_val = -4;
+  //       break;
+  //     }
 
-      for (int j = 0; j < M1.rows() - diag_id * 2; j++)
-      {
-        M1(j + diag_id * 2, j) = f_val;
-        M3(j, M3.cols() - 2 * 2 + j + diag_id * 2) = f_val;
-      }
-    }
+  //     for (int j = 0; j < M1.rows() - diag_id * 2; j++)
+  //     {
+  //       M1(j + diag_id * 2, j) = f_val;
+  //       M3(j, M3.cols() - 2 * 2 + j + diag_id * 2) = f_val;
+  //     }
+  //   }
 
-    // Construct f from the padded points on both sides of the spline
-    Eigen::VectorXd start, end;
+  //   // Construct f from the padded points on both sides of the spline
+  //   Eigen::VectorXd start, end;
 
-    // First velocity, twice
-    start = Eigen::VectorXd(4);
-    start << previous_velocity_(0), previous_velocity_(1), previous_velocity_(0),
-        previous_velocity_(1); // velocity_control_points_(0, 0), velocity_control_points_(1, 0);
+  //   // First velocity, twice
+  //   start = Eigen::VectorXd(4);
+  //   start << previous_velocity_(0), previous_velocity_(1), previous_velocity_(0),
+  //       previous_velocity_(1); // velocity_control_points_(0, 0), velocity_control_points_(1, 0);
 
-    // Last velocity, twice
-    end = Eigen::VectorXd(4);
-    end << velocity_control_points_.rightCols(1)(0), velocity_control_points_.rightCols(1)(1), velocity_control_points_.rightCols(1)(0),
-        velocity_control_points_.rightCols(1)(1);
+  //   // Last velocity, twice
+  //   end = Eigen::VectorXd(4);
+  //   end << velocity_control_points_.rightCols(1)(0), velocity_control_points_.rightCols(1)(1), velocity_control_points_.rightCols(1)(0),
+  //       velocity_control_points_.rightCols(1)(1);
 
-    f_s = start.transpose() * M1;
-    f_s += end.transpose() * M3;
+  //   f_s = start.transpose() * M1;
+  //   f_s += end.transpose() * M3;
 
-    // SOLVE //
-    // Unconstrained QP analytic solution
-    Eigen::VectorXd new_points_vectorized = -H_s.inverse() * f_s;
-    // Convert vector back to matrix format
-    for (int i = 0; i < velocity_control_points_.cols(); i++)
-      velocity_control_points_.block<2, 1>(0, i) = new_points_vectorized.block(i * 2, 0, 2, 1);
-  }
+  //   // SOLVE //
+  //   // Unconstrained QP analytic solution
+  //   Eigen::VectorXd new_points_vectorized = -H_s.inverse() * f_s;
+  //   // Convert vector back to matrix format
+  //   for (int i = 0; i < velocity_control_points_.cols(); i++)
+  //     velocity_control_points_.block<2, 1>(0, i) = new_points_vectorized.block(i * 2, 0, 2, 1);
+  // }
 
   // DONE //
   // We construct a trajectory that follows the reference velocity
@@ -545,8 +545,8 @@ double CubicSpline3D::WeightVelocity()
   {
     double cur_velocity = trajectory_spline_->GetVelocity(t_sampled[i]).norm();
 
-    result += (HomotopyConfig::reference_velocity_ - cur_velocity) *
-              (HomotopyConfig::reference_velocity_ - cur_velocity); // Quadratic error w.r.t. the reference
+    result += (Config::reference_velocity_ - cur_velocity) *
+              (Config::reference_velocity_ - cur_velocity); // Quadratic error w.r.t. the reference
   }
 
   // Average the error over the number of evaluations

@@ -7,7 +7,7 @@ GlobalGuidance::~GlobalGuidance() {}
 GlobalGuidance::GlobalGuidance()
 {
   PRM_LOG("Initializing Global Guidance");
-  config_.reset(new HomotopyConfig());
+  config_.reset(new Config());
   prm_.Init(nh_, config_.get());
 
   /* Initialize visuals */
@@ -52,9 +52,9 @@ void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<Cubi
   int vert_start = std::floor((double)grid_vert / 2.);
 
   double s_start = spline_start;
-  double s_best = s_start + HomotopyConfig::DT * (double)HomotopyConfig::N * config_->reference_velocity_;
+  double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
   double s_step = (s_best - s_start) / ((double)grid_long - 1.); // -1 for starting at 0
-  LMPCC_ASSERT(s_step > 0.05, "Goals should have some spacing between them (HomotopyConfig::reference_velocity_ should not be zero)");
+  LMPCC_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
   double width = 4.0;
   double v_step = width / ((double)(grid_vert - 1));
@@ -109,7 +109,7 @@ bool GlobalGuidance::Update()
 
   /* Verify validity of input data */
   for (auto &obstacle : obstacles_) // Dynamic obstacles
-    LMPCC_ASSERT((int)obstacle.positions_.size() >= HomotopyConfig::N + 1, "Obstacles should have their predictions populated from 0-N");
+    LMPCC_ASSERT((int)obstacle.positions_.size() >= Config::N + 1, "Obstacles should have their predictions populated from 0-N");
 
   PRM_LOG("======== PRM ==========");
 
@@ -412,8 +412,8 @@ void GlobalGuidance::Reset()
 
   for (auto &obstacle : obstacles_) // Ensure that the obstacles have long enough predictions
   {
-    obstacle.positions_.resize(HomotopyConfig::N + 1);
-    for (int k = 0; k <= HomotopyConfig::N; k++)
+    obstacle.positions_.resize(Config::N + 1);
+    for (int k = 0; k <= Config::N; k++)
       obstacle.positions_[k] = Eigen::Vector2d(100., 100.);
 
     obstacle.radius_ = 0.;
@@ -506,20 +506,20 @@ void GlobalGuidance::VisualizeObstacles()
   int j = 0;
   for (auto &obstacle : obstacles_)
   {
-    disc.setScale(obstacle.radius_ * 2., obstacle.radius_ * 2., HomotopyConfig::DT);
-    for (int k = 0; k < HomotopyConfig::N; k++)
+    disc.setScale(obstacle.radius_ * 2., obstacle.radius_ * 2., Config::DT);
+    for (int k = 0; k < Config::N; k++)
     {
       // Transparent
-      disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(HomotopyConfig::N - k)) / (double)HomotopyConfig::N, 2.), Colormap::BRUNO);
-      // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(HomotopyConfig::N - k)) /
-      // (double)HomotopyConfig::N, 2.), Colormap::BRUNO);
+      disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), Colormap::BRUNO);
+      // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) /
+      // (double)Config::N, 2.), Colormap::BRUNO);
 
       // Largely non-transparent
       //   disc.setColorInt(j, obstacles_.size(),
-      //                    0.75 * std::pow(((double)(HomotopyConfig::N - k)) / (double)HomotopyConfig::N, 2.),
+      //                    0.75 * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.),
       //                    Colormap::BRUNO);
 
-      disc.addPointMarker(Eigen::Vector3d(obstacle.positions_[k](0), obstacle.positions_[k](1), (float)k * HomotopyConfig::DT));
+      disc.addPointMarker(Eigen::Vector3d(obstacle.positions_[k](0), obstacle.positions_[k](1), (float)k * Config::DT));
     }
 
     j++;
@@ -644,7 +644,7 @@ void GlobalGuidance::ReconfigureCallback(GuidancePlanner::GuidancePlannerConfig 
   {
     first_reconfigure_callback_ = false;
 
-    config.debug = HomotopyConfig::debug_output_;
+    config.debug = Config::debug_output_;
 
     config.n_paths = config_->n_paths_;
     config.n_samples = config_->n_samples_;
@@ -656,7 +656,7 @@ void GlobalGuidance::ReconfigureCallback(GuidancePlanner::GuidancePlannerConfig 
     config.spline_consistency = config_->selection_weight_consistency_;
   }
 
-  HomotopyConfig::debug_output_ = config.debug;
+  Config::debug_output_ = config.debug;
 
   config_->n_paths_ = config.n_paths;
   config_->n_samples_ = config.n_samples;

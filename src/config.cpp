@@ -1,26 +1,26 @@
-#include <guidance_planner/homotopy_config.h>
+#include <guidance_planner/config.h>
 
 namespace GuidancePlanner{
 // Need to be initialized outside of a member function
-bool HomotopyConfig::debug_output_ = false;
-double HomotopyConfig::DT = 0.0;
-double HomotopyConfig::CONTROL_DT = 0.0;
-int HomotopyConfig::N = 20;
-double HomotopyConfig::reference_velocity_ = 2.0; // Is updated based on rqt_reconfigure
+bool Config::debug_output_ = false;
+double Config::DT = 0.0;
+double Config::CONTROL_DT = 0.0;
+int Config::N = 20;
+double Config::reference_velocity_ = 2.0; // Is updated based on rqt_reconfigure
 
-HomotopyConfig::HomotopyConfig()
+Config::Config()
 {
   ros::NodeHandle nh;
 
-  retrieveParameter(nh, "prm/debug_output", HomotopyConfig::debug_output_);
+  retrieveParameter(nh, "prm/debug_output", Config::debug_output_);
 
   // High-level settings
   retrieveParameter(nh, "prm/T", T_);
-  retrieveParameter(nh, "prm/N", HomotopyConfig::N);
-  HomotopyConfig::DT = T_ / (double)HomotopyConfig::N;
+  retrieveParameter(nh, "prm/N", Config::N);
+  Config::DT = T_ / (double)Config::N;
 
-  retrieveParameter(nh, "clock_frequency", HomotopyConfig::CONTROL_DT); // NOTE: from LMPCC
-  HomotopyConfig::CONTROL_DT = 1. / HomotopyConfig::CONTROL_DT;         // dt = 1 / Hz
+  retrieveParameter(nh, "clock_frequency", Config::CONTROL_DT); // NOTE: from LMPCC
+  Config::CONTROL_DT = 1. / Config::CONTROL_DT;         // dt = 1 / Hz
 
   retrieveParameter(nh, "prm/seed", seed_);
   retrieveParameter(nh, "prm/n_samples", n_samples_);

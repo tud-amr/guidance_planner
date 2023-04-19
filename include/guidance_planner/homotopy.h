@@ -9,7 +9,7 @@
 #include <thread>
 #include <vector>
 
-#include <guidance_planner/homotopy_config.h>
+#include <guidance_planner/config.h>
 
 #include <lmpcc_tools/helpers.h>
 #include <lmpcc_tools/ros_visuals.h>
@@ -18,7 +18,7 @@
 #define PRM_LOGGING_ENABLED 1
 #if PRM_LOGGING_ENABLED == 1
 #define PRM_LOG(msg)                                                                                                                                 \
-  if (HomotopyConfig::debug_output_)                                                                                                                 \
+  if (Config::debug_output_)                                                                                                                 \
   {                                                                                                                                                  \
     ROS_INFO_STREAM("[PRM]: " << msg);                                                                                                               \
   }
@@ -93,7 +93,7 @@ struct SpaceTimePoint
   double Time() const { return vec(2); }
 
   // Const version (scale this vectors time axis with DT), i.e., map to time in seconds
-  Eigen::Vector3d MapToTime() const { return Eigen::Vector3d(vec(0), vec(1), vec(2) * HomotopyConfig::DT); }
+  Eigen::Vector3d MapToTime() const { return Eigen::Vector3d(vec(0), vec(1), vec(2) * Config::DT); }
 
   double operator()(int i) const { return vec(i); }
 
@@ -221,14 +221,14 @@ struct Goal
 class Graph
 {
 public:
-  Graph(HomotopyConfig *config) : config_(config) {}
+  Graph(Config *config) : config_(config) {}
 
   Graph(const Graph &other) = delete; // No copying allowed
 
 public:
   Node *start_node_;
   std::vector<Node *> goal_nodes_;
-  HomotopyConfig *config_;
+  Config *config_;
 
   /** @brief Initialize the graph with a start and goal */
   void Initialize(const Eigen::Vector2d &start, const Eigen::Vector2d &goal) // To PRM?
@@ -237,7 +237,7 @@ public:
     start_node_ = &nodes_.back();
 
     goal_nodes_.clear();
-    nodes_.emplace_back(-2, SpaceTimePoint(goal(0), goal(1), HomotopyConfig::N), NodeType::GUARD); // Add goal
+    nodes_.emplace_back(-2, SpaceTimePoint(goal(0), goal(1), Config::N), NodeType::GUARD); // Add goal
     goal_nodes_.push_back(&nodes_.back());
   }
 
@@ -250,7 +250,7 @@ public:
     goal_nodes_.clear();
     for (auto &goal : goals) // Create multiple goals
     {
-      nodes_.emplace_back(-(int)goal_nodes_.size() - 2, SpaceTimePoint(goal.pos(0), goal.pos(1), HomotopyConfig::N), NodeType::GOAL); // Add goal
+      nodes_.emplace_back(-(int)goal_nodes_.size() - 2, SpaceTimePoint(goal.pos(0), goal.pos(1), Config::N), NodeType::GOAL); // Add goal
       goal_nodes_.push_back(&nodes_.back());
       goal.node = &nodes_.back();
     }

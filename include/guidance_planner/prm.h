@@ -20,7 +20,7 @@
 #include <guidance_planner/cubic_spline.h>
 #include <guidance_planner/environment.h>
 #include <guidance_planner/graph_search.h>
-#include <guidance_planner/homotopy_config.h>
+#include <guidance_planner/config.h>
 #include <guidance_planner/paths.h>
 
 #include <guidance_planner/homology.h>
@@ -36,7 +36,7 @@ class PRM
 
 public:
   PRM();
-  void Init(ros::NodeHandle &nh, HomotopyConfig *config);
+  void Init(ros::NodeHandle &nh, Config *config);
 
   ~PRM();
 
@@ -76,8 +76,8 @@ public:
 
 private:
   // ros::NodeHandle nh_;
-  // std::unique_ptr<HomotopyConfig> config_;
-  HomotopyConfig *config_;
+  // std::unique_ptr<Config> config_;
+  Config *config_;
   std::unique_ptr<TopologyComparison> topology_comparison_;
 
   // Classes for visualization

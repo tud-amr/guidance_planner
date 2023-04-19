@@ -50,7 +50,7 @@ add_library(guidance_planner
     src/prm.cpp
     src/environment.cpp
     src/graph_search.cpp
-    src/homotopy_config.cpp
+    src/config.cpp
     src/homology.cpp
     src/third_party/spline.cpp
     src/cubic_spline.cpp
@@ -58,17 +58,17 @@ add_library(guidance_planner
 add_dependencies(guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
-add_executable(test_guidance_planner
-  src/test_guidance_planner.cpp
+add_executable(example
+  src/example.cpp
 )
 
-target_link_libraries(test_guidance_planner
+target_link_libraries(example
   guidance_planner
   ${catkin_LIBRARIES}
   ${gsl_LIBRARIES}
 )
 
-add_dependencies(test_guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 
@@ -76,7 +76,7 @@ add_dependencies(test_guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${cat
 # # Install ##
 # ############
 install(
-  TARGETS test_guidance_planner
+  TARGETS example
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )

@@ -15,13 +15,13 @@
 #include <ros/ros.h>
 namespace GuidancePlanner
 {
-class HomotopyConfig
+class Config
 {
 
 public:
-  HomotopyConfig();
+  Config();
 
-  HomotopyConfig(const HomotopyConfig &other) = delete;
+  Config(const Config &other) = delete;
 
   /************ CONFIGURATION VARIABLES **************/
 
