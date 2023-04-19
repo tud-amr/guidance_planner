@@ -2,26 +2,33 @@
 
 namespace GuidancePlanner
 {
-GlobalGuidance::~GlobalGuidance() {}
+GlobalGuidance::~GlobalGuidance() {
+  RosTools::Instrumentor::Get().EndSession();
+
+}
 
 GlobalGuidance::GlobalGuidance()
 {
   PRM_LOG("Initializing Global Guidance");
+
+  // Initialize profiling
+  RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
+
   config_.reset(new Config());
   prm_.Init(nh_, config_.get());
 
   /* Initialize visuals */
-  ros_visuals_.reset(new ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_trajectories", "map", 500));
-  ros_bspline_visuals_.reset(new ROSMarkerPublisher(nh_, "lmpcc/homotopy/spline_points", "map", 200));
-  ros_selected_visuals_.reset(new ROSMarkerPublisher(nh_, "lmpcc/homotopy/selected_guidance", "map", 200));
-  ros_guidance_path_visuals_.reset(new ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_path", "map", 200));
-  ros_obstacle_visuals_.reset(new ROSMarkerPublisher(nh_, "lmpcc/homotopy/obstacles_3d", "map", 200));
-  ros_path_visuals_.reset(new ROSMarkerPublisher(nh_, "lmpcc/homotopy/geometric_paths", "map", 200));
+  ros_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_trajectories", "map", 500));
+  ros_bspline_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/spline_points", "map", 200));
+  ros_selected_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/selected_guidance", "map", 200));
+  ros_guidance_path_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_path", "map", 200));
+  ros_obstacle_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/obstacles_3d", "map", 200));
+  ros_path_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/geometric_paths", "map", 200));
 
   /* Initialize benchmarkers for debugging purposes */
-  benchmarkers_.push_back(std::unique_ptr<Helpers::Benchmarker>(new Helpers::Benchmarker("Guidance Planner", false, 0)));
-  benchmarkers_.push_back(std::unique_ptr<Helpers::Benchmarker>(new Helpers::Benchmarker("Visibility-PRM", false, 0)));
-  benchmarkers_.push_back(std::unique_ptr<Helpers::Benchmarker>(new Helpers::Benchmarker("Path Search", false, 0)));
+  benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Guidance Planner", false, 0)));
+  benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Visibility-PRM", false, 0)));
+  benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Path Search", false, 0)));
 
   // thread_pool_.reset(new ThreadPool(1));
 
@@ -39,7 +46,7 @@ void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles,  cons
 
 void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<CubicSpline2D<tk::spline>> &reference_path)
 {
-  LMPCC_INFO("Global Guidance: Loading Reference Path and Setting Goal Locations");
+  ROS_INFO("Global Guidance: Loading Reference Path and Setting Goal Locations");
 
   assert(!goals_set_); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
   goals_set_ = true;
@@ -48,13 +55,13 @@ void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<Cubi
   int grid_long = config_->longitudinal_goals_;
   int grid_vert = config_->vertical_goals_;
 
-  LMPCC_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
+  ROSTOOLS_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
   int vert_start = std::floor((double)grid_vert / 2.);
 
   double s_start = spline_start;
   double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
   double s_step = (s_best - s_start) / ((double)grid_long - 1.); // -1 for starting at 0
-  LMPCC_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
+  ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
   double width = 4.0;
   double v_step = width / ((double)(grid_vert - 1));
@@ -109,7 +116,7 @@ bool GlobalGuidance::Update()
 
   /* Verify validity of input data */
   for (auto &obstacle : obstacles_) // Dynamic obstacles
-    LMPCC_ASSERT((int)obstacle.positions_.size() >= Config::N + 1, "Obstacles should have their predictions populated from 0-N");
+    ROSTOOLS_ASSERT((int)obstacle.positions_.size() >= Config::N + 1, "Obstacles should have their predictions populated from 0-N");
 
   PRM_LOG("======== PRM ==========");
 
@@ -225,7 +232,7 @@ void GlobalGuidance::AssignIDsToKnownPaths(std::vector<int> &available_ids)
 {
   for (auto &path : paths_)
   {
-    LMPCC_ASSERT(path.association_.AllSegmentsAssigned(),
+    ROSTOOLS_ASSERT(path.association_.AllSegmentsAssigned(),
                  "A segment in this path was missing a segment ID"); // By construction all segments should have an ID
     for (auto &previous_path_assocation : known_paths_)
     {
@@ -237,7 +244,7 @@ void GlobalGuidance::AssignIDsToKnownPaths(std::vector<int> &available_ids)
 
         auto iterator_at_available_id = std::find(available_ids.begin(), available_ids.end(),
                                                   path.association_.id_); // Should be updated after erasing
-        LMPCC_ASSERT(iterator_at_available_id != std::end(available_ids),
+        ROSTOOLS_ASSERT(iterator_at_available_id != std::end(available_ids),
                      "When assigning path IDs, an ID was assigned twice"); // This ID must still be available
 
         available_ids.erase(iterator_at_available_id); // The ID is not available anymore
@@ -426,7 +433,7 @@ void GlobalGuidance::Reset()
 CubicSpline3D &GlobalGuidance::GetGuidanceTrajectory(int spline_id)
 {
   if (spline_id >= (int)splines_.size())
-    LMPCC_WARN("Trying to retrieve a spline that does not exist!");
+    ROS_WARN("Trying to retrieve a spline that does not exist!");
 
   if (splines_.size() == 0) // selected_spline_ == nullptr) // If there is no spline - we return an "empty" trajectory
                             // to be able to keep running
@@ -463,7 +470,7 @@ void GlobalGuidance::Visualize()
 void GlobalGuidance::VisualizeGeometricPaths()
 {
   // Geometric Paths
-  ROSLine &path_line = ros_path_visuals_->getNewLine();
+  RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
   path_line.setScale(0.15, 0.15, 0.15);
 
   for (auto &path : paths_)
@@ -500,7 +507,7 @@ void GlobalGuidance::VisualizeSplinePoints()
 
 void GlobalGuidance::VisualizeObstacles()
 {
-  ROSPointMarker &disc = ros_obstacle_visuals_->getNewPointMarker("CYLINDER");
+  RosTools::ROSPointMarker &disc = ros_obstacle_visuals_->getNewPointMarker("CYLINDER");
 
   // Visualize the obstacles
   int j = 0;
@@ -510,7 +517,7 @@ void GlobalGuidance::VisualizeObstacles()
     for (int k = 0; k < Config::N; k++)
     {
       // Transparent
-      disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), Colormap::BRUNO);
+      disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), RosTools::Colormap::BRUNO);
       // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) /
       // (double)Config::N, 2.), Colormap::BRUNO);
 
@@ -530,16 +537,16 @@ void GlobalGuidance::VisualizeObstacles()
 void GlobalGuidance::VisualizeTrajectories()
 {
   // Trajectories
-  ROSLine &selected_line = ros_selected_visuals_->getNewLine();
+  RosTools::ROSLine &selected_line = ros_selected_visuals_->getNewLine();
   selected_line.setScale(0.25, 0.25);
 
-  ROSLine &line = ros_visuals_->getNewLine();
+  RosTools::ROSLine &line = ros_visuals_->getNewLine();
   line.setScale(0.3, 0.3);
 
-  ROSPointMarker trajectory_spheres = ros_visuals_->getNewPointMarker("SPHERE");
+  RosTools::ROSPointMarker trajectory_spheres = ros_visuals_->getNewPointMarker("SPHERE");
   trajectory_spheres.setScale(0.20, 0.20, 0.20);
 
-  ROSTextMarker text_marker = ros_visuals_->getNewTextMarker();
+  RosTools::ROSTextMarker text_marker = ros_visuals_->getNewTextMarker();
   text_marker.setScale(1.0);
 
   bool visualize_trajectory_spheres = false;
@@ -565,14 +572,14 @@ void GlobalGuidance::VisualizeTrajectories()
         if (spline.id_ == selected_id_) // highlight the selected spline
         {
           // selected_line.setColorInt(spline.id_, config_->n_paths_, 1.0);
-          selected_line.setColorInt(2.0, 1.0, Colormap::BRUNO);
+          selected_line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
           selected_line.addLine(prev_vec, cur_vec);
           // line.addLine(prev_vec, cur_vec); // Also add a regular line
 
           if (visualize_trajectory_spheres && j % 10 == 0)
             trajectory_spheres.addPointMarker(cur_vec);
 
-          text_marker.setColorInt(2.0, 1.0, Colormap::BRUNO);
+          text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
         }
         else
         {
@@ -601,7 +608,7 @@ void GlobalGuidance::VisualizeDebug()
   if (splines_.size() != 0)
   {
     // VISUALIZE THE USED PART OF THE SPLINE //
-    ROSLine &guidance_path = ros_guidance_path_visuals_->getNewLine();
+    RosTools::ROSLine &guidance_path = ros_guidance_path_visuals_->getNewLine();
 
     if (splines_.size() > 0)
     {
@@ -623,7 +630,7 @@ void GlobalGuidance::VisualizeDebug()
 
         for (double t = start_segment + step; t <= end_segment; t += step)
         {
-          guidance_path.addLine(Helpers::AsVector3d(selected_spline.GetPoint(t), 0.1), Helpers::AsVector3d(selected_spline.GetPoint(t - step), 0.1));
+          guidance_path.addLine(RosTools::AsVector3d(selected_spline.GetPoint(t), 0.1), RosTools::AsVector3d(selected_spline.GetPoint(t - step), 0.1));
         }
       }
     }
@@ -632,7 +639,7 @@ void GlobalGuidance::VisualizeDebug()
   ros_guidance_path_visuals_->publish();
 }
 
-void GlobalGuidance::ExportData(DataSaver &data_saver) // Export data for analysis
+void GlobalGuidance::ExportData(RosTools::DataSaver &data_saver) // Export data for analysis
 {
   data_saver.AddData("n_paths", paths_.size());
 }

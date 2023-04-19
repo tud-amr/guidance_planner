@@ -20,7 +20,7 @@
 
 #include <third_party/spline.h>
 
-#include <lmpcc_tools/helpers.h>
+#include <ros_tools/helpers.h>
 
 #include <boost/bind.hpp>
 
@@ -52,7 +52,7 @@ struct Path
     {
         x_.push_back(pose.position.x);
         y_.push_back(pose.position.y);
-        psi_.push_back(Helpers::quaternionToAngle(pose));
+        psi_.push_back(RosTools::quaternionToAngle(pose));
     }
 
     void Clear()

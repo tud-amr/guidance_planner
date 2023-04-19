@@ -1,5 +1,6 @@
 #include "guidance_planner/prm.h"
 
+
 namespace GuidancePlanner
 {
 
@@ -11,11 +12,11 @@ void PRM::Init(ros::NodeHandle &nh, Config *config)
 {
   config_ = config;
 
-  ros_sample_visuals_.reset(new ROSMarkerPublisher(nh, "lmpcc/homotopy/all_samples", "map", 500));
-  ros_graph_visuals_.reset(new ROSMarkerPublisher(nh, "lmpcc/homotopy/graph", "map", 200));
-  ros_segment_visuals_.reset(new ROSMarkerPublisher(nh, "lmpcc/homotopy/segment_ids", "map", 200));
+  ros_sample_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/all_samples", "map", 500));
+  ros_graph_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/graph", "map", 200));
+  ros_segment_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/segment_ids", "map", 200));
 
-  debug_visuals_.reset(new ROSMarkerPublisher(nh, "lmpcc/homotopy/debug", "map", 200));
+  debug_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/debug", "map", 200));
 
   graph_.reset(new Graph(config));
   environment_.Init();
@@ -23,7 +24,7 @@ void PRM::Init(ros::NodeHandle &nh, Config *config)
   samples_.resize(config_->n_samples_);
   sample_succes_.resize(config_->n_samples_);
 
-  random_generator_ = Helpers::RandomGenerator(config_->seed_);
+  random_generator_ = RosTools::RandomGenerator(config_->seed_);
 
   if (config_->topology_comparison_function_ == "UVD")
   {
@@ -33,7 +34,7 @@ void PRM::Init(ros::NodeHandle &nh, Config *config)
   {
     topology_comparison_.reset(new Homology());
   }
-  debug_benchmarker_ = Helpers::Benchmarker("Homology Comparison");
+  debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
   done_ = false;
 }
@@ -112,7 +113,7 @@ Graph &PRM::Update()
 
   next_segment_id_ = -1;
 
-  Helpers::TriggeredTimer prm_timer(config_->timeout_ / 1000.);
+  RosTools::TriggeredTimer prm_timer(config_->timeout_ / 1000.);
   prm_timer.start();
 
   // Resize, because the number of samples may have been changed
@@ -329,7 +330,7 @@ void PRM::AddSample(int i, SpaceTimePoint &sample, const std::vector<Node *> gua
   bool path_is_distinct = true;
   for (auto &neighbour : shared_neighbours)
   {
-    LMPCC_ASSERT(neighbour->type_ == NodeType::CONNECTOR, "Shared neighbours should not be guards");
+    ROSTOOLS_ASSERT(neighbour->type_ == NodeType::CONNECTOR, "Shared neighbours should not be guards");
     other_path = GeometricPath({guards[0], neighbour, guards[1]});
 
     if (AreHomotopicEquivalent(new_path, other_path))
@@ -437,7 +438,7 @@ void PRM::PropagateNode(const Node &node, const GeometricPath *path)
             break;
           }
         }
-        LMPCC_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
+        ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
 
         auto &next_node = path->nodes_[first_node_id];
 
@@ -512,7 +513,7 @@ SpaceTimePoint PRM::SampleNewPoint()
     double max_velocity = config_->max_velocity_;
     double max_acceleration = config_->max_acceleration_;
 
-    double maximum_radius = Helpers::dist(start_, goals_.back().pos);
+    double maximum_radius = RosTools::dist(start_, goals_.back().pos);
 
     // Find the maximum distance where a node can spawn for the randomly sampled k
     double min_vel = start_velocity;
@@ -578,7 +579,7 @@ SpaceTimePoint PRM::SampleNewPoint()
 
     // Translate and rotate to match the real data
   }
-  Eigen::MatrixXd R = Helpers::rotationMatrixFromHeading(-orientation_);
+  Eigen::MatrixXd R = RosTools::rotationMatrixFromHeading(-orientation_);
   new_sample.SetPos(start_ + /*R * */ new_sample.Pos());
 
   return new_sample;
@@ -680,9 +681,9 @@ void PRM::AddGuard(int i, SpaceTimePoint &sample)
 
 bool PRM::AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b)
 {
-  debug_benchmarker_.start();
+  debug_benchmarker_->start();
   bool homology_result = topology_comparison_->AreEquivalent(a, b, environment_);
-  debug_benchmarker_.stop();
+  debug_benchmarker_->stop();
 
   return homology_result;
 }
@@ -694,8 +695,8 @@ bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePo
 
   // Connections must move forward in the "x" direction
   bool forward_connection =
-      Eigen::Vector2d(1., 0.).transpose() * Helpers::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
-      Eigen::Vector2d(1., 0.).transpose() * Helpers::rotationMatrixFromHeading(orientation_) * first_point.Pos(); //.Pos()(0) > first_point.Pos()(0);
+      Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
+      Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos(); //.Pos()(0) > first_point.Pos()(0);
   if (!forward_connection)
   {
     PRM_LOG("Connection does not move forward in time");
@@ -704,7 +705,7 @@ bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePo
   }
 
   // Connections have a limited velocity
-  double dist = Helpers::dist(first_point.Pos(), second_point.Pos());
+  double dist = RosTools::dist(first_point.Pos(), second_point.Pos());
   double vel = dist / ((double)std::abs(first_point.Time() - second_point.Time()) * Config::DT); // The average velocity of this connection
   bool vel_satisfies_limits = vel < config_->max_velocity_;
 
@@ -720,7 +721,7 @@ bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePo
 
 bool PRM::ConnectionIsValid(const GeometricPath &path)
 {
-  LMPCC_ASSERT(path.nodes_.size() == 3, "Paths must have 3 nodes to check the connection");
+  ROSTOOLS_ASSERT(path.nodes_.size() == 3, "Paths must have 3 nodes to check the connection");
 
   // First make sure that the connection times are causal
   const Node *start_node = path.nodes_[0];
@@ -746,7 +747,7 @@ bool PRM::ConnectionIsValid(const GeometricPath &path)
   //     if (passes_right[i])
   //     {
   //       auto &obstacle = environment_.GetDynamicObstacles()[i];
-  //       // if (Helpers::dist(obstacle.positions_[0], path.nodes_[0]->point_.Pos()) > 5.) // Only count if they are close (move this to prm)
+  //       // if (RosTools::dist(obstacle.positions_[0], path.nodes_[0]->point_.Pos()) > 5.) // Only count if they are close (move this to prm)
   //       // continue;
   //       double angle = std::atan2(obstacle.positions_[1](1) - obstacle.positions_[0](1), obstacle.positions_[1](0) -
   //       obstacle.positions_[0](0)); if (std::abs(angle) > M_PI_2) // Only if they are walking towards the robot?
@@ -865,7 +866,7 @@ void PRM::Reset()
 
   done_ = false;
   config_->seed_ += 1; // Keep the randomizer consistent for every experiment
-  random_generator_ = Helpers::RandomGenerator(config_->seed_);
+  random_generator_ = RosTools::RandomGenerator(config_->seed_);
 
   // Forget paths
   path_id_was_known_ = std::vector<bool>(config_->n_paths_, false);
@@ -886,21 +887,21 @@ void PRM::Visualize()
 void PRM::VisualizeGraph()
 {
   // NODES IN THE GRAPH - COLORED BY PATH / TYPE
-  ROSPointMarker &sphere = ros_graph_visuals_->getNewPointMarker("SPHERE");
+  RosTools::ROSPointMarker &sphere = ros_graph_visuals_->getNewPointMarker("SPHERE");
   sphere.setScale(0.3, 0.3, 0.3);
 
-  ROSLine &edge = ros_graph_visuals_->getNewLine();
+  RosTools::ROSLine &edge = ros_graph_visuals_->getNewLine();
   edge.setScale(0.1, 0.1);
   edge.setColor(0., 0., 0., 1.0);
 
-  ROSTextMarker &segment_text = ros_segment_visuals_->getNewTextMarker();
+  RosTools::ROSTextMarker &segment_text = ros_segment_visuals_->getNewTextMarker();
   segment_text.setScale(1.0);
 
   int num_guards = 0;
   int num_connectors = 0;
   for (auto &node : graph_->nodes_)
   {
-    LMPCC_ASSERT(node.type_ != NodeType::NONE, "Node type needs to be defined for all nodes.");
+    ROSTOOLS_ASSERT(node.type_ != NodeType::NONE, "Node type needs to be defined for all nodes.");
     if (node.type_ == NodeType::GUARD || node.type_ == NodeType::GOAL)
     {
       num_guards++;
@@ -950,7 +951,7 @@ void PRM::VisualizeAllSamples()
   // IF ENABLED, ALL PRM SAMPLES
   if (config_->visualize_all_samples_)
   {
-    ROSPointMarker &samples = ros_sample_visuals_->getNewPointMarker("SPHERE");
+    RosTools::ROSPointMarker &samples = ros_sample_visuals_->getNewPointMarker("SPHERE");
     samples.setScale(.15, .15, .15);
     samples.setColorInt(0);
 

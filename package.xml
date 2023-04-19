@@ -55,7 +55,7 @@
   <build_export_depend>std_msgs</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <depend>lmpcc_tools</depend>
+  <depend>ros_tools</depend>
   <depend>dynamic_reconfigure</depend>
 
 

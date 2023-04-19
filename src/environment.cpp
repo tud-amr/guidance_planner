@@ -115,7 +115,7 @@ bool Environment::InCollision(const SpaceTimePoint &point, double with_margin)
 
   for (auto &obstacle : cur_grid_obstacles)
   {
-    if (Helpers::dist(obstacle.position, point.Pos()) <
+    if (RosTools::dist(obstacle.position, point.Pos()) <
         obstacle.radius + with_margin) // Note that the obstacle positions at k = 0 is the initial state
       return true;
   }
@@ -151,7 +151,7 @@ bool Environment::IsVisible(const SpaceTimePoint &point_one, const SpaceTimePoin
 bool Environment::IsVisibleRayCast(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two)
 {
 
-  if (Helpers::dist(point_one.Pos(), point_two.Pos()) < 2. * dynamic_obstacles_[0].radius_)
+  if (RosTools::dist(point_one.Pos(), point_two.Pos()) < 2. * dynamic_obstacles_[0].radius_)
     return true;
 
   /** @note raycast implementation: scales with horizon length */

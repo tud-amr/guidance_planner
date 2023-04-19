@@ -140,7 +140,7 @@ struct GeometricPath
         break;
     }
 
-    return Helpers::InterpolateLinearly(aggregated_distances_[segment_idx], aggregated_distances_[segment_idx + 1], s, nodes_[segment_idx]->point_,
+    return RosTools::InterpolateLinearly(aggregated_distances_[segment_idx], aggregated_distances_[segment_idx + 1], s, nodes_[segment_idx]->point_,
                                         nodes_[segment_idx + 1]->point_);
   }
 
@@ -152,7 +152,7 @@ struct GeometricPath
     double length = 0.;
     for (size_t i = 1; i < nodes_.size(); i++)
     {
-      length += Helpers::dist(nodes_[i - 1]->point_.Pos(), nodes_[i]->point_.Pos()); // Length in 2D
+      length += RosTools::dist(nodes_[i - 1]->point_.Pos(), nodes_[i]->point_.Pos()); // Length in 2D
     }
 
     return length;
@@ -174,13 +174,13 @@ struct GeometricPath
    * better */
   double RelativeSmoothness() const
   {
-    return 1.0 - Helpers::dist(nodes_[0]->point_.Pos(), nodes_.back()->point_.Pos()) / Length3D(); // Between 0 and 1, higher costs are worse
+    return 1.0 - RosTools::dist(nodes_[0]->point_.Pos(), nodes_.back()->point_.Pos()) / Length3D(); // Between 0 and 1, higher costs are worse
   }
 
   double AverageVelocity() const
   {
     // 2D distance in a straight line, divided by time spend
-    return Helpers::dist(nodes_[0]->point_.Pos(), nodes_.back()->point_.Pos()) /
+    return RosTools::dist(nodes_[0]->point_.Pos(), nodes_.back()->point_.Pos()) /
            nodes_.back()->point_.MapToTime()(2); // Divide the length by the time
   }
 

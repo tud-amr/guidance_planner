@@ -6,8 +6,8 @@
 
 #include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
 
-#include <lmpcc_tools/helpers.h>
-#include <lmpcc_tools/ros_visuals.h>
+#include <ros_tools/helpers.h>
+#include <ros_tools/ros_visuals.h>
 
 #include <guidance_planner/cubic_spline.h>
 #include <guidance_planner/graph_search.h>
@@ -72,7 +72,7 @@ public:
   void Visualize();
 
   /** @brief Export data for external analysis */
-  void ExportData(DataSaver &data_saver);
+  void ExportData(RosTools::DataSaver &data_saver);
 
   Config *GetConfig() const { return config_.get(); };
 
@@ -84,13 +84,11 @@ private:
   std::unique_ptr<Config> config_; // Owns the configuration
 
   // Classes for visualization
-  std::unique_ptr<ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, ros_selected_visuals_, ros_obstacle_visuals_;
-  std::unique_ptr<ROSMarkerPublisher> ros_path_visuals_;
+  std::unique_ptr<RosTools::ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, ros_selected_visuals_, ros_obstacle_visuals_;
+  std::unique_ptr<RosTools::ROSMarkerPublisher> ros_path_visuals_;
 
   PRM prm_;
   GraphSearch graph_search_;
-
-  // Helpers::RandomGenerator random_generator_; // Used to generate samples
 
   std::vector<GeometricPath> paths_;   // Found using path search
   std::vector<CubicSpline3D> splines_; // Fitted B-Splines (list because referred to in selected splines) -> not necessary anymore!
@@ -115,7 +113,7 @@ private:
 
   // Debugging variables
   bool no_message_sent_yet_;
-  std::vector<std::unique_ptr<Helpers::Benchmarker>> benchmarkers_;
+  std::vector<std::unique_ptr<RosTools::Benchmarker>> benchmarkers_;
 
   /** @brief Check for all the paths if there are any unfollowable paths and remove them if necessary */
   void FilterPaths();

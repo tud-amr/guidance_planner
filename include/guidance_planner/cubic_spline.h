@@ -9,7 +9,7 @@
 #include <guidance_planner/paths.h>
 #include <guidance_planner/types.h>
 
-#include <lmpcc_tools/ros_visuals.h>
+#include <ros_tools/ros_visuals.h>
 
 #include <third_party/spline.h>
 
@@ -121,7 +121,7 @@ namespace GuidancePlanner
         // Get the time step
         double GetDeltaT() const
         {
-            // LMPCC_ASSERT(t_points_.size() > 1, "Delta T can only be computed if points are loaded");
+            // ROSTOOLS_ASSERT(t_points_.size() > 1, "Delta T can only be computed if points are loaded");
             // return t_points_[1] - t_points_[0];
             return t_points_[0] - t_start_[0];
         }
@@ -135,7 +135,7 @@ namespace GuidancePlanner
         // Pad the start of the control points
         void PadStart(const SpaceTimePoint &start_padding)
         {
-            LMPCC_ASSERT(t_start_.size() == 0, "Only one start padding is supported");
+            ROSTOOLS_ASSERT(t_start_.size() == 0, "Only one start padding is supported");
 
             start_ = start_padding.Pos();
             t_start_.push_back(start_padding.Time() * Config::DT);
@@ -144,7 +144,7 @@ namespace GuidancePlanner
         // Pad the end of the control points
         void PadEnd(const SpaceTimePoint &end_padding)
         {
-            LMPCC_ASSERT(t_end_.size() == 0, "Only one end padding is supported");
+            ROSTOOLS_ASSERT(t_end_.size() == 0, "Only one end padding is supported");
 
             end_ = end_padding.Pos();
             t_end_.push_back(end_padding.Time() * Config::DT);
@@ -229,7 +229,7 @@ namespace GuidancePlanner
 
         std::vector<Eigen::Vector3d> &GetSamples();
 
-        void Visualize(ROSMarkerPublisher *ros_visuals);
+        void Visualize(RosTools::ROSMarkerPublisher *ros_visuals);
 
     private:
         // Spline in 3D

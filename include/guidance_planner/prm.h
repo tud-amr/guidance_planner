@@ -14,8 +14,8 @@
 #include <chrono>
 #include <unordered_map>
 
-#include <lmpcc_tools/helpers.h>
-#include <lmpcc_tools/ros_visuals.h>
+#include <ros_tools/helpers.h>
+#include <ros_tools/ros_visuals.h>
 
 #include <guidance_planner/cubic_spline.h>
 #include <guidance_planner/environment.h>
@@ -72,7 +72,7 @@ public:
   void Visualize();
 
   /** @brief Export data for external analysis */
-  void ExportData(DataSaver &data_saver);
+  void ExportData(RosTools::DataSaver &data_saver);
 
 private:
   // ros::NodeHandle nh_;
@@ -81,15 +81,15 @@ private:
   std::unique_ptr<TopologyComparison> topology_comparison_;
 
   // Classes for visualization
-  std::unique_ptr<ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_segment_visuals_;
-  std::unique_ptr<ROSMarkerPublisher> debug_visuals_;
+  std::unique_ptr<RosTools::ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_segment_visuals_;
+  std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
   // Graph related classes
   std::unique_ptr<Graph> graph_;
 
   bool done_;
 
-  Helpers::RandomGenerator random_generator_; // Used to generate samples
+  RosTools::RandomGenerator random_generator_; // Used to generate samples
 
   // Topology propagation
   int next_segment_id_;
@@ -114,7 +114,7 @@ private:
 
   // Debugging variables
   std::vector<SpaceTimePoint> all_samples_; // For visualizing the sampling algorithm
-  Helpers::Benchmarker debug_benchmarker_;
+  std::unique_ptr<RosTools::Benchmarker> debug_benchmarker_;
 
   void SampleNewPoints(std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes); // Sample ALL new points
 

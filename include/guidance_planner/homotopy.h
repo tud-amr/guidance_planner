@@ -11,8 +11,8 @@
 
 #include <guidance_planner/config.h>
 
-#include <lmpcc_tools/helpers.h>
-#include <lmpcc_tools/ros_visuals.h>
+#include <ros_tools/helpers.h>
+#include <ros_tools/ros_visuals.h>
 
 /** Logging definitions */
 #define PRM_LOGGING_ENABLED 1
@@ -276,7 +276,7 @@ public:
    */
   std::vector<Node *> GetSharedNeighbours(const std::vector<Node *> &nodes)
   {
-    LMPCC_ASSERT(nodes.size() == 2, "Expected 2 guards, but the number of nodes are not 2"); // Function only checks neighbours shared between 2 nodes
+    ROSTOOLS_ASSERT(nodes.size() == 2, "Expected 2 guards, but the number of nodes are not 2"); // Function only checks neighbours shared between 2 nodes
 
     std::vector<Node *> shared_neighbours;
 
@@ -302,12 +302,12 @@ public:
   }
 
   /** @brief Visualize the non-replaced vertices of this graph and there edges */
-  void Visualize(ROSMarkerPublisher *ros_visuals)
+  void Visualize(RosTools::ROSMarkerPublisher *ros_visuals)
   {
-    ROSPointMarker &sphere = ros_visuals->getNewPointMarker("SPHERE");
+    RosTools::ROSPointMarker &sphere = ros_visuals->getNewPointMarker("SPHERE");
     sphere.setScale(0.3, 0.3, 0.3);
 
-    ROSLine &edge = ros_visuals->getNewLine();
+    RosTools::ROSLine &edge = ros_visuals->getNewLine();
     edge.setScale(0.1, 0.1);
     edge.setColor(0., 0., 0., 1.0);
 
@@ -315,7 +315,7 @@ public:
     int num_connectors = 0;
     for (auto &node : nodes_)
     {
-      LMPCC_ASSERT(node.type_ != NodeType::NONE, "Node type needs to be defined for all nodes.");
+      ROSTOOLS_ASSERT(node.type_ != NodeType::NONE, "Node type needs to be defined for all nodes.");
       if (node.type_ == NodeType::GUARD)
       {
         num_guards++;

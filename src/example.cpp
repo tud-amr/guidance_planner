@@ -67,7 +67,7 @@ void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
 void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles) // Only for standalone PRM
 {
     obstacles.clear();
-    Helpers::RandomGenerator obstacle_randomizer;
+    RosTools::RandomGenerator obstacle_randomizer;
     for (int i = 0; i < 6; i++)
     {
         Eigen::Vector2d start(2.0 + obstacle_randomizer.Double() * 4.0, -2. + 2. * obstacle_randomizer.Double());

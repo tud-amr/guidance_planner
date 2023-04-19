@@ -4,7 +4,7 @@ prm:
   T: 8.0                                # Time horizon [s]
   N: 40                                 # Discrete time steps [#]
   topology_comparison: Homology         # Homology (default) or UVD
-  n_samples: 500    # Number of samples for PRM
+  n_samples: 200    # Number of samples for PRM
   timeout: 15       # Timeout for PRM sampling [ms]
   n_paths: 4        # Number of guidance trajectories
   view_angle_times_pi: 0.606  # View angle when sampling in a conus (disabled by default)

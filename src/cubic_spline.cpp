@@ -66,7 +66,7 @@ void CubicSpline3D::ConvertToTrajectory(const GeometricPath &path)
     double k = sampled_k[k_idx];
 
     // A bisection finds the point where the 3rd coordinate of this spline is equal to "k".
-    double s_cur = Helpers::Bisection(
+    double s_cur = RosTools::Bisection(
         last_k, 1., [&](double s) { return path(s)(2) - k; }, 1e-3);
 
     control_points_.AddPoint(path(s_cur));
@@ -239,7 +239,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
         Eigen::Vector2d control_pos = control_points_.GetPoint(i);
 
         // Compute the distance to the obstacle
-        double dist = Helpers::dist(obstacle_pos, control_pos);
+        double dist = RosTools::dist(obstacle_pos, control_pos);
 
         // Only add constraints for obstacles that are close
         if (dist > obstacle.radius_ * 1.5)
@@ -583,7 +583,7 @@ void CubicSpline3D::ComputeAccelerationWeights()
   {
     // Determine the orientation along the trajectory
     // Eigen::Vector2d cur_vel = trajectory_spline_->GetVelocity(t_sampled[i]);
-    // Eigen::MatrixXd R = Helpers::rotationMatrixFromHeading(-std::atan2(cur_vel(1), cur_vel(0)));
+    // Eigen::MatrixXd R = RosTools::rotationMatrixFromHeading(-std::atan2(cur_vel(1), cur_vel(0)));
 
     // Get the acceleration in longitudinal / lateral direction
     // double cur_accel_long = (R * trajectory_spline_->GetAcceleration(t_sampled[i]))(0);
@@ -602,14 +602,14 @@ void CubicSpline3D::ComputeAccelerationWeights()
   acceleration_weights_computed_ = true;
 }
 
-void CubicSpline3D::Visualize(ROSMarkerPublisher *ros_visuals)
+void CubicSpline3D::Visualize(RosTools::ROSMarkerPublisher *ros_visuals)
 {
 
-  ROSPointMarker &cube = ros_visuals->getNewPointMarker("CUBE");
+  RosTools::ROSPointMarker &cube = ros_visuals->getNewPointMarker("CUBE");
   cube.setScale(0.15, 0.15, 0.15);
   cube.setColor(0., 0., 0.);
 
-  ROSLine &line = ros_visuals->getNewLine();
+  RosTools::ROSLine &line = ros_visuals->getNewLine();
   line.setScale(0.25, 0.25, 0.25);
   line.setColor(1., 0., 0.);
 

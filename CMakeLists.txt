@@ -3,6 +3,7 @@ project(guidance_planner)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
+set(CMAKE_CXX_FLAGS "-DCMAKE_BUILD_TYPE=Release")
 
 find_package(OpenMP)
 
@@ -23,7 +24,7 @@ pkg_check_modules(gsl REQUIRED gsl)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
-  lmpcc_tools
+  ros_tools
   dynamic_reconfigure
 )
 
@@ -33,7 +34,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs lmpcc_tools dynamic_reconfigure
+  CATKIN_DEPENDS roscpp std_msgs ros_tools dynamic_reconfigure
   INCLUDE_DIRS include include/${PROJECT_NAME}
   LIBRARIES guidance_planner
   # DEPENDS Boost
