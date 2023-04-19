@@ -39,7 +39,7 @@ GlobalGuidance::GlobalGuidance()
   Reset();
 }
 
-void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles,  const std::vector<std::vector<Halfspace>>& static_obstacles) { 
+void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles,  const std::vector<Halfspace>& static_obstacles) { 
   obstacles_ = obstacles; 
   static_obstacles_ = static_obstacles;
   }

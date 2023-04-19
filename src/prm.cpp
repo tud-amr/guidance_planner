@@ -39,7 +39,7 @@ void PRM::Init(ros::NodeHandle &nh, Config *config)
   done_ = false;
 }
 
-void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<std::vector<Halfspace>>& static_obstacles, const Eigen::Vector2d &start, const double orientation,
+void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace>& static_obstacles, const Eigen::Vector2d &start, const double orientation,
                    const Eigen::Vector2d &velocity, const std::vector<Goal> &goals, const int previously_selected_id)
 {
   {
@@ -48,7 +48,7 @@ void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<std
     /* Obstacles */
     environment_.SetPosition(start);
     if (static_obstacles.size() > 0)
-      environment_.LoadObstacles(obstacles, static_obstacles[0]);
+      environment_.LoadObstacles(obstacles, static_obstacles);
     else
       environment_.LoadObstacles(obstacles, std::vector<Halfspace>({}));
   }

@@ -38,26 +38,39 @@ public:
   void SetStart(const Eigen::Vector2d &start, const double orientation, const double velocity);
 
   /** @brief Load the obstacles to be used in the PRM, each obstacle needs to have at least the current position and N future predicted positions */
-  void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<std::vector<Halfspace>>& static_obstacles);
+  void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace>& static_obstacles);
   void LoadReferencePath(double spline_start, std::unique_ptr<CubicSpline2D<tk::spline>> &reference_path);
   void SetGoals(const std::vector<Goal>& goals);
-  bool Update();
 
   /**
-   * @brief Get the output guidance trajectory of this node
+   * @brief Compute Guidance trajectories 
+   * 
+   * @return true If the search succeeded
+   */
+  bool Update();
+
+  // --- RESULTS --- //
+  /** @brief Returns how many guidance trajectories were found */
+  int NumberOfGuidanceTrajectories() const;
+
+  /**
+   * @brief Get guidance trajectory #spline_id
    *
    * @param spline_id Index of the spline, with 0 the best spline and worse splines at higher indices
    * @return CubicSpline3D& The spline object
    */
   CubicSpline3D &GetGuidanceTrajectory(int spline_id = 0);
 
+  /** @brief Get the ID of the used trajectory */
   int GetUsedTrajectory() const;
+
+  /** @brief Set the ID of the used trajectory */
   void SetUsedTrajectory(int spline_id);
 
   /** @brief Checks if there were any paths found */
   bool Succeeded() { return NumberOfGuidanceTrajectories() > 0; };
 
-  int NumberOfGuidanceTrajectories() const;
+  // --- Other internal functionality --- //
 
   /** @brief For tracking computation times */
   double GetLastRuntime() { return benchmarkers_[0]->getLast(); };
@@ -101,7 +114,7 @@ private:
 
   // Real-time data
   std::vector<Obstacle> obstacles_;
-  std::vector<std::vector<Halfspace>> static_obstacles_;
+  std::vector<Halfspace> static_obstacles_;
 
   Eigen::Vector2d start_;
   bool goals_set_ = false;

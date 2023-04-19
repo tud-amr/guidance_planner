@@ -52,7 +52,7 @@ public:
    * @param velocity The start velocity
    * @param goal Goal positions organized with the furthest away goal at the end of the vector
    */
-  void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<std::vector<Halfspace>>& static_obstacles, const Eigen::Vector2d &start, const double orientation,
+  void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace>& static_obstacles, const Eigen::Vector2d &start, const double orientation,
                 const Eigen::Vector2d &velocity, const std::vector<Goal> &goals, const int previously_selected_id);
 
   void TransferPathInformationAndPropagate(const std::vector<GeometricPath> paths, const std::vector<PathAssociation> &known_paths);
