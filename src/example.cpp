@@ -179,7 +179,7 @@ int main(int argc, char **argv)
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
                 }
-                CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetTrajectory(); // Retrieves the path: s -> (x, y)
+                CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
 
                 /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
                 // int used_trajectory_id = guidance.GetUsedTrajectory()
