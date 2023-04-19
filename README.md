@@ -2,7 +2,7 @@
 This package is intended for ROS (tested with Noetic). You need to clone my ROSTools package, install dependencies and OpenMP and GSL:
 
 ```
-https://github.com/oscardegroot/ros_tools.git
+git clone https://github.com/oscardegroot/ros_tools.git
 rosdep install --from-paths src --ignore-src -r -y
 sudo apt-get install libgsl-dev libomp-dev
 ```
