@@ -13,6 +13,10 @@ if(OPENMP_FOUND)
   message(WARNING "Compiling with OPENMP")
 endif()
 
+# ADD GSL FOR HOMOTOPY
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(gsl REQUIRED gsl)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -47,6 +51,7 @@ add_library(guidance_planner
     src/environment.cpp
     src/graph_search.cpp
     src/homotopy_config.cpp
+    src/homology.cpp
     src/third_party/spline.cpp
     src/cubic_spline.cpp
 )
@@ -60,6 +65,7 @@ add_executable(test_guidance_planner
 target_link_libraries(test_guidance_planner
   guidance_planner
   ${catkin_LIBRARIES}
+  ${gsl_LIBRARIES}
 )
 
 add_dependencies(test_guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

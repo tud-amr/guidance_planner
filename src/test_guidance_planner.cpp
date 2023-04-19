@@ -35,10 +35,6 @@ void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint3
         config.collision = config_->collision_weight_;
         config.repeat_times = config_->repeat_times_;
 
-        config.spline_length = config_->selection_weight_length_;
-        config.spline_velocity = config_->selection_weight_velocity_;
-        config.spline_longitudinal_acceleration = config_->selection_weight_longitudinal_acceleration_;
-        config.spline_lateral_acceleration = config_->selection_weight_lateral_acceleration_;
         config.spline_consistency = config_->selection_weight_consistency_;
     }
 
@@ -52,10 +48,6 @@ void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint3
     config_->collision_weight_ = config.collision;
     config_->repeat_times_ = config.repeat_times;
 
-    config_->selection_weight_length_ = config.spline_length;
-    config_->selection_weight_velocity_ = config.spline_velocity;
-    config_->selection_weight_longitudinal_acceleration_ = config.spline_longitudinal_acceleration;
-    config_->selection_weight_lateral_acceleration_ = config.spline_lateral_acceleration;
     config_->selection_weight_consistency_ = config.spline_consistency;
 
     if (config.replan)
@@ -99,7 +91,7 @@ int main(int argc, char **argv)
         GlobalGuidance guidance;
         config_ = guidance.GetConfig();
 
-        ros::NodeHandle nh_predictive("guidance_planner");
+        ros::NodeHandle nh_predictive("predictive_controller");
         reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlanner::GuidancePlannerConfig>(reconfig_mutex_, nh_predictive));
         reconfigure_server_->setCallback(boost::bind(&GuidancePlannerTestReconfigureCallback, _1, _2));
 
@@ -109,9 +101,10 @@ int main(int argc, char **argv)
         static_obstacles.resize(HomotopyConfig::N);
 
         guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.);
-        guidance.SetGoals({Eigen::Vector2d(6., 0.), Eigen::Vector2d(8., 0.)}, {0.0, 1.0});
-
-        // RealTimeData data;
+        std::vector<Goal> goals;
+        goals.emplace_back(Eigen::Vector2d(6., 0.), 1.);
+        goals.emplace_back(Eigen::Vector2d(8., 0.), 1.);
+        guidance.SetGoals(goals);
 
         ros::Rate rate(5);
         while (!ros::isShuttingDown())

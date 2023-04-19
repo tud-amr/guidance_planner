@@ -6,12 +6,12 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#include <guidance_planner/paths.h>
+#include <guidance_planner/types.h>
+
 #include <lmpcc_tools/ros_visuals.h>
 
 #include <third_party/spline.h>
-
-#include <guidance_planner/paths.h>
-#include <guidance_planner/types.h>
 
 namespace GuidancePlanner
 {

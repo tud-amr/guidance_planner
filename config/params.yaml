@@ -1,58 +1,24 @@
 prm:
-  debug_output: false
-  T: 8.0 # KHALED - FRENET COMPARISON
-  N: 40 
-  # T: 4.0 # Normal settings
-  # N: 80
-  obstacle_radius_extension: 0. #0.1
-  n_samples: 200 #400  #3000
-  path_after_samples: 100 #1000
-  timeout: 20 # ms
-  n_paths: 4 # 2
-  min_path_improvement: 0.0 #0.05 #0.001
-  prefer_goal_over_smoothness: 0.7 #0.995 # between 0-1, weights the goal advantage over smoothness of the path
-  view_angle_times_pi: 0.5 #0.75
-  max_velocity: 3.0 #7.0 # This is before smoohting (so can be a bit lenient)
-  max_acceleration: 3.0
-  # weights:
-      # geometric: 1.0
-      # smoothness: 100.0
-      # collision: 0.5
-      # velocity_tracking: 1.0
-      # repeat_times: 1
-  weights:
-    geometric: 5.0
-    smoothness: 10.0
-    collision: 0.5   #0.5
-    velocity_tracking: 0.1   #1.0
-    repeat_times: 1
-  # weights:
-  #   geometric: 1.0
-  #   smoothness: 0. #1.0
-  #   collision: 0. #0.1
-  #   velocity_tracking: 1.0
-  #   repeat_times: 1 # 0 = no optimization
-  # selection_weights:
-  #     length: 5.0
-  #     velocity: 0.0
-  #     longitudinal_acceleration: 0.0
-  #     lateral_acceleration: 1.0
-  #     consistency: 50.0 #2.0
+  debug_output: true
+  seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
+  T: 8.0                                # Time horizon [s]
+  N: 40                                 # Discrete time steps [#]
+  topology_comparison: Homology         # Homology (default) or UVD
+  n_samples: 200    # Number of samples for PRM
+  timeout: 15       # Timeout for PRM sampling [ms]
+  n_paths: 4        # Number of guidance trajectories
+  view_angle_times_pi: 0.606  # View angle when sampling in a conus (disabled by default)
+  max_velocity: 3.0           # Maximum velocity of connections between nodes
+  max_acceleration: 3.0       # Maximum velocity of connections between nodes
   selection_weights:
-    length: 1.0
-    velocity: 100.   #0.0
-    longitudinal_acceleration: 100.   #0.0
-    lateral_acceleration: 0.0
-    consistency: 0.0  # Defines the improvement in percentage necessary to switch plans   #25. #15. #25.0 #2.0
-  spline:
-    num_points: 10
+    consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
+  goals:  # Only used when `LoadReferencePath` is used to set the goals
+    longitudinal: 6   # Number of goals in direction of the path
+    vertical: 3       # Number of goals in direction orthogonal to the path
   visuals:
-    visualize_all_samples: false
-    color_splines_by_cost: false
+    visualize_all_samples: false    # Visualizes all PRM samples
   enable:
-    dynamically_propagate_nodes: true
-    multithread: false
-    project_from_obstacles: false #true
-    smoothen_velocity: false
+    dynamically_propagate_nodes: true   # Propagate the nodes in time (dropping them)
+    project_from_obstacles: false       # Project the guidance trajectory from obstacles if enabled (not necessary by default)
   test_node:
-    continuous_replanning_: false
+    continuous_replanning: true         # When using the test nodes: keep planning continuously?

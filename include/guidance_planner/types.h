@@ -22,14 +22,7 @@
 
 #include <lmpcc_tools/helpers.h>
 
-// #include <lmpcc/PredictiveControllerConfig.h>
-// #include <dynamic_obstacle.h>
-// #include <lmpcc_configuration.h>
-
-// #include "lmpcc/collision_region.h"
-
 #include <boost/bind.hpp>
-// #include "generated_cpp/SolverInclude.h"
 
 namespace GuidancePlanner
 {
