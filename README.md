@@ -21,3 +21,9 @@ To run the example:
 ```
 roslaunch guidance_planner example.launch
 ```
+
+You should see the following:
+![Example](docs/example.png)
+
+For profiling information (i.e., computation times) go to `chrome://tracing/` in google chrome. Then click `load` and select `guidance_planner/profiler.json`. This should show some timings:
+![Timing](docs/timing.png)
