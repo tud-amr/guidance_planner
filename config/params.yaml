@@ -3,6 +3,8 @@ prm:
   seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
   T: 8.0                                # Time horizon [s]
   N: 20 # 40                                 # Discrete time steps [#]
+  # T: 4.0
+  # N: 10
   topology_comparison: Homology         # Homology (default) or UVD
   n_samples: 10000 #200    # Number of samples for PRM
   timeout: 800 #15       # Timeout for PRM sampling [ms]

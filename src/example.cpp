@@ -1,10 +1,14 @@
 #include <ros/ros.h>
+#include <string>
+#include <stdexcept>
 #include "guidance_planner/global_guidance.h"
 #include "guidance_planner/types.h"
 
 #include <dynamic_reconfigure/server.h>
 #include <guidance_planner/GuidancePlannerConfig.h>
 
+// Reading from file
+#include <20_ts/read_scenario.h>
 
 using namespace GuidancePlanner;
 
@@ -16,7 +20,14 @@ Config *config_;
 bool first_reconfigure_callback_ = true;
 bool replan_ = false;
 
-bool random_obstacles_ = false; // Set to true to randomize the obstacles
+// bool random_obstacles_ = false; // Set to true to randomize the obstacles
+// std::string obstacle_source = "Random";
+// std::string obstacle_source = "Manual";
+std::string obstacle_source = "File";
+
+int count = 0;
+int file_id = 0;
+
 
 // Mainly for debugging purposes (not in the namespace, to use lmpcc stuff)
 void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint32_t level)
@@ -78,10 +89,9 @@ void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
             positions.emplace_back(positions[k-1] + Eigen::Vector2d(0., 1.) * Config::DT);
     }
     obstacles.emplace_back(1, positions, 0.5);
-
 }
 
-void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles) // Only for standalone PRM
+void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
 {
     obstacles.clear();
     RosTools::RandomGenerator obstacle_randomizer;
@@ -93,6 +103,25 @@ void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles) // On
 
         obstacles.emplace_back(i, start, vel, Config::DT, Config::N, 0.5);
     }
+}
+
+void FileObstacles(GlobalGuidance& guidance, std::vector<GuidancePlanner::Obstacle> &obstacles)
+{
+    int num_files = 80;
+    obstacles.clear();
+    // for(int i = 0; i < 9; i++)
+    int i = 0;
+    if(count % 10 == 0)
+    {
+        file_id++;
+        if(file_id >= num_files)
+            file_id = file_id % num_files;
+    }
+
+        ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
+
+    count++;
+
 }
 
 int main(int argc, char **argv)
@@ -153,8 +182,15 @@ int main(int argc, char **argv)
         while (!ros::isShuttingDown())
         {
             ROS_WARN("Updating Guidance");
-            if (random_obstacles_)
+            if (obstacle_source == "Random")
                 RandomizeObstacles(obstacles);
+            else if(obstacle_source == "File")
+            {
+                FileObstacles(guidance, obstacles);
+                                rate.sleep();
+
+                continue;
+            }
             else
                 ManualObstacles(obstacles);
 

@@ -526,7 +526,7 @@ void GlobalGuidance::VisualizeObstacles()
     for (int k = 0; k < Config::N; k++)
     {
       // Transparent
-      disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), RosTools::Colormap::BRUNO);
+      disc.setColorInt(obstacle.id_, 0.5 /** std::pow(((double)(Config::N - k)) / (double)Config::N, 2.)*/, RosTools::Colormap::BRUNO);
       // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) /
       // (double)Config::N, 2.), Colormap::BRUNO);
 
