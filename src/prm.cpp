@@ -496,7 +496,12 @@ SpaceTimePoint PRM::SampleNewPoint()
   if (simple_sampling) // Deprecated
   {
     // Uniform[0, 10][-5, 5]
-    new_sample = SpaceTimePoint(random_generator_.Double() * (goals_.back().pos(0) - start_(0)), -3 + random_generator_.Double() * 6.,
+    double extra_range = 4;
+    double min_x = std::min(goals_.back().pos(0), start_(0)) - extra_range;
+    double min_y = std::min(goals_.back().pos(1), start_(1)) - extra_range;
+    double range_x = std::max(goals_.back().pos(0), start_(0)) + extra_range - min_x;
+    double range_y = std::max(goals_.back().pos(1), start_(1)) + extra_range - min_y;
+    new_sample = SpaceTimePoint(min_x + random_generator_.Double() * range_x, min_y + random_generator_.Double() * range_y,
                                 random_generator_.Int(Config::N - 2) + 1); // 1 - N-1
   }
   else
@@ -694,15 +699,15 @@ bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePo
   // This subfunction checks the connection between any two points
 
   // Connections must move forward in the "x" direction
-  bool forward_connection =
-      Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
-      Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos(); //.Pos()(0) > first_point.Pos()(0);
-  if (!forward_connection)
-  {
-    PRM_LOG("Connection does not move forward in time");
+  // bool forward_connection =
+  //     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
+  //     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos(); //.Pos()(0) > first_point.Pos()(0);
+  // if (!forward_connection)
+  // {
+  //   PRM_LOG("Connection does not move forward in time");
 
-    return false;
-  }
+  //   return false;
+  // }
 
   // Connections have a limited velocity
   double dist = RosTools::dist(first_point.Pos(), second_point.Pos());

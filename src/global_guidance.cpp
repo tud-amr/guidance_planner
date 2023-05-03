@@ -456,6 +456,15 @@ void GlobalGuidance::SetUsedTrajectory(int spline_id) { selected_id_ = spline_id
 
 int GlobalGuidance::NumberOfGuidanceTrajectories() const { return splines_.size(); }
 
+int GlobalGuidance::GetIdSamePath(const GeometricPath &path) { 
+  for (size_t return_id = 0; return_id<this->paths_.size(); return_id++){
+    if (prm_.AreHomotopicEquivalent(path, paths_[return_id])){
+      return return_id;
+    }
+  }
+  return -1; 
+}
+
 void GlobalGuidance::Visualize()
 {
   // Visualize the method per component

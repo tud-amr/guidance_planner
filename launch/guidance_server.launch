@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <rosparam command="load" file="$(find guidance_planner)/config/params.yaml"/>
+    <param name="clock_frequency" value="20"/>
+    <node pkg="guidance_planner" type="guidance_server" name="guidance_server" cwd="node" respawn="false" output="screen">
+    </node>
+
+</launch>  

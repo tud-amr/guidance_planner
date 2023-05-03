@@ -53,6 +53,9 @@ public:
   /** @brief Returns how many guidance trajectories were found */
   int NumberOfGuidanceTrajectories() const;
 
+  /** @brief Returns the id of the path that is homotopically equivalent to path, -1 if none of them is */
+  int GetIdSamePath(const GeometricPath &path);
+
   /**
    * @brief Get guidance trajectory #spline_id
    *

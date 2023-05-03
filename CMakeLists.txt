@@ -26,12 +26,18 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   ros_tools
   dynamic_reconfigure
+  genmsg
 )
 
 find_package(Eigen3 REQUIRED)
 add_definitions(${EIGEN_DEFINITIONS})
 
 generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
+
+add_message_files(FILES TrajectoryMSG.msg ObstacleMSG.msg)
+add_service_files(FILES guidances.srv guidances_truth.srv)
+generate_messages(DEPENDENCIES std_msgs)
+
 
 catkin_package(
   CATKIN_DEPENDS roscpp std_msgs ros_tools dynamic_reconfigure
@@ -71,7 +77,17 @@ target_link_libraries(example
 
 add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(guidance_server
+  src/guidance_server.cpp
+)
 
+target_link_libraries(guidance_server
+  guidance_planner
+  ${catkin_LIBRARIES}
+  ${gsl_LIBRARIES}
+)
+
+add_dependencies(guidance_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # ############
 # # Install ##
