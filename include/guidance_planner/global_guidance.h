@@ -4,6 +4,7 @@
 #include <chrono>
 #include <unordered_map>
 
+#include <dynamic_reconfigure/server.h>
 #include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
 
 #include <ros_tools/helpers.h>
@@ -79,7 +80,7 @@ namespace GuidancePlanner
     double GetLastRuntime() { return benchmarkers_[0]->getLast(); };
 
     /** @brief Add some of the settings to the rqt_reconfigure window */
-    void ReconfigureCallback(GuidancePlanner::GuidancePlannerConfig &config, uint32_t level);
+    void ReconfigureCallback(GuidancePlannerConfig &config, uint32_t level);
 
     /** @brief Reset this PRM. Removes previous nodes and all other transferred data. Use only when resetting the environment */
     void Reset();
@@ -98,6 +99,9 @@ namespace GuidancePlanner
   private:
     ros::NodeHandle nh_;
     std::unique_ptr<Config> config_; // Owns the configuration
+
+    boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerConfig>> reconfigure_server_;
+    boost::recursive_mutex reconfig_mutex_;
 
     // Classes for visualization
     std::unique_ptr<RosTools::ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, ros_selected_visuals_, ros_obstacle_visuals_;

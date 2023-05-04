@@ -4,20 +4,12 @@
 #include "guidance_planner/global_guidance.h"
 #include "guidance_planner/types.h"
 
-#include <dynamic_reconfigure/server.h>
-#include <guidance_planner/GuidancePlannerConfig.h>
-
 // Reading from file
 #include <20_ts/read_scenario.h>
 
 using namespace GuidancePlanner;
 
-boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerConfig>> reconfigure_server_;
-boost::recursive_mutex reconfig_mutex_;
-
 Config *config_;
-
-bool first_reconfigure_callback_ = true;
 bool replan_ = false;
 
 // bool random_obstacles_ = false; // Set to true to randomize the obstacles
@@ -27,45 +19,6 @@ std::string obstacle_source = "File";
 
 int count = 0;
 int file_id = 0;
-
-// Mainly for debugging purposes (not in the namespace, to use lmpcc stuff)
-void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint32_t level)
-{
-    if (first_reconfigure_callback_) // Set the reconfiguration parameters to match the yaml configuration at startup
-    {
-        first_reconfigure_callback_ = false;
-
-        config.debug = Config::debug_output_;
-
-        config.n_paths = config_->n_paths_;
-        config.n_samples = config_->n_samples_;
-
-        config.geometric = config_->geometric_weight_;
-        config.smoothness = config_->smoothness_weight_;
-        config.collision = config_->collision_weight_;
-        config.repeat_times = config_->repeat_times_;
-
-        config.spline_consistency = config_->selection_weight_consistency_;
-    }
-
-    Config::debug_output_ = config.debug;
-
-    config_->n_paths_ = config.n_paths;
-    config_->n_samples_ = config.n_samples;
-
-    config_->geometric_weight_ = config.geometric;
-    config_->smoothness_weight_ = config.smoothness;
-    config_->collision_weight_ = config.collision;
-    config_->repeat_times_ = config.repeat_times;
-
-    config_->selection_weight_consistency_ = config.spline_consistency;
-
-    if (config.replan)
-    {
-        config.replan = false;
-        replan_ = true;
-    }
-}
 
 /** @brief Define obstacles manually */
 void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
@@ -132,11 +85,6 @@ int main(int argc, char **argv)
         GlobalGuidance guidance;        // Initializes the guidance planner
         config_ = guidance.GetConfig(); // Retrieves the configuration file, if you need it
 
-        // Initializes a server for rqt_reconfigure, if you want to change some parameters on the fly
-        ros::NodeHandle nh_predictive("predictive_controller");
-        reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlanner::GuidancePlannerConfig>(reconfig_mutex_, nh_predictive));
-        reconfigure_server_->setCallback(boost::bind(&GuidancePlannerTestReconfigureCallback, _1, _2));
-
         /** @brief Load inputs for the guidance planner (you should do this for each computation) */
         ROS_INFO("Preparing Obstacles");
         std::vector<Obstacle> obstacles;
@@ -186,6 +134,7 @@ int main(int argc, char **argv)
             else if (obstacle_source == "File")
             {
                 FileObstacles(guidance, obstacles);
+                ros::spinOnce();
                 rate.sleep();
 
                 continue;

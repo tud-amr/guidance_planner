@@ -17,6 +17,11 @@ namespace GuidancePlanner
     config_.reset(new Config());
     prm_.Init(nh_, config_.get());
 
+    first_reconfigure_callback_ = true;
+    ros::NodeHandle nh_guidance("guidance_planner");
+    reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlanner::GuidancePlannerConfig>(reconfig_mutex_, nh_guidance));
+    reconfigure_server_->setCallback(boost::bind(&GlobalGuidance::ReconfigureCallback, this, _1, _2));
+
     /* Initialize visuals */
     ros_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_trajectories", "map", 500));
     ros_bspline_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/spline_points", "map", 200));
@@ -31,8 +36,6 @@ namespace GuidancePlanner
     benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Path Search", false, 0)));
 
     // thread_pool_.reset(new ThreadPool(1));
-
-    first_reconfigure_callback_ = true;
 
     start_velocity_ = Eigen::Vector2d(0., 0.);
 
@@ -659,7 +662,7 @@ namespace GuidancePlanner
   }
 
   // Mainly for debugging purposes (not in the namespace, to use lmpcc stuff)
-  void GlobalGuidance::ReconfigureCallback(GuidancePlanner::GuidancePlannerConfig &config, uint32_t level)
+  void GlobalGuidance::ReconfigureCallback(GuidancePlannerConfig &config, uint32_t level)
   {
     if (first_reconfigure_callback_) // Set the reconfiguration parameters to match the yaml configuration at startup
     {
@@ -670,24 +673,16 @@ namespace GuidancePlanner
       config.n_paths = config_->n_paths_;
       config.n_samples = config_->n_samples_;
 
-      // config.geometric = config_->geometric_weight_;
-      // config.smoothness = config_->smoothness_weight_;
-      // config.collision = config_->collision_weight_;
-      // config.repeat_times = config_->repeat_times_;
-      config.spline_consistency = config_->selection_weight_consistency_;
+      // config.spline_consistency = config_->selection_weight_consistency_;
     }
+    std::cout << "reconfigure" << std::endl;
 
     Config::debug_output_ = config.debug;
 
     config_->n_paths_ = config.n_paths;
     config_->n_samples_ = config.n_samples;
 
-    // config_->geometric_weight_ = config.geometric;
-    // config_->smoothness_weight_ = config.smoothness;
-    // config_->collision_weight_ = config.collision;
-    // config_->repeat_times_ = config.repeat_times;
-
-    config_->selection_weight_consistency_ = config.spline_consistency;
+    // config_->selection_weight_consistency_ = config.spline_consistency;
   }
 
 } // namespace GuidancePlanner
