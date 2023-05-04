@@ -109,7 +109,7 @@ void FileObstacles(GlobalGuidance& guidance, std::vector<GuidancePlanner::Obstac
 {
     int num_files = 80;
     obstacles.clear();
-    // for(int i = 0; i < 9; i++)
+
     int i = 0;
     if(count % 10 == 0)
     {
@@ -117,8 +117,7 @@ void FileObstacles(GlobalGuidance& guidance, std::vector<GuidancePlanner::Obstac
         if(file_id >= num_files)
             file_id = file_id % num_files;
     }
-
-        ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
+    ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
 
     count++;
 

@@ -144,7 +144,7 @@ void Homology::ComputeObstacleLoop(const Obstacle &obstacle)
 
   obstacle_p1_ = Line(start_, end_, -fraction_);               // A start below the actual start
   obstacle_p2_ = Line(start_, end_, 1 + fraction_);            // An end above the actual end
-  obstacle_p3_ = obstacle_p2_ + Eigen::Vector3d(-25., 0., 0.); // Move outside of the region
+  obstacle_p3_ = obstacle_p2_ + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
   obstacle_p4_ = obstacle_p3_;
   obstacle_p4_(2) = obstacle_p1_(2); // Move down
 }
