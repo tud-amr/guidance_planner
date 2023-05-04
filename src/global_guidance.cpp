@@ -672,17 +672,12 @@ namespace GuidancePlanner
 
       config.n_paths = config_->n_paths_;
       config.n_samples = config_->n_samples_;
-
-      // config.spline_consistency = config_->selection_weight_consistency_;
     }
-    std::cout << "reconfigure" << std::endl;
 
     Config::debug_output_ = config.debug;
 
     config_->n_paths_ = config.n_paths;
     config_->n_samples_ = config.n_samples;
-
-    // config_->selection_weight_consistency_ = config.spline_consistency;
   }
 
 } // namespace GuidancePlanner
