@@ -28,7 +28,6 @@ std::string obstacle_source = "File";
 int count = 0;
 int file_id = 0;
 
-
 // Mainly for debugging purposes (not in the namespace, to use lmpcc stuff)
 void GuidancePlannerTestReconfigureCallback(GuidancePlannerConfig &config, uint32_t level)
 {
@@ -81,12 +80,12 @@ void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
     /** @note If you have different predictions, use the following */
     /* Obstacle ID, std::vector<Eigen::Vector2d> &positions -> first position must be the CURRENT position!, radius */
     std::vector<Eigen::Vector2d> positions;
-    for(int k = 0; k < Config::N + 1; k++)
+    for (int k = 0; k < Config::N + 1; k++)
     {
-        if(k == 0)
+        if (k == 0)
             positions.emplace_back(3.5, -2);
         else
-            positions.emplace_back(positions[k-1] + Eigen::Vector2d(0., 1.) * Config::DT);
+            positions.emplace_back(positions[k - 1] + Eigen::Vector2d(0., 1.) * Config::DT);
     }
     obstacles.emplace_back(1, positions, 0.5);
 }
@@ -105,22 +104,21 @@ void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
     }
 }
 
-void FileObstacles(GlobalGuidance& guidance, std::vector<GuidancePlanner::Obstacle> &obstacles)
+void FileObstacles(GlobalGuidance &guidance, std::vector<GuidancePlanner::Obstacle> &obstacles)
 {
     int num_files = 80;
     obstacles.clear();
 
     int i = 0;
-    if(count % 10 == 0)
+    if (count % 10 == 0)
     {
         file_id++;
-        if(file_id >= num_files)
+        if (file_id >= num_files)
             file_id = file_id % num_files;
     }
     ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
 
     count++;
-
 }
 
 int main(int argc, char **argv)
@@ -131,7 +129,7 @@ int main(int argc, char **argv)
         ros::init(argc, argv, ros::this_node::getName());
 
         ROS_INFO("Creating Guidance");
-        GlobalGuidance guidance; // Initializes the guidance planner
+        GlobalGuidance guidance;        // Initializes the guidance planner
         config_ = guidance.GetConfig(); // Retrieves the configuration file, if you need it
 
         // Initializes a server for rqt_reconfigure, if you want to change some parameters on the fly
@@ -144,9 +142,9 @@ int main(int argc, char **argv)
         std::vector<Obstacle> obstacles;
 
         /** @brief Static obstacles: Ax <= b */
-        std::vector<Halfspace> static_obstacles;
+        std::vector<RosTools::Halfspace> static_obstacles;
         static_obstacles.resize(2);
-        static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.); // y <= 10
+        static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
         static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
 
         /** @brief Set the robot position */
@@ -162,19 +160,21 @@ int main(int argc, char **argv)
 
         // Using a reference path
         // Construct a spline in x, y
-        std::vector<double> xx, yy, ss;
-        xx = {0., 2., 4., 6., 8., 10.};
-        yy = {0., 0., 0., 0., 0., 0.};
-        ss = {0., 2., 4., 6., 8., 10.};
-        tk::spline x_spline, y_spline;
-        x_spline.set_points(ss, xx);
-        y_spline.set_points(ss, yy);
-        std::unique_ptr<CubicSpline2D<tk::spline>> reference_path;
-        reference_path.reset(new CubicSpline2D<tk::spline>(x_spline, y_spline));
+        if (obstacle_source != "File")
+        {
+            std::vector<double> xx, yy, ss;
+            xx = {0., 2., 4., 6., 8., 10.};
+            yy = {0., 0., 0., 0., 0., 0.};
+            ss = {0., 2., 4., 6., 8., 10.};
+            tk::spline x_spline, y_spline;
+            x_spline.set_points(ss, xx);
+            y_spline.set_points(ss, yy);
+            std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> reference_path;
+            reference_path.reset(new RosTools::CubicSpline2D<tk::spline>(x_spline, y_spline));
 
-        double distance_on_spline = 0.;
-        guidance.LoadReferencePath(distance_on_spline, reference_path);
-
+            double distance_on_spline = 0.;
+            guidance.LoadReferencePath(distance_on_spline, reference_path);
+        }
         // ----------------------------
         /** @brief Mimic a control loop */
         ros::Rate rate(5);
@@ -183,10 +183,10 @@ int main(int argc, char **argv)
             ROS_WARN("Updating Guidance");
             if (obstacle_source == "Random")
                 RandomizeObstacles(obstacles);
-            else if(obstacle_source == "File")
+            else if (obstacle_source == "File")
             {
                 FileObstacles(guidance, obstacles);
-                                rate.sleep();
+                rate.sleep();
 
                 continue;
             }
@@ -195,32 +195,33 @@ int main(int argc, char **argv)
 
             // Normally: load the start and goals in each timestep
             // Then, load the obstacles
-            guidance.LoadObstacles(obstacles, static_obstacles); 
+            guidance.LoadObstacles(obstacles, static_obstacles);
 
             // Update (i.e., compute) the guidance trajectories
             guidance.Update();
 
             // Show some results:
             bool success = guidance.Succeeded();
-            if(success)
+            if (success)
             {
                 ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
-                CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(0);
+                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(0);
                 ROS_INFO("[Best Trajectory]");
 
-                CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
-                for(double t = 0; t < Config::N * Config::DT; t += 4*Config::DT)
+                RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
+                for (double t = 0; t < Config::N * Config::DT; t += 4 * Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
                 }
-                CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
+                RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
 
                 /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
                 // int used_trajectory_id = guidance.GetUsedTrajectory()
                 // guidance.SetUsedTrajectory(int spline_id);
-
-            }else{
+            }
+            else
+            {
                 ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
             }
 

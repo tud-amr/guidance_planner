@@ -53,6 +53,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+# Library
 add_library(guidance_planner
     src/global_guidance.cpp
     src/prm.cpp
@@ -64,30 +65,28 @@ add_library(guidance_planner
     src/cubic_spline.cpp
 )
 add_dependencies(guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(guidance_planner
+  ${gsl_LIBRARIES}
+)
 
-
+# Example
 add_executable(example
   src/example.cpp
 )
-
 target_link_libraries(example
   guidance_planner
   ${catkin_LIBRARIES}
-  ${gsl_LIBRARIES}
 )
-
 add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+# Guidance Server
 add_executable(guidance_server
   src/guidance_server.cpp
 )
-
 target_link_libraries(guidance_server
   guidance_planner
   ${catkin_LIBRARIES}
-  ${gsl_LIBRARIES}
 )
-
 add_dependencies(guidance_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # ############
@@ -103,6 +102,14 @@ install(
   DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
+
+## Mark libraries for installation
+# See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
+# install(TARGETS ${gsl_LIBRARIES}
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

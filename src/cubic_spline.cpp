@@ -33,7 +33,7 @@ CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Ei
   // y_.RemoveStart();
   // t_padded_.erase(t_padded_.begin());
 
-  trajectory_spline_.reset(new CubicSpline2D<tk::spline>(x_, y_));
+  trajectory_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(x_, y_));
 
   // DebugPrintControlPoints();
 
@@ -67,7 +67,9 @@ void CubicSpline3D::ConvertToTrajectory(const GeometricPath &path)
 
     // A bisection finds the point where the 3rd coordinate of this spline is equal to "k".
     double s_cur = RosTools::Bisection(
-        last_k, 1., [&](double s) { return path(s)(2) - k; }, 1e-3);
+        last_k, 1., [&](double s)
+        { return path(s)(2) - k; },
+        1e-3);
 
     control_points_.AddPoint(path(s_cur));
 
@@ -326,7 +328,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
   // y_.RemoveStart();
   // t_padded_.erase(t_padded_.begin());
 
-  trajectory_spline_.reset(new CubicSpline2D<tk::spline>(x_, y_));
+  trajectory_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(x_, y_));
 
   // DebugPrintControlPoints();
 
@@ -508,14 +510,14 @@ void CubicSpline3D::ComputePath()
   cubic_spline_x.set_points(d_points, x_.m_y_); // Create new splines with the old x/y, but over the computed distances
   cubic_spline_y.set_points(d_points, y_.m_y_);
 
-  path_spline_.reset(new CubicSpline2D<tk::spline>(cubic_spline_x, cubic_spline_y));
+  path_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(cubic_spline_x, cubic_spline_y));
 
   PRM_LOG("Path Spline Computed");
 }
 
-CubicSpline2D<tk::spline> &CubicSpline3D::GetPath() { return *path_spline_; }
+RosTools::CubicSpline2D<tk::spline> &CubicSpline3D::GetPath() { return *path_spline_; }
 
-CubicSpline2D<tk::spline> &CubicSpline3D::GetTrajectory() const { return *trajectory_spline_; }
+RosTools::CubicSpline2D<tk::spline> &CubicSpline3D::GetTrajectory() const { return *trajectory_spline_; }
 
 std::vector<Eigen::Vector3d> &CubicSpline3D::GetSamples()
 {

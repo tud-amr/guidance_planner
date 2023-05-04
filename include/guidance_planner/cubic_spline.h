@@ -207,10 +207,10 @@ namespace GuidancePlanner
         void Optimize(const std::vector<Obstacle> &obstacles);
 
         /** @brief Convert this B-Spline to a cubic spline (tk::spline) to be used as reference path */
-        CubicSpline2D<tk::spline> &GetPath();
+        RosTools::CubicSpline2D<tk::spline> &GetPath();
 
         /** @brief Convert this spline to be parameterized in discrete time (i.e., its third dimension) */
-        CubicSpline2D<tk::spline> &GetTrajectory() const;
+        RosTools::CubicSpline2D<tk::spline> &GetTrajectory() const;
 
         /** WEIGHTING Functions (map B-Spline to scalars) */
         /** @brief Return the path length of this spline */
@@ -254,8 +254,8 @@ namespace GuidancePlanner
         std::vector<Eigen::Vector3d> sampled_points_;
 
         // bool spline_computed_;
-        std::shared_ptr<CubicSpline2D<tk::spline>> path_spline_;
-        std::shared_ptr<CubicSpline2D<tk::spline>> trajectory_spline_;
+        std::shared_ptr<RosTools::CubicSpline2D<tk::spline>> path_spline_;
+        std::shared_ptr<RosTools::CubicSpline2D<tk::spline>> trajectory_spline_;
 
         bool acceleration_weights_computed_;
 
