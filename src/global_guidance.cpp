@@ -4,7 +4,8 @@ namespace GuidancePlanner
 {
   GlobalGuidance::~GlobalGuidance()
   {
-    RosTools::Instrumentor::Get().EndSession();
+    // TODO
+    //  RosTools::Instrumentor::Get().EndSession();
   }
 
   GlobalGuidance::GlobalGuidance()
@@ -12,7 +13,7 @@ namespace GuidancePlanner
     PRM_LOG("Initializing Global Guidance");
 
     // Initialize profiling
-    RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
+    // RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
 
     config_.reset(new Config());
     prm_.Init(nh_, config_.get());
@@ -50,7 +51,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path)
   {
-    ROS_INFO("Global Guidance: Loading Reference Path and Setting Goal Locations");
+    PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
 
     ROSTOOLS_ASSERT(!goals_set_, "Please set the goals via SetGoals or LoadReferencePath, but not both!"); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
     goals_set_ = true;
