@@ -20,6 +20,7 @@
 
 namespace GuidancePlanner
 {
+
   class GlobalGuidance
   {
 
@@ -42,6 +43,12 @@ namespace GuidancePlanner
     void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
     void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path);
     void SetGoals(const std::vector<Goal> &goals);
+
+    /** @brief Additional configuration */
+    void SetPRMSamplingFunction(SamplingFunction sampling_function)
+    {
+      prm_.SetPRMSamplingFunction(sampling_function);
+    };
 
     /**
      * @brief Compute Guidance trajectories

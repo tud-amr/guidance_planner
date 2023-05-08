@@ -30,6 +30,7 @@
 
 namespace GuidancePlanner
 {
+  typedef SpaceTimePoint (*SamplingFunction)(const Eigen::Vector2d &, const std::vector<Goal> &, RosTools::RandomGenerator &);
 
   class PRM
   {
@@ -55,6 +56,8 @@ namespace GuidancePlanner
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals, const int previously_selected_id);
 
+    void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
+
     void TransferPathInformationAndPropagate(const std::vector<GeometricPath> paths, const std::vector<PathAssociation> &known_paths);
 
     Eigen::Vector2d GetStart() const { return start_; };                  /** @brief Get the start position */
@@ -75,19 +78,18 @@ namespace GuidancePlanner
     void ExportData(RosTools::DataSaver &data_saver);
 
   private:
-    // ros::NodeHandle nh_;
-    // std::unique_ptr<Config> config_;
+    bool done_;
+
     Config *config_;
-    std::unique_ptr<TopologyComparison> topology_comparison_;
 
     // Classes for visualization
     std::unique_ptr<RosTools::ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_segment_visuals_;
     std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
-    // Graph related classes
-    std::unique_ptr<Graph> graph_;
+    std::unique_ptr<Graph> graph_;                            // PRM Graph
+    std::unique_ptr<TopologyComparison> topology_comparison_; // H-invariant or UVD comparison
 
-    bool done_;
+    SamplingFunction sampling_function_; /** @note Samples are relative to start position and orientation */
 
     RosTools::RandomGenerator random_generator_; // Used to generate samples
 
@@ -98,12 +100,10 @@ namespace GuidancePlanner
     std::vector<bool> path_id_was_known_;
 
     // Real-time data
-    // std::vector<Obstacle> obstacles_;
     Environment environment_;
     Eigen::Vector2d start_;
     std::vector<Goal> goals_;
-    // std::vector<Eigen::Vector2d> goals_;
-    // std::vector<double> goal_costs_;
+
     Eigen::Vector2d previous_position_, previous_velocity_;
     double orientation_;
     Eigen::Vector2d start_velocity_;
@@ -147,6 +147,8 @@ namespace GuidancePlanner
     void VisualizeGraph();
     void VisualizeAllSamples();
   };
+
+  SpaceTimePoint SampleUniformly3D(const Eigen::Vector2d &start, const std::vector<Goal> &goals, RosTools::RandomGenerator &random_generator);
 
 } // namespace Homotopy
 #endif // __PRM_H__
