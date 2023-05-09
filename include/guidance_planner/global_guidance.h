@@ -65,6 +65,14 @@ namespace GuidancePlanner
      */
     CubicSpline3D &GetGuidanceTrajectory(int spline_id = 0);
 
+    /**
+     * @brief Get the homology cost of a geometric path with respect of the one with id spline_id
+     *
+     * @param spline_id Index of the spline, with 0 the best spline and worse splines at higher indices
+     * @return double The cost
+     */
+    double GetHomotopicCost(int spline_id, const GeometricPath &path);
+
     /** @brief Get the ID of the used trajectory */
     int GetUsedTrajectory() const;
 

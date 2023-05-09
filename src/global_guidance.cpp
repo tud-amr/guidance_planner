@@ -455,6 +455,16 @@ namespace GuidancePlanner
     return splines_[spline_id]; // Return the guidance trajectory
   }
 
+  double GlobalGuidance::GetHomotopicCost(int spline_id, const GeometricPath &path)
+  {
+    if (spline_id >= (int)paths_.size()){
+      ROS_WARN("Trying to get the cost of a path that does not exist!");
+      return -1;
+    }
+
+    return this->prm_.GetHomotopicCost(this->paths_[spline_id], path); // Return the guidance trajectory
+  }
+
   int GlobalGuidance::GetUsedTrajectory() const { return selected_id_; }
 
   void GlobalGuidance::SetUsedTrajectory(int spline_id) { selected_id_ = spline_id; }

@@ -46,6 +46,7 @@ namespace GuidancePlanner
 
       /* Obstacles */
       environment_.SetPosition(start);
+      PRM_LOG("Static obstacles size: " << static_obstacles.size());
       if (static_obstacles.size() > 0)
         environment_.LoadObstacles(obstacles, static_obstacles);
       else
@@ -691,6 +692,16 @@ namespace GuidancePlanner
     debug_benchmarker_->stop();
 
     return homology_result;
+  }
+
+  double PRM::GetHomotopicCost(const GeometricPath &a, const GeometricPath &b)
+  {
+    debug_benchmarker_->start();
+    
+    double homology_cost = reinterpret_cast<Homology*>(topology_comparison_.get())->GetCost(a, b, environment_);
+    debug_benchmarker_->stop();
+
+    return homology_cost;
   }
 
   /** @todo: Should be per connection, not all at once */

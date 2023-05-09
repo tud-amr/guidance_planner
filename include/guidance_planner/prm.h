@@ -63,6 +63,9 @@ namespace GuidancePlanner
     /** @brief Are paths a, b homotopically equivalent? Checked with Uniform Visibility Deformation */
     bool AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b);
 
+    /** @brief Get homotopic cost between paths if using homologies*/
+    double GetHomotopicCost(const GeometricPath &a, const GeometricPath &b);
+
     bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
 
     /** @brief Reset this PRM. Removes previous nodes and all other transferred data. Use only when resetting the environment */

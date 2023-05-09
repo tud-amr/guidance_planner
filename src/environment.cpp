@@ -139,6 +139,7 @@ namespace GuidancePlanner
 
     for (auto &obstacle : dynamic_obstacles_)
     {
+      PRM_LOG("Obstacle path len: " << obstacle.positions_.size());
       for (size_t k = 0; k < obstacle.positions_.size(); k++)
         grid_.InsertObstacle((int)k, SingleObstacle(obstacle.positions_[k], obstacle.radius_));
     }

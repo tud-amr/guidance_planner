@@ -77,6 +77,48 @@ bool Homology::AreEquivalent(const GeometricPath &a, const GeometricPath &b, Env
   return true; // If none of them are distinct, then the two paths are homology equivalent!
 }
 
+/** @brief: https://link.springer.com/article/10.1007/s10514-012-9304-1 */
+double Homology::GetCost(const GeometricPath &a, const GeometricPath &b, Environment &environment)
+{
+  // Retrieve cached h values over the obstacles (i.e., a vector)
+  std::vector<double> &cached_a = cached_values_[a]; // Note: will create the cache if it does not exist
+  std::vector<double> &cached_b = cached_values_[b]; // Note: will create the cache if it does not exist
+
+  auto &obstacles = environment.GetDynamicObstacles();
+  double h, h_total = 0;
+
+  // For each obstacle
+  for (size_t obstacle_id = 0; obstacle_id < obstacles.size(); obstacle_id++)
+  {
+    auto &obstacle = obstacles[obstacle_id];
+
+    // Initialize the integration
+    h = 0;
+
+    ComputeObstacleLoop(obstacle);
+
+    h += PathHValue(a, cached_a, obstacle_id, obstacle); // Integrate over path A
+
+    // Connect end points of a and b
+    {
+      gsl_params_[0].start = a.nodes_.back()->point_.vec;
+      gsl_params_[0].end = b.nodes_.back()->point_.vec;
+
+      double result, error;
+
+      gsl_integration_qag(&gsl_f_[0], 0, 1, 1e-1, 0, 20, GSL_INTEG_GAUSS15, gsl_ws_[0], &result, &error);
+
+      h += result;
+    }
+
+    h -= PathHValue(b, cached_b, obstacle_id, obstacle); // Integrate over path B
+    h_total += abs(h);
+    // If is zero, keep checking the other obstacles
+  }
+
+  return sqrt(h_total); // If none of them are distinct, then the two paths are homology equivalent!
+}
+
 std::vector<bool> Homology::PassesRight(const GeometricPath &path, Environment &environment)
 {
   auto &obstacles = environment.GetDynamicObstacles();

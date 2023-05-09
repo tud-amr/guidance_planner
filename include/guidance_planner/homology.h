@@ -33,6 +33,8 @@ public:
 public:
   /** @brief Check if two paths are homotopy equivalent in the given environment */
   virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment) override;
+  /** @brief Get the cost between two paths in the given environment */
+  double GetCost(const GeometricPath &a, const GeometricPath &b, Environment &environment);
 
   virtual std::vector<bool> PassesRight(const GeometricPath &path, Environment &environment) override;
 
