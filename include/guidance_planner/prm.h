@@ -30,7 +30,8 @@
 
 namespace GuidancePlanner
 {
-  typedef SpaceTimePoint (*SamplingFunction)(const Eigen::Vector2d &, const std::vector<Goal> &, RosTools::RandomGenerator &);
+  class PRM;
+  typedef SpaceTimePoint (PRM::*SamplingFunction)();
 
   class PRM
   {
@@ -103,6 +104,7 @@ namespace GuidancePlanner
     Environment environment_;
     Eigen::Vector2d start_;
     std::vector<Goal> goals_;
+    double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
 
     Eigen::Vector2d previous_position_, previous_velocity_;
     double orientation_;
@@ -120,6 +122,7 @@ namespace GuidancePlanner
 
     /** @brief Sample a new random point */
     SpaceTimePoint SampleNewPoint();
+    SpaceTimePoint SampleUniformly3D();
 
     void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
     void FindTopologyDistinctGoalConnections(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals,
@@ -147,8 +150,6 @@ namespace GuidancePlanner
     void VisualizeGraph();
     void VisualizeAllSamples();
   };
-
-  SpaceTimePoint SampleUniformly3D(const Eigen::Vector2d &start, const std::vector<Goal> &goals, RosTools::RandomGenerator &random_generator);
 
 } // namespace Homotopy
 #endif // __PRM_H__

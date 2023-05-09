@@ -24,7 +24,9 @@ namespace GuidancePlanner
     sample_succes_.resize(config_->n_samples_);
 
     random_generator_ = RosTools::RandomGenerator(config_->seed_);
-    sampling_function_ = &SampleUniformly3D;
+
+    if (config_->sampling_function_ == "Uniform")
+      sampling_function_ = &PRM::SampleUniformly3D;
 
     if (config_->topology_comparison_function_ == "UVD")
     {
@@ -44,6 +46,7 @@ namespace GuidancePlanner
   {
     {
       PROFILE_SCOPE("Initializing Obstacles in Environment");
+      PRM_LOG("Loading data into PRM...")
 
       /* Obstacles */
       environment_.SetPosition(start);
@@ -93,6 +96,21 @@ namespace GuidancePlanner
 
     PRM_LOG(goals_.size() << " Collision-free goals were received");
 
+    // Compute the range of the planning space (between start and goals)
+    double min_x = start_(0), max_x = start_(0), min_y = start_(1), max_y = start_(1);
+    for (auto &goal : goals_)
+    {
+      min_x = std::min(goal.pos(0), min_x);
+      min_y = std::min(goal.pos(1), min_y);
+
+      max_x = std::max(goal.pos(0), max_x);
+      max_y = std::max(goal.pos(1), max_y);
+    }
+    range_x_ = max_x - min_x;
+    range_y_ = max_y - min_y;
+    min_x_ = min_x;
+    min_y_ = min_y;
+
     /* Other data */
     previously_selected_id_ = previously_selected_id;
   }
@@ -100,6 +118,8 @@ namespace GuidancePlanner
   Graph &PRM::Update()
   {
     PROFILE_SCOPE("PRM::Update");
+    PRM_LOG("PRM::Update")
+
     debug_visuals_->publish(false);
 
     done_ = false;
@@ -495,7 +515,7 @@ namespace GuidancePlanner
   {
     // bool simple_sampling = true;
     // SpaceTimePoint new_sample(0., 0., 0);
-    SpaceTimePoint new_sample = (*sampling_function_)(start_, goals_, random_generator_);
+    SpaceTimePoint new_sample = (this->*sampling_function_)();
 
     // if (simple_sampling) // Deprecated
     // {
@@ -589,17 +609,18 @@ namespace GuidancePlanner
     return new_sample;
   }
 
-  SpaceTimePoint SampleUniformly3D(const Eigen::Vector2d &start, const std::vector<Goal> &goals, RosTools::RandomGenerator &random_generator)
+  SpaceTimePoint PRM::SampleUniformly3D()
   {
-    double extra_range = 4;
-    double min_x = std::min(goals.back().pos(0), start(0)) - extra_range;
-    double min_y = std::min(goals.back().pos(1), start(1)) - extra_range;
-    double range_x = std::max(goals.back().pos(0), start(0)) + extra_range - min_x;
-    double range_y = std::max(goals.back().pos(1), start(1)) + extra_range - min_y;
-    // double min_x = std::min(goals.back().pos(0) - start(0), 0.) - extra_range;
-    // double min_y = std::min(goals.back().pos(1) - start(1), 0.) - extra_range;
-    return SpaceTimePoint(min_x + random_generator.Double() * range_x, min_y + random_generator.Double() * range_y,
-                          random_generator.Int(Config::N - 2) + 1); // 1 - N-1
+
+    // double extra_range = config_->sample_margin_;
+    // double min_x = std::min(goals_.back().pos(0), start_(0)) - extra_range;
+    // double min_y = std::min(goals_.back().pos(1), start_(1)) - extra_range;
+    // double range_x = std::max(goals_.back().pos(0), start_(0)) + extra_range - min_x;
+    // double range_y = std::max(goals_.back().pos(1), start_(1)) + extra_range - min_y;
+    // // double min_x = std::min(goals.back().pos(0) - start(0), 0.) - extra_range;
+    // // double min_y = std::min(goals.back().pos(1) - start(1), 0.) - extra_range;
+    return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_, min_y_ + random_generator_.Double() * range_y_,
+                          random_generator_.Int(Config::N - 2) + 1); // 1 - N-1
   }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
@@ -711,15 +732,14 @@ namespace GuidancePlanner
     // This subfunction checks the connection between any two points
 
     // Connections must move forward in the "x" direction
-    // bool forward_connection =
-    //     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
-    //     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos(); //.Pos()(0) > first_point.Pos()(0);
-    // if (!forward_connection)
-    // {
-    //   PRM_LOG("Connection does not move forward in time");
 
-    //   return false;
-    // }
+    bool forward_connection = (!config_->enable_forward_filter_) || (Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
+                                                                     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos()); //.Pos()(0) > first_point.Pos()(0);
+    if (!forward_connection)
+    {
+      PRM_LOG("Connection does not move forward in time");
+      return false;
+    }
 
     // Connections have a limited velocity
     double dist = RosTools::dist(first_point.Pos(), second_point.Pos());
@@ -809,50 +829,53 @@ namespace GuidancePlanner
       return false;
 
     // ACCELERATIONS
-    // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the
-    // limits
-    SpaceTimePoint first_point = start_node->point_;
-    SpaceTimePoint second_point = new_point;
-    SpaceTimePoint third_point = end_node->point_;
-
-    std::vector<double> t, x, y;
-    t.push_back(first_point.Time() * Config::DT);
-    t.push_back(second_point.Time() * Config::DT);
-    t.push_back(third_point.Time() * Config::DT);
-
-    x.push_back(first_point.Pos()(0));
-    x.push_back(second_point.Pos()(0));
-    x.push_back(third_point.Pos()(0));
-
-    y.push_back(first_point.Pos()(1));
-    y.push_back(second_point.Pos()(1));
-    y.push_back(third_point.Pos()(1));
-
-    tk::spline connect_x, connect_y;
-
-    if (first_point.Time() == 0) // Start with initial velocity
+    if (config_->enable_acceleration_filter_)
     {
-      connect_x.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-      connect_y.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-    }
-    else // No acceleration on start points
-    {
-      connect_x.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
-      connect_y.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
-    }
+      // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the
+      // limits
+      SpaceTimePoint first_point = start_node->point_;
+      SpaceTimePoint second_point = new_point;
+      SpaceTimePoint third_point = end_node->point_;
 
-    connect_x.set_points(t, x);
-    connect_y.set_points(t, y);
+      std::vector<double> t, x, y;
+      t.push_back(first_point.Time() * Config::DT);
+      t.push_back(second_point.Time() * Config::DT);
+      t.push_back(third_point.Time() * Config::DT);
 
-    // Check accelerations
-    Eigen::ArrayXd evals = Eigen::ArrayXd::LinSpaced(3, t[0], t[2]);
+      x.push_back(first_point.Pos()(0));
+      x.push_back(second_point.Pos()(0));
+      x.push_back(third_point.Pos()(0));
 
-    for (int i = 0; i < evals.rows(); i++)
-    {
-      if (Eigen::Vector2d(connect_x.deriv(2, evals(i)), connect_y.deriv(2, evals(i))).norm() > config_->max_acceleration_)
+      y.push_back(first_point.Pos()(1));
+      y.push_back(second_point.Pos()(1));
+      y.push_back(third_point.Pos()(1));
+
+      tk::spline connect_x, connect_y;
+
+      if (first_point.Time() == 0) // Start with initial velocity
       {
-        PRM_LOG("Acceleration limits are not satisfied");
-        return false;
+        connect_x.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
+        connect_y.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
+      }
+      else // No acceleration on start points
+      {
+        connect_x.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
+        connect_y.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
+      }
+
+      connect_x.set_points(t, x);
+      connect_y.set_points(t, y);
+
+      // Check accelerations
+      Eigen::ArrayXd evals = Eigen::ArrayXd::LinSpaced(3, t[0], t[2]);
+
+      for (int i = 0; i < evals.rows(); i++)
+      {
+        if (Eigen::Vector2d(connect_x.deriv(2, evals(i)), connect_y.deriv(2, evals(i))).norm() > config_->max_acceleration_)
+        {
+          PRM_LOG("Acceleration limits are not satisfied");
+          return false;
+        }
       }
     }
 

@@ -114,6 +114,7 @@ namespace GuidancePlanner
   bool GlobalGuidance::Update()
   {
     PROFILE_SCOPE("GlobalGuidance::Update");
+    PRM_LOG("GlobalGuidance::Update")
     benchmarkers_[0]->start();
 
     no_message_sent_yet_ = true;
@@ -535,7 +536,7 @@ namespace GuidancePlanner
       for (int k = 0; k < Config::N; k++)
       {
         // Transparent
-        disc.setColorInt(obstacle.id_, 0.5 /** std::pow(((double)(Config::N - k)) / (double)Config::N, 2.)*/, RosTools::Colormap::BRUNO);
+        disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), RosTools::Colormap::BRUNO);
         // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) /
         // (double)Config::N, 2.), Colormap::BRUNO);
 
@@ -673,12 +674,14 @@ namespace GuidancePlanner
 
       config.n_paths = config_->n_paths_;
       config.n_samples = config_->n_samples_;
+      config.visualize_samples = config_->visualize_all_samples_;
     }
 
     Config::debug_output_ = config.debug;
 
     config_->n_paths_ = config.n_paths;
     config_->n_samples_ = config.n_samples;
+    config_->visualize_all_samples_ = config.visualize_samples;
   }
 
 } // namespace GuidancePlanner

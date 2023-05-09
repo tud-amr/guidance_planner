@@ -45,10 +45,8 @@ namespace GuidancePlanner
     void SetGoals(const std::vector<Goal> &goals);
 
     /** @brief Additional configuration */
-    void SetPRMSamplingFunction(SamplingFunction sampling_function)
-    {
-      prm_.SetPRMSamplingFunction(sampling_function);
-    };
+    void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
+    void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = reference_velocity; }
 
     /**
      * @brief Compute Guidance trajectories

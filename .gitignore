@@ -1,2 +1,5 @@
 profiler.json
 *.bin
+
+debug/10_ts/
+debug/20_ts/read_scenario.cpp
