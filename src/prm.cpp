@@ -106,8 +106,8 @@ namespace GuidancePlanner
       max_x = std::max(goal.pos(0), max_x);
       max_y = std::max(goal.pos(1), max_y);
     }
-    range_x_ = max_x - min_x;
-    range_y_ = max_y - min_y;
+    range_x_ = max_x - min_x + config_->sample_margin_;
+    range_y_ = max_y - min_y + config_->sample_margin_;
     min_x_ = min_x;
     min_y_ = min_y;
 

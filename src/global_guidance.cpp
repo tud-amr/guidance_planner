@@ -49,7 +49,7 @@ namespace GuidancePlanner
     static_obstacles_ = static_obstacles;
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path)
+  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width)
   {
     PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
 
@@ -68,7 +68,7 @@ namespace GuidancePlanner
     double s_step = (s_best - s_start) / ((double)grid_long - 1.); // -1 for starting at 0
     ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
-    double width = 4.0;
+    double width = road_width;
     double v_step = width / ((double)(grid_vert - 1));
 
     goals_.clear();
