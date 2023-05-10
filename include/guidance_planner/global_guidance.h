@@ -72,6 +72,7 @@ namespace GuidancePlanner
      * @return double The cost
      */
     double GetHomotopicCost(int spline_id, const GeometricPath &path);
+    std::vector<bool> passes_right(int spline_id);
 
     /** @brief Get the ID of the used trajectory */
     int GetUsedTrajectory() const;

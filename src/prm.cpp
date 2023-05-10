@@ -704,6 +704,16 @@ namespace GuidancePlanner
     return homology_cost;
   }
 
+  std::vector<bool> PRM::passes_right(const GeometricPath &path)
+  {
+    debug_benchmarker_->start();
+    
+    std::vector<bool> h = topology_comparison_->PassesRight(path, environment_);
+    debug_benchmarker_->stop();
+
+    return h;
+  }
+
   /** @todo: Should be per connection, not all at once */
   bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePoint &second_point)
   {

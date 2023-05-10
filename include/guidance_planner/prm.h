@@ -65,6 +65,7 @@ namespace GuidancePlanner
 
     /** @brief Get homotopic cost between paths if using homologies*/
     double GetHomotopicCost(const GeometricPath &a, const GeometricPath &b);
+    std::vector<bool> passes_right(const GeometricPath &path);
 
     bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
 

@@ -135,7 +135,7 @@ std::vector<bool> Homology::PassesRight(const GeometricPath &path, Environment &
     ComputeObstacleLoop(obstacle);
 
     double path_h_value = PathHValue(path, cached, obstacle_id, obstacle);
-    std::cout << obstacle_id << ": " << path_h_value << std::endl;
+    // std::cout << obstacle_id << ": " << path_h_value << std::endl;
     results[obstacle_id] = path_h_value > 0.1;
     // if (results[obstacle_id])
     //   std::cout << "passes right\n";
