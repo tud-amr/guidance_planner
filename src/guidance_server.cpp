@@ -73,7 +73,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
@@ -137,7 +137,7 @@ public:
             std::vector<GuidancePlanner::Node *> truth_vec_node;
             for (size_t i_node = 0; i_node < req.truth.x.size(); i_node++)
             {
-                SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node * Config::DT);
+                SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node);
                 truth_vec_node.emplace_back(new Node(i_node, point, NodeType::NONE));
             }
             GeometricPath truth_path(truth_vec_node);
@@ -150,7 +150,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
@@ -213,7 +213,7 @@ public:
             std::vector<GuidancePlanner::Node *> truth_vec_node;
             for (size_t i_node = 0; i_node < req.truth.x.size(); i_node++)
             {
-                SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node * Config::DT);
+                SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node);
                 truth_vec_node.emplace_back(new Node(i_node, point, NodeType::NONE));
             }
             GeometricPath truth_path(truth_vec_node);
@@ -225,7 +225,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
@@ -289,7 +289,7 @@ public:
             std::vector<GuidancePlanner::Node *> truth_vec_node;
             for (size_t i_node = 0; i_node < req.truth.x.size(); i_node++)
             {
-                SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node * Config::DT);
+                SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node);
                 truth_vec_node.emplace_back(new Node(i_node, point, NodeType::NONE));
             }
             GeometricPath truth_path(truth_vec_node);
@@ -301,7 +301,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());

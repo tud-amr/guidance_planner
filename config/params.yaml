@@ -1,10 +1,10 @@
 prm:
   debug_output: false
   seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
-  # T: 4.8                               # Time horizon [s]
-  # N: 12 # 40                                 # Discrete time steps [#]
-  T: 8.0
-  N: 20
+  T: 4.8                               # Time horizon [s]
+  N: 12 # 40                                 # Discrete time steps [#]
+  # T: 8.0
+  # N: 20
   topology_comparison: Homology         # Homology (default) or UVD
   sampling_function: Uniform # Uniform (default)
   sample_margin: 5.0
