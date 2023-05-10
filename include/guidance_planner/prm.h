@@ -30,6 +30,8 @@
 
 namespace GuidancePlanner
 {
+  class PRM;
+  typedef SpaceTimePoint (PRM::*SamplingFunction)();
 
   class PRM
   {
@@ -55,6 +57,8 @@ namespace GuidancePlanner
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals, const int previously_selected_id);
 
+    void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
+
     void TransferPathInformationAndPropagate(const std::vector<GeometricPath> paths, const std::vector<PathAssociation> &known_paths);
 
     Eigen::Vector2d GetStart() const { return start_; };                  /** @brief Get the start position */
@@ -62,6 +66,7 @@ namespace GuidancePlanner
 
     /** @brief Are paths a, b homotopically equivalent? Checked with Uniform Visibility Deformation */
     bool AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b);
+    std::vector<bool> GetLeftPassingVector(const GeometricPath &path) { return topology_comparison_->LeftPassingVector(path, environment_); }
 
     /** @brief Get homotopic cost between paths if using homologies*/
     double GetHomotopicCost(const GeometricPath &a, const GeometricPath &b);
@@ -79,19 +84,18 @@ namespace GuidancePlanner
     void ExportData(RosTools::DataSaver &data_saver);
 
   private:
-    // ros::NodeHandle nh_;
-    // std::unique_ptr<Config> config_;
+    bool done_;
+
     Config *config_;
-    std::unique_ptr<TopologyComparison> topology_comparison_;
 
     // Classes for visualization
     std::unique_ptr<RosTools::ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_segment_visuals_;
     std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
-    // Graph related classes
-    std::unique_ptr<Graph> graph_;
+    std::unique_ptr<Graph> graph_;                            // PRM Graph
+    std::unique_ptr<TopologyComparison> topology_comparison_; // H-invariant or UVD comparison
 
-    bool done_;
+    SamplingFunction sampling_function_; /** @note Samples are relative to start position and orientation */
 
     RosTools::RandomGenerator random_generator_; // Used to generate samples
 
@@ -102,12 +106,11 @@ namespace GuidancePlanner
     std::vector<bool> path_id_was_known_;
 
     // Real-time data
-    // std::vector<Obstacle> obstacles_;
     Environment environment_;
     Eigen::Vector2d start_;
     std::vector<Goal> goals_;
-    // std::vector<Eigen::Vector2d> goals_;
-    // std::vector<double> goal_costs_;
+    double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
+
     Eigen::Vector2d previous_position_, previous_velocity_;
     double orientation_;
     Eigen::Vector2d start_velocity_;
@@ -124,6 +127,7 @@ namespace GuidancePlanner
 
     /** @brief Sample a new random point */
     SpaceTimePoint SampleNewPoint();
+    SpaceTimePoint SampleUniformly3D();
 
     void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
     void FindTopologyDistinctGoalConnections(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals,

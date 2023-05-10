@@ -4,7 +4,8 @@ namespace GuidancePlanner
 {
   GlobalGuidance::~GlobalGuidance()
   {
-    RosTools::Instrumentor::Get().EndSession();
+    // TODO
+    //  RosTools::Instrumentor::Get().EndSession();
   }
 
   GlobalGuidance::GlobalGuidance()
@@ -12,7 +13,7 @@ namespace GuidancePlanner
     PRM_LOG("Initializing Global Guidance");
 
     // Initialize profiling
-    RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
+    // RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
 
     config_.reset(new Config());
     prm_.Init(nh_, config_.get());
@@ -48,9 +49,15 @@ namespace GuidancePlanner
     static_obstacles_ = static_obstacles;
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path)
+  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width)
   {
-    ROS_INFO("Global Guidance: Loading Reference Path and Setting Goal Locations");
+    LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
+  }
+
+  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path,
+                                         double road_width_left, double road_width_right)
+  {
+    PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
 
     ROSTOOLS_ASSERT(!goals_set_, "Please set the goals via SetGoals or LoadReferencePath, but not both!"); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
     goals_set_ = true;
@@ -67,7 +74,8 @@ namespace GuidancePlanner
     double s_step = (s_best - s_start) / ((double)grid_long - 1.); // -1 for starting at 0
     ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
-    double width = 4.0;
+    double width = road_width_left + road_width_right;
+    double offset = -road_width_left + width / 2.;
     double v_step = width / ((double)(grid_vert - 1));
 
     goals_.clear();
@@ -90,8 +98,7 @@ namespace GuidancePlanner
       {
         double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
         double cost = long_cost + lat_cost;
-
-        goals_.emplace_back(line_point + normal * ((double)j) * v_step, cost); // Add the goal
+        goals_.emplace_back(line_point + normal * (-offset + ((double)j) * v_step), cost); // Add the goal
       }
     }
   }
@@ -113,6 +120,7 @@ namespace GuidancePlanner
   bool GlobalGuidance::Update()
   {
     PROFILE_SCOPE("GlobalGuidance::Update");
+    PRM_LOG("GlobalGuidance::Update")
     benchmarkers_[0]->start();
 
     no_message_sent_yet_ = true;
@@ -213,6 +221,22 @@ namespace GuidancePlanner
       {
         benchmarkers_[0]->stop();
         return false;
+      }
+
+      // Test the passing left feature
+      for (auto &path : paths_)
+      {
+        std::vector<bool> pass_left = prm_.GetLeftPassingVector(path);
+
+        std::cout << path.association_.id_ << ": ";
+        for (size_t i = 0; i < pass_left.size(); i++)
+        {
+          if (pass_left[i])
+            std::cout << "L | ";
+          else
+            std::cout << "R | ";
+        }
+        std::cout << "\b\b\n";
       }
 
       splines_.clear();
@@ -555,7 +579,7 @@ namespace GuidancePlanner
       for (int k = 0; k < Config::N; k++)
       {
         // Transparent
-        disc.setColorInt(obstacle.id_, 0.5 /** std::pow(((double)(Config::N - k)) / (double)Config::N, 2.)*/, RosTools::Colormap::BRUNO);
+        disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), RosTools::Colormap::BRUNO);
         // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) /
         // (double)Config::N, 2.), Colormap::BRUNO);
 
@@ -693,12 +717,14 @@ namespace GuidancePlanner
 
       config.n_paths = config_->n_paths_;
       config.n_samples = config_->n_samples_;
+      config.visualize_samples = config_->visualize_all_samples_;
     }
 
     Config::debug_output_ = config.debug;
 
     config_->n_paths_ = config.n_paths;
     config_->n_samples_ = config.n_samples;
+    config_->visualize_all_samples_ = config.visualize_samples;
   }
 
 } // namespace GuidancePlanner

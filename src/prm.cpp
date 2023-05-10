@@ -25,6 +25,9 @@ namespace GuidancePlanner
 
     random_generator_ = RosTools::RandomGenerator(config_->seed_);
 
+    if (config_->sampling_function_ == "Uniform")
+      sampling_function_ = &PRM::SampleUniformly3D;
+
     if (config_->topology_comparison_function_ == "UVD")
     {
       topology_comparison_.reset(new UVD());
@@ -43,6 +46,7 @@ namespace GuidancePlanner
   {
     {
       PROFILE_SCOPE("Initializing Obstacles in Environment");
+      PRM_LOG("Loading data into PRM...")
 
       /* Obstacles */
       environment_.SetPosition(start);
@@ -93,6 +97,21 @@ namespace GuidancePlanner
 
     PRM_LOG(goals_.size() << " Collision-free goals were received");
 
+    // Compute the range of the planning space (between start and goals)
+    double min_x = start_(0), max_x = start_(0), min_y = start_(1), max_y = start_(1);
+    for (auto &goal : goals_)
+    {
+      min_x = std::min(goal.pos(0), min_x);
+      min_y = std::min(goal.pos(1), min_y);
+
+      max_x = std::max(goal.pos(0), max_x);
+      max_y = std::max(goal.pos(1), max_y);
+    }
+    range_x_ = max_x - min_x + config_->sample_margin_;
+    range_y_ = max_y - min_y + config_->sample_margin_;
+    min_x_ = min_x - config_->sample_margin_ / 2.;
+    min_y_ = min_y - config_->sample_margin_ / 2.;
+
     /* Other data */
     previously_selected_id_ = previously_selected_id;
   }
@@ -100,6 +119,8 @@ namespace GuidancePlanner
   Graph &PRM::Update()
   {
     PROFILE_SCOPE("PRM::Update");
+    PRM_LOG("PRM::Update")
+
     debug_visuals_->publish(false);
 
     done_ = false;
@@ -180,7 +201,8 @@ namespace GuidancePlanner
 
   void PRM::SampleNewPoints(std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes)
   {
-// First sample all the points in parallel
+    // First sample all the points in parallel
+    all_samples_.resize(config_->n_samples_);
 #pragma omp parallel for num_threads(8)
     for (int i = 0; i < config_->n_samples_; i++)
     {
@@ -190,9 +212,6 @@ namespace GuidancePlanner
 
       // Get a new sample (either from the previous iteration, or a new one)
       SpaceTimePoint sample = sample_is_from_previous_iteration ? previous_nodes_[i].point_ : SampleNewPoint();
-
-      if (config_->visualize_all_samples_)
-        all_samples_.push_back(sample);
 
       PRM_LOG("==== [" << i << "] New Sample ====\n"
                        << sample);
@@ -212,6 +231,9 @@ namespace GuidancePlanner
           previous_nodes_[i].point_ = sample; // Update the previous node's position if necessary (for construction later)
 
         samples[i] = sample;
+
+        if (config_->visualize_all_samples_)
+          all_samples_[i] = sample;
       }
     }
   }
@@ -492,103 +514,107 @@ namespace GuidancePlanner
 
   SpaceTimePoint PRM::SampleNewPoint()
   {
-    bool simple_sampling = true;
-    SpaceTimePoint new_sample(0., 0., 0);
-    if (simple_sampling) // Deprecated
-    {
-      // Uniform[0, 10][-5, 5]
-      double extra_range = 4;
-      double min_x = std::min(goals_.back().pos(0), start_(0)) - extra_range;
-      double min_y = std::min(goals_.back().pos(1), start_(1)) - extra_range;
-      double range_x = std::max(goals_.back().pos(0), start_(0)) + extra_range - min_x;
-      double range_y = std::max(goals_.back().pos(1), start_(1)) + extra_range - min_y;
-      new_sample = SpaceTimePoint(min_x + random_generator_.Double() * range_x, min_y + random_generator_.Double() * range_y,
-                                  random_generator_.Int(Config::N - 2) + 1); // 1 - N-1
-    }
-    else
-    {
-      double start_velocity = start_velocity_.norm(); // Get the forward speed in the non-rotated frame
+    // bool simple_sampling = true;
+    // SpaceTimePoint new_sample(0., 0., 0);
+    SpaceTimePoint new_sample = (this->*sampling_function_)();
 
-      // Sample a time index
-      int random_k = random_generator_.Int(Config::N - 2) + 1; // 1 - (N-1)
+    // if (simple_sampling) // Deprecated
+    // {
+    // Uniform[0, 10][-5, 5]
 
-      // Radial sampling based on vehicle limits
-      // Goal: similar amount of samples per "k", following roughly the actuation limits of the vehicle
-      // Some settings for the sampler
-      double view_angle = config_->view_angle_;
-      double max_velocity = config_->max_velocity_;
-      double max_acceleration = config_->max_acceleration_;
+    // else
+    // {
+    //   double start_velocity = start_velocity_.norm(); // Get the forward speed in the non-rotated frame
 
-      double maximum_radius = RosTools::dist(start_, goals_.back().pos);
+    //   // Sample a time index
+    //   int random_k = random_generator_.Int(Config::N - 2) + 1; // 1 - (N-1)
 
-      // Find the maximum distance where a node can spawn for the randomly sampled k
-      double min_vel = start_velocity;
-      double max_vel = start_velocity;
-      double max_dist = 0., min_dist = 0.;
-      for (int i = 0; i < random_k; i++)
-      {
-        max_vel = std::min(max_vel + max_acceleration * Config::DT,
-                           max_velocity); // Either maximum acceleration or maximum velocity
-        max_dist = std::min(max_dist + max_vel * Config::DT,
-                            maximum_radius); // The distance we can travel increases with the maximum velocity
+    //   // Radial sampling based on vehicle limits
+    //   // Goal: similar amount of samples per "k", following roughly the actuation limits of the vehicle
+    //   // Some settings for the sampler
+    //   double view_angle = config_->view_angle_;
+    //   double max_velocity = config_->max_velocity_;
+    //   double max_acceleration = config_->max_acceleration_;
 
-        // Account for maximum possible braking
-        min_vel = std::max(min_vel - max_acceleration * Config::DT, 0.);
-        min_dist = min_dist + min_vel * Config::DT;
-      }
+    //   double maximum_radius = RosTools::dist(start_, goals_.back().pos);
 
-      // Sample u1 such that it spreads quadratically
-      bool sample_in_quadratic = false;
-      double u1, u2;
-      while (!sample_in_quadratic)
-      {
-        u1 = random_generator_.Double();
-        u2 = random_generator_.Double();
-        if (u2 < u1 * u1) // Rejection sample quadratic distribution
-          sample_in_quadratic = true;
-      }
+    //   // Find the maximum distance where a node can spawn for the randomly sampled k
+    //   double min_vel = start_velocity;
+    //   double max_vel = start_velocity;
+    //   double max_dist = 0., min_dist = 0.;
+    //   for (int i = 0; i < random_k; i++)
+    //   {
+    //     max_vel = std::min(max_vel + max_acceleration * Config::DT,
+    //                        max_velocity); // Either maximum acceleration or maximum velocity
+    //     max_dist = std::min(max_dist + max_vel * Config::DT,
+    //                         maximum_radius); // The distance we can travel increases with the maximum velocity
 
-      double random_r = min_dist + u1 * (max_dist - min_dist); // Sample a random radius smaller than the velocity
-      double random_angle = random_generator_.Double() * view_angle - view_angle / 2.;
+    //     // Account for maximum possible braking
+    //     min_vel = std::max(min_vel - max_acceleration * Config::DT, 0.);
+    //     min_dist = min_dist + min_vel * Config::DT;
+    //   }
 
-      // Construct the sample
-      new_sample = SpaceTimePoint(random_r * std::cos(random_angle), random_r * std::sin(random_angle), random_k);
+    //   // Sample u1 such that it spreads quadratically
+    //   bool sample_in_quadratic = false;
+    //   double u1, u2;
+    //   while (!sample_in_quadratic)
+    //   {
+    //     u1 = random_generator_.Double();
+    //     u2 = random_generator_.Double();
+    //     if (u2 < u1 * u1) // Rejection sample quadratic distribution
+    //       sample_in_quadratic = true;
+    //   }
 
-      // Check if the sample is acceptable in terms of rotational velocity
-      double max_w = 1.0;
-      double cur_psi = 0., cur_x = 0., cur_y = 0.;
-      double cur_vel = start_velocity;
-      for (int k = 0; k < random_k; k++)
-      {
-        cur_x += cur_vel * std::cos(cur_psi) * Config::DT; // Position
-        cur_y += cur_vel * std::sin(cur_psi) * Config::DT;
-        cur_psi += max_w * Config::DT;            // Orientation
-        cur_vel -= max_acceleration * Config::DT; // Velocity (under maximum braking)
+    //   double random_r = min_dist + u1 * (max_dist - min_dist); // Sample a random radius smaller than the velocity
+    //   double random_angle = random_generator_.Double() * view_angle - view_angle / 2.;
 
-        cur_vel = std::max(0., cur_vel);
+    //   // Construct the sample
+    //   new_sample = SpaceTimePoint(random_r * std::cos(random_angle), random_r * std::sin(random_angle), random_k);
 
-        if (std::abs(cur_psi) > M_PI_2) // Stop when we rotated 90 degrees
-          break;
-      }
+    //   // Check if the sample is acceptable in terms of rotational velocity
+    //   double max_w = 1.0;
+    //   double cur_psi = 0., cur_x = 0., cur_y = 0.;
+    //   double cur_vel = start_velocity;
+    //   for (int k = 0; k < random_k; k++)
+    //   {
+    //     cur_x += cur_vel * std::cos(cur_psi) * Config::DT; // Position
+    //     cur_y += cur_vel * std::sin(cur_psi) * Config::DT;
+    //     cur_psi += max_w * Config::DT;            // Orientation
+    //     cur_vel -= max_acceleration * Config::DT; // Velocity (under maximum braking)
 
-      // If our sample is outside of this rotational velocity area - recursively try again
-      if ((new_sample(0) < cur_x && new_sample(1) > cur_y) || (new_sample(0) < cur_x && new_sample(1) < -cur_y))
-        return SampleNewPoint(); // Recursively try again
+    //     cur_vel = std::max(0., cur_vel);
 
-      // Collapse the range of y values to -max_spread_y, max_spread_y to prevent the view range from becoming excessively
-      // large (disabled) double max_spread_y = 5.0; double new_y; if (new_sample(1) > 0)
-      //     new_y = new_sample(1) - std::floor(new_sample(1) / max_spread_y) * max_spread_y; // (modulo)
-      // else
-      //     new_y = new_sample(1) - std::ceil(new_sample(1) / max_spread_y) * max_spread_y; // (modulo)
+    //     if (std::abs(cur_psi) > M_PI_2) // Stop when we rotated 90 degrees
+    //       break;
+    //   }
 
-      // new_sample.SetPos(Eigen::Vector2d(new_sample(0), new_y));
+    //   // If our sample is outside of this rotational velocity area - recursively try again
+    //   if ((new_sample(0) < cur_x && new_sample(1) > cur_y) || (new_sample(0) < cur_x && new_sample(1) < -cur_y))
+    //     return SampleNewPoint(); // Recursively try again
 
-      // Translate and rotate to match the real data
-    }
-    Eigen::MatrixXd R = RosTools::rotationMatrixFromHeading(-orientation_);
-    new_sample.SetPos(start_ + /*R * */ new_sample.Pos());
+    // Collapse the range of y values to -max_spread_y, max_spread_y to prevent the view range from becoming excessively
+    // large (disabled) double max_spread_y = 5.0; double new_y; if (new_sample(1) > 0)
+    //     new_y = new_sample(1) - std::floor(new_sample(1) / max_spread_y) * max_spread_y; // (modulo)
+    // else
+    //     new_y = new_sample(1) - std::ceil(new_sample(1) / max_spread_y) * max_spread_y; // (modulo)
+
+    // new_sample.SetPos(Eigen::Vector2d(new_sample(0), new_y));
+
+    // Translate and rotate to match the real data
+    // }
+
+    /** Translate and rotate to match the real data */
+    // Eigen::MatrixXd R = RosTools::rotationMatrixFromHeading(-orientation_);
+    // new_sample.SetPos(start_ + /*R * */ new_sample.Pos());
 
     return new_sample;
+  }
+
+  SpaceTimePoint PRM::SampleUniformly3D()
+  {
+    // s
+    return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_, min_y_ + random_generator_.Double() * range_y_,
+                          random_generator_.Int(Config::N - 2) + 1);
   }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
@@ -697,8 +723,8 @@ namespace GuidancePlanner
   double PRM::GetHomotopicCost(const GeometricPath &a, const GeometricPath &b)
   {
     debug_benchmarker_->start();
-    
-    double homology_cost = reinterpret_cast<Homology*>(topology_comparison_.get())->GetCost(a, b, environment_);
+
+    double homology_cost = reinterpret_cast<Homology *>(topology_comparison_.get())->GetCost(a, b, environment_);
     debug_benchmarker_->stop();
 
     return homology_cost;
@@ -707,8 +733,8 @@ namespace GuidancePlanner
   std::vector<bool> PRM::passes_right(const GeometricPath &path)
   {
     debug_benchmarker_->start();
-    
-    std::vector<bool> h = topology_comparison_->PassesRight(path, environment_);
+
+    std::vector<bool> h = topology_comparison_->LeftPassingVector(path, environment_);
     debug_benchmarker_->stop();
 
     return h;
@@ -720,15 +746,14 @@ namespace GuidancePlanner
     // This subfunction checks the connection between any two points
 
     // Connections must move forward in the "x" direction
-    // bool forward_connection =
-    //     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
-    //     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos(); //.Pos()(0) > first_point.Pos()(0);
-    // if (!forward_connection)
-    // {
-    //   PRM_LOG("Connection does not move forward in time");
 
-    //   return false;
-    // }
+    bool forward_connection = (!config_->enable_forward_filter_) || (Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
+                                                                     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos()); //.Pos()(0) > first_point.Pos()(0);
+    if (!forward_connection)
+    {
+      PRM_LOG("Connection does not move forward in time");
+      return false;
+    }
 
     // Connections have a limited velocity
     double dist = RosTools::dist(first_point.Pos(), second_point.Pos());
@@ -762,35 +787,6 @@ namespace GuidancePlanner
       return false;
     }
 
-    // Check rules
-    // bool rules_satisfied = true;
-
-    // if (config_->pass_left_)
-    // {
-    //   std::vector<bool> passes_right = topology_comparison_->PassesRight(path, environment_);
-    //   for (size_t i = 0; i < passes_right.size(); i++)
-    //   {
-    //     if (passes_right[i])
-    //     {
-    //       auto &obstacle = environment_.GetDynamicObstacles()[i];
-    //       // if (RosTools::dist(obstacle.positions_[0], path.nodes_[0]->point_.Pos()) > 5.) // Only count if they are close (move this to prm)
-    //       // continue;
-    //       double angle = std::atan2(obstacle.positions_[1](1) - obstacle.positions_[0](1), obstacle.positions_[1](0) -
-    //       obstacle.positions_[0](0)); if (std::abs(angle) > M_PI_2) // Only if they are walking towards the robot?
-    //         continue;
-
-    //       rules_satisfied = false;
-    //       break;
-    //     }
-    //   }
-
-    //   if (!rules_satisfied)
-    //   {
-    //     PRM_LOG("Rules are not satisfied");
-    //     return false;
-    //   }
-    // }
-
     return true; // This connection is valid
   }
 
@@ -818,50 +814,53 @@ namespace GuidancePlanner
       return false;
 
     // ACCELERATIONS
-    // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the
-    // limits
-    SpaceTimePoint first_point = start_node->point_;
-    SpaceTimePoint second_point = new_point;
-    SpaceTimePoint third_point = end_node->point_;
-
-    std::vector<double> t, x, y;
-    t.push_back(first_point.Time() * Config::DT);
-    t.push_back(second_point.Time() * Config::DT);
-    t.push_back(third_point.Time() * Config::DT);
-
-    x.push_back(first_point.Pos()(0));
-    x.push_back(second_point.Pos()(0));
-    x.push_back(third_point.Pos()(0));
-
-    y.push_back(first_point.Pos()(1));
-    y.push_back(second_point.Pos()(1));
-    y.push_back(third_point.Pos()(1));
-
-    tk::spline connect_x, connect_y;
-
-    if (first_point.Time() == 0) // Start with initial velocity
+    if (config_->enable_acceleration_filter_)
     {
-      connect_x.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-      connect_y.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-    }
-    else // No acceleration on start points
-    {
-      connect_x.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
-      connect_y.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
-    }
+      // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the
+      // limits
+      SpaceTimePoint first_point = start_node->point_;
+      SpaceTimePoint second_point = new_point;
+      SpaceTimePoint third_point = end_node->point_;
 
-    connect_x.set_points(t, x);
-    connect_y.set_points(t, y);
+      std::vector<double> t, x, y;
+      t.push_back(first_point.Time() * Config::DT);
+      t.push_back(second_point.Time() * Config::DT);
+      t.push_back(third_point.Time() * Config::DT);
 
-    // Check accelerations
-    Eigen::ArrayXd evals = Eigen::ArrayXd::LinSpaced(3, t[0], t[2]);
+      x.push_back(first_point.Pos()(0));
+      x.push_back(second_point.Pos()(0));
+      x.push_back(third_point.Pos()(0));
 
-    for (int i = 0; i < evals.rows(); i++)
-    {
-      if (Eigen::Vector2d(connect_x.deriv(2, evals(i)), connect_y.deriv(2, evals(i))).norm() > config_->max_acceleration_)
+      y.push_back(first_point.Pos()(1));
+      y.push_back(second_point.Pos()(1));
+      y.push_back(third_point.Pos()(1));
+
+      tk::spline connect_x, connect_y;
+
+      if (first_point.Time() == 0) // Start with initial velocity
       {
-        PRM_LOG("Acceleration limits are not satisfied");
-        return false;
+        connect_x.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
+        connect_y.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
+      }
+      else // No acceleration on start points
+      {
+        connect_x.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
+        connect_y.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
+      }
+
+      connect_x.set_points(t, x);
+      connect_y.set_points(t, y);
+
+      // Check accelerations
+      Eigen::ArrayXd evals = Eigen::ArrayXd::LinSpaced(3, t[0], t[2]);
+
+      for (int i = 0; i < evals.rows(); i++)
+      {
+        if (Eigen::Vector2d(connect_x.deriv(2, evals(i)), connect_y.deriv(2, evals(i))).norm() > config_->max_acceleration_)
+        {
+          PRM_LOG("Acceleration limits are not satisfied");
+          return false;
+        }
       }
     }
 
@@ -981,8 +980,11 @@ namespace GuidancePlanner
       samples.setScale(.15, .15, .15);
       samples.setColorInt(0);
 
-      for (auto &sample : all_samples_)
-        samples.addPointMarker(sample.MapToTime());
+      for (size_t s = 0; s < all_samples_.size(); s++)
+      {
+        if (sample_succes_[s])
+          samples.addPointMarker(all_samples_[s].MapToTime());
+      }
     }
 
     ros_sample_visuals_->publish();

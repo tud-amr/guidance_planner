@@ -233,7 +233,7 @@ namespace GuidancePlanner
       if (halfspace.A_.transpose() * point > halfspace.b_)
       {
         // Ax > b -> move x by b - Ax in direction of A (plus the margin)
-        point += halfspace.A_ * (halfspace.b_ - halfspace.A_.transpose() * point + with_margin);
+        // point += halfspace.A_ * (-halfspace.b_ + halfspace.A_.transpose() * point + with_margin);
       }
     }
   }

@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(guidance_planner)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
-set(CMAKE_CXX_FLAGS "-DCMAKE_BUILD_TYPE=Release")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-deprecated-declarations")
 
 find_package(OpenMP)
 
@@ -40,15 +42,16 @@ generate_messages(DEPENDENCIES std_msgs)
 
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs ros_tools dynamic_reconfigure
+  CATKIN_DEPENDS roscpp std_msgs
   INCLUDE_DIRS include include/${PROJECT_NAME}
   LIBRARIES guidance_planner
-  # DEPENDS Boost
 )
 
 include_directories(
   include
   debug
+)
+include_directories(
   ${EIGEN_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
@@ -92,6 +95,12 @@ add_dependencies(guidance_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 # ############
 # # Install ##
 # ############
+install(TARGETS guidance_planner
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+
 install(
   TARGETS example
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -99,9 +108,21 @@ install(
 )
 
 install(
-  DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  TARGETS guidance_server
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
+
+# install(
+#   DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+# )
 
 ## Mark libraries for installation
 # See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
