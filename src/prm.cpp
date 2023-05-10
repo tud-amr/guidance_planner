@@ -108,8 +108,8 @@ namespace GuidancePlanner
     }
     range_x_ = max_x - min_x + config_->sample_margin_;
     range_y_ = max_y - min_y + config_->sample_margin_;
-    min_x_ = min_x;
-    min_y_ = min_y;
+    min_x_ = min_x - config_->sample_margin_ / 2.;
+    min_y_ = min_y - config_->sample_margin_ / 2.;
 
     /* Other data */
     previously_selected_id_ = previously_selected_id;
@@ -212,9 +212,6 @@ namespace GuidancePlanner
       // Get a new sample (either from the previous iteration, or a new one)
       SpaceTimePoint sample = sample_is_from_previous_iteration ? previous_nodes_[i].point_ : SampleNewPoint();
 
-      if (config_->visualize_all_samples_)
-        all_samples_[i] = sample;
-
       PRM_LOG("==== [" << i << "] New Sample ====\n"
                        << sample);
 
@@ -233,6 +230,9 @@ namespace GuidancePlanner
           previous_nodes_[i].point_ = sample; // Update the previous node's position if necessary (for construction later)
 
         samples[i] = sample;
+
+        if (config_->visualize_all_samples_)
+          all_samples_[i] = sample;
       }
     }
   }
@@ -611,16 +611,8 @@ namespace GuidancePlanner
 
   SpaceTimePoint PRM::SampleUniformly3D()
   {
-
-    // double extra_range = config_->sample_margin_;
-    // double min_x = std::min(goals_.back().pos(0), start_(0)) - extra_range;
-    // double min_y = std::min(goals_.back().pos(1), start_(1)) - extra_range;
-    // double range_x = std::max(goals_.back().pos(0), start_(0)) + extra_range - min_x;
-    // double range_y = std::max(goals_.back().pos(1), start_(1)) + extra_range - min_y;
-    // // double min_x = std::min(goals.back().pos(0) - start(0), 0.) - extra_range;
-    // // double min_y = std::min(goals.back().pos(1) - start(1), 0.) - extra_range;
     return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_, min_y_ + random_generator_.Double() * range_y_,
-                          random_generator_.Int(Config::N - 2) + 1); // 1 - N-1
+                          random_generator_.Int(Config::N - 2) + 1);
   }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
@@ -772,35 +764,6 @@ namespace GuidancePlanner
       PRM_LOG("Connection was invalid");
       return false;
     }
-
-    // Check rules
-    // bool rules_satisfied = true;
-
-    // if (config_->pass_left_)
-    // {
-    //   std::vector<bool> passes_right = topology_comparison_->PassesRight(path, environment_);
-    //   for (size_t i = 0; i < passes_right.size(); i++)
-    //   {
-    //     if (passes_right[i])
-    //     {
-    //       auto &obstacle = environment_.GetDynamicObstacles()[i];
-    //       // if (RosTools::dist(obstacle.positions_[0], path.nodes_[0]->point_.Pos()) > 5.) // Only count if they are close (move this to prm)
-    //       // continue;
-    //       double angle = std::atan2(obstacle.positions_[1](1) - obstacle.positions_[0](1), obstacle.positions_[1](0) -
-    //       obstacle.positions_[0](0)); if (std::abs(angle) > M_PI_2) // Only if they are walking towards the robot?
-    //         continue;
-
-    //       rules_satisfied = false;
-    //       break;
-    //     }
-    //   }
-
-    //   if (!rules_satisfied)
-    //   {
-    //     PRM_LOG("Rules are not satisfied");
-    //     return false;
-    //   }
-    // }
 
     return true; // This connection is valid
   }
@@ -995,8 +958,11 @@ namespace GuidancePlanner
       samples.setScale(.15, .15, .15);
       samples.setColorInt(0);
 
-      for (auto &sample : all_samples_)
-        samples.addPointMarker(sample.MapToTime());
+      for (size_t s = 0; s < all_samples_.size(); s++)
+      {
+        if (sample_succes_[s])
+          samples.addPointMarker(all_samples_[s].MapToTime());
+      }
     }
 
     ros_sample_visuals_->publish();

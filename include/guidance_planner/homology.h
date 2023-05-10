@@ -21,7 +21,7 @@
 
 namespace GuidancePlanner
 {
-#define GSL_ACCURACY 1e-3 // 1e-1
+#define GSL_ACCURACY 1e-1 // 1e-1
 #define GSL_POINTS 20
   bool operator==(const GeometricPath &a, const GeometricPath &b);
 
@@ -62,6 +62,8 @@ namespace GuidancePlanner
 
     /** @brief Function that integrates the H value over a segment */
     static double GSLHValue(double x, void *params);
+
+    inline void NumericalIntegration(double &results, void *params);
 
     static Eigen::Vector3d Line(const Eigen::Vector3d &start, const Eigen::Vector3d &end, double lambda)
     {

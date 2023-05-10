@@ -58,8 +58,10 @@ namespace GuidancePlanner
         gsl_params_[0].start = a.nodes_.back()->point_.vec;
         gsl_params_[0].end = b.nodes_.back()->point_.vec;
 
-        double result, error;
+        // double result = 0.;
+        // NumericalIntegration(result, &gsl_params_[0]);
 
+        double result, error;
         gsl_integration_qag(&gsl_f_[0], 0, 1, GSL_ACCURACY, 0, GSL_POINTS, GSL_INTEG_GAUSS15, gsl_ws_[0], &result, &error);
 
         h += result;
@@ -67,8 +69,9 @@ namespace GuidancePlanner
 
       h -= PathHValue(b, cached_b, obstacle_id, obstacle); // Integrate over path B
 
+      // std::cout << h << std::endl;
       // If it is not zero, then these paths are homology distinct!
-      if (std::abs(h) >= 1e-2)
+      if (std::abs(h) >= 1e-1)
         return false;
 
       // If is zero, keep checking the other obstacles
@@ -156,7 +159,7 @@ namespace GuidancePlanner
       return cached_h[obstacle_id]; // Retrieve from cache
 
     std::vector<double> results(path.nodes_.size() - 1, 0);
-#pragma omp parallel for num_threads(8)
+    // #pragma omp parallel for num_threads(8)
     for (size_t n = 1; n < path.nodes_.size(); n++) // From the start to the end of a
     {
       double error;
@@ -164,6 +167,8 @@ namespace GuidancePlanner
       int thread_id = omp_get_thread_num();
       gsl_params_[thread_id].start = path.nodes_[n - 1]->point_.vec;
       gsl_params_[thread_id].end = path.nodes_[n]->point_.vec;
+
+      // NumericalIntegration(results[n - 1], &gsl_params_[thread_id]);
 
       gsl_integration_qag(&gsl_f_[thread_id], 0, 1, GSL_ACCURACY, 0, GSL_POINTS, GSL_INTEG_GAUSS15, gsl_ws_[thread_id], &results[n - 1], &error);
     }
@@ -174,6 +179,18 @@ namespace GuidancePlanner
 
     cached_h.push_back(h_value); // Save in the cache
     return h_value;
+  }
+
+  inline void Homology::NumericalIntegration(double &result, void *params)
+  {
+    double num = 25.;
+    result += Homology::GSLHValue(0., params) * 0.5;
+    result += Homology::GSLHValue(1., params) * 0.5;
+
+    for (double l = (1. / num); l < 1.; l += (1. / num))
+      result += Homology::GSLHValue(l, params);
+
+    result *= (1. / num);
   }
 
   bool operator==(const GeometricPath &a, const GeometricPath &b)

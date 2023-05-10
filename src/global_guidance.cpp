@@ -51,6 +51,12 @@ namespace GuidancePlanner
 
   void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width)
   {
+    LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
+  }
+
+  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path,
+                                         double road_width_left, double road_width_right)
+  {
     PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
 
     ROSTOOLS_ASSERT(!goals_set_, "Please set the goals via SetGoals or LoadReferencePath, but not both!"); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
@@ -68,7 +74,8 @@ namespace GuidancePlanner
     double s_step = (s_best - s_start) / ((double)grid_long - 1.); // -1 for starting at 0
     ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
-    double width = road_width;
+    double width = road_width_left + road_width_right;
+    double offset = -road_width_left + width / 2.;
     double v_step = width / ((double)(grid_vert - 1));
 
     goals_.clear();
@@ -91,8 +98,7 @@ namespace GuidancePlanner
       {
         double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
         double cost = long_cost + lat_cost;
-
-        goals_.emplace_back(line_point + normal * ((double)j) * v_step, cost); // Add the goal
+        goals_.emplace_back(line_point + normal * (-offset + ((double)j) * v_step), cost); // Add the goal
       }
     }
   }
