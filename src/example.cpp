@@ -18,7 +18,7 @@ bool replan_ = false;
 std::string obstacle_source = "File";
 
 int count = 0;
-int file_id = 0;
+int file_id = 15;
 
 /** @brief Define obstacles manually */
 void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)

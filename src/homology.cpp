@@ -32,8 +32,9 @@ namespace GuidancePlanner
   }
 
   /** @brief: https://link.springer.com/article/10.1007/s10514-012-9304-1 */
-  bool Homology::AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment)
+  bool Homology::AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all)
   {
+    bool result = true;
     // Retrieve cached h values over the obstacles (i.e., a vector)
     std::vector<double> &cached_a = cached_values_[a]; // Note: will create the cache if it does not exist
     std::vector<double> &cached_b = cached_values_[b]; // Note: will create the cache if it does not exist
@@ -72,36 +73,57 @@ namespace GuidancePlanner
       // std::cout << h << std::endl;
       // If it is not zero, then these paths are homology distinct!
       if (std::abs(h) >= 1e-1)
-        return false;
-
+      {
+        if (!compute_all)
+          return false;
+        else
+          result = false;
+      }
       // If is zero, keep checking the other obstacles
     }
 
-    return true; // If none of them are distinct, then the two paths are homology equivalent!
+    return result; // If none of them are distinct, then the two paths are homology equivalent!
   }
 
-  std::vector<bool> Homology::PassesRight(const GeometricPath &path, Environment &environment)
+  std::vector<bool> Homology::LeftPassingVector(const GeometricPath &path, Environment &environment)
   {
     auto &obstacles = environment.GetDynamicObstacles();
-
+    std::vector<double> results_h(obstacles.size());
     std::vector<bool> results(obstacles.size());
 
-    std::vector<double> &cached = cached_values_[path]; // Note: will create the cache if it does not exist
+    std::list<Node> always_left_nodes;
+    std::vector<Node *> always_left_node_ptrs;
 
-    // For each obstacle
-    for (size_t obstacle_id = 0; obstacle_id < obstacles.size(); obstacle_id++)
+    double max_time = path.nodes_.back()->point_.Time();
+
+    // In principle we could pass the pointer, but this is clearer
+    always_left_nodes.emplace_back(*(path.nodes_[0])); // Start in the same point
+    // Go down
+    always_left_nodes.emplace_back(1, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
+    // Go left = move towards the negative y
+    always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
+    // Go up
+    always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
+    // Go to the goal position in (x, y), remaining just above it
+    always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
+    // Connect to the given path
+    always_left_nodes.emplace_back(*(path.nodes_.back()));
+
+    for (auto &node : always_left_nodes)
+      always_left_node_ptrs.push_back(&node);
+
+    GeometricPath always_left_path(always_left_node_ptrs);
+
+    AreEquivalent(always_left_path, path, environment, true);
+
+    // Retrieve the values from the cache
+    std::vector<double> &cached_a = cached_values_[always_left_path]; // Note: will create the cache if it does not exist
+    std::vector<double> &cached_b = cached_values_[path];             // Note: will create the cache if it does not exist
+
+    for (size_t i = 0; i < cached_a.size(); i++)
     {
-      auto &obstacle = obstacles[obstacle_id];
-
-      ComputeObstacleLoop(obstacle);
-
-      double path_h_value = PathHValue(path, cached, obstacle_id, obstacle);
-      std::cout << obstacle_id << ": " << path_h_value << std::endl;
-      results[obstacle_id] = path_h_value > 0.1;
-      // if (results[obstacle_id])
-      //   std::cout << "passes right\n";
-      // else
-      //   std::cout << "passes left\n";
+      results_h[i] = cached_a[i] - cached_b[i];
+      results[i] = std::abs(results_h[i]) < 0.1; // If we are in the same homology as "always left", then we are going left here
     }
 
     return results;

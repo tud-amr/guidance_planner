@@ -66,6 +66,7 @@ namespace GuidancePlanner
 
     /** @brief Are paths a, b homotopically equivalent? Checked with Uniform Visibility Deformation */
     bool AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b);
+    std::vector<bool> GetLeftPassingVector(const GeometricPath &path) { return topology_comparison_->LeftPassingVector(path, environment_); }
 
     bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
 

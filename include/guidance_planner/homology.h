@@ -34,9 +34,16 @@ namespace GuidancePlanner
 
   public:
     /** @brief Check if two paths are homotopy equivalent in the given environment */
-    virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment) override;
+    virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override;
 
-    virtual std::vector<bool> PassesRight(const GeometricPath &path, Environment &environment) override;
+    /**
+     * @brief Check if the path passes left or right by comparing with a "left-always" trajectory. Relies on a somewhat heuristic definition of what is "left".
+     *
+     * @param path Path through the state space
+     * @param environment Obstacle environment
+     * @return std::vector<bool> For each obstacle, if it is passed left (=true) or right (=false)
+     */
+    virtual std::vector<bool> LeftPassingVector(const GeometricPath &path, Environment &environment) override;
 
     /** @brief Clear the cache */
     void Clear() override { cached_values_.clear(); };

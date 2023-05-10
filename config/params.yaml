@@ -1,50 +1,19 @@
-# prm:
-#   debug_output: true
-#   seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
-#   # T: 8.0                                # Time horizon [s]
-#   # N: 20 # 40                                 # Discrete time steps [#]
-#   # T: 4.0
-#   # N: 10
-#   T: 8.0
-#   N: 40
-#   topology_comparison: Homology         # Homology (default) or UVD
-#   # n_samples: 10000 #200    # Number of samples for PRM
-#   # timeout: 800 #15       # Timeout for PRM sampling [ms]
-#   n_samples: 200
-#   timeout: 15
-#   n_paths: 4        # Number of guidance trajectories
-#   view_angle_times_pi: 0.606  # View angle when sampling in a conus (disabled by default)
-#   max_velocity: 3.0           # Maximum velocity of connections between nodes
-#   max_acceleration: 3.0       # Maximum velocity of connections between nodes
-#   selection_weights:
-#     consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
-#   goals:  # Only used when `LoadReferencePath` is used to set the goals
-#     longitudinal: 6   # Number of goals in direction of the path
-#     vertical: 3       # Number of goals in direction orthogonal to the path
-#   visuals:
-#     visualize_all_samples: false    # Visualizes all PRM samples
-#   enable:
-#     dynamically_propagate_nodes: false #true  # Propagate the nodes in time (dropping them)
-#     project_from_obstacles: false       # Project the guidance trajectory from obstacles if enabled (not necessary by default)
-#   test_node:
-#     continuous_replanning: false #true         # When using the test nodes: keep planning continuously?
-
 prm:
   debug_output: false
   seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
-  T: 4.0
-  N: 20
+  T: 8.0 #Time horizon [s]
+  N: 20 # Discrete time steps [#]
   topology_comparison: Homology         # Homology (default) or UVD
   sampling_function: Uniform # Uniform (default)
-  sample_margin: 2.
-  view_angle_times_pi: 0.606  # View angle when sampling in a conus (disabled by default)
-  n_samples: 200 # Number of samples for PRM
-  timeout: 15 # Timeout for PRM sampling [ms]
+  sample_margin: 5.
+  n_samples: 10000
+  timeout: 15
   n_paths: 4        # Number of guidance trajectories
-  max_velocity:     6.0 #3.0       # Maximum velocity of connections between nodes
+  view_angle_times_pi: 0.606  # View angle when sampling in a conus (disabled by default)
+  max_velocity: 3.0           # Maximum velocity of connections between nodes
   max_acceleration: 3.0       # Maximum velocity of connections between nodes
   connection_filters:
-    forward:      true
+    forward:      false
     acceleration: true
   selection_weights:
     consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
@@ -53,9 +22,9 @@ prm:
     vertical: 3       # Number of goals in direction orthogonal to the path
   visuals:
     transparency: 0.7               # The least transparent the obstacle visualization is (0-1)
-    visualize_all_samples: false    # Visualizes all PRM samples
+    visualize_all_samples: true    # Visualizes all PRM samples
   enable:
-    dynamically_propagate_nodes: true  # Propagate the nodes in time (dropping them)
+    dynamically_propagate_nodes: false #true  # Propagate the nodes in time (dropping them)
     project_from_obstacles: false       # Project the guidance trajectory from obstacles if enabled (not necessary by default)
   test_node:
     continuous_replanning: false #true         # When using the test nodes: keep planning continuously?

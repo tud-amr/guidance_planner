@@ -611,6 +611,7 @@ namespace GuidancePlanner
 
   SpaceTimePoint PRM::SampleUniformly3D()
   {
+    // s
     return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_, min_y_ + random_generator_.Double() * range_y_,
                           random_generator_.Int(Config::N - 2) + 1);
   }
