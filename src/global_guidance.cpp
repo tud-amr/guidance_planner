@@ -224,20 +224,20 @@ namespace GuidancePlanner
       }
 
       // Test the passing left feature
-      for (auto &path : paths_)
-      {
-        std::vector<bool> pass_left = prm_.GetLeftPassingVector(path);
+      // for (auto &path : paths_)
+      // {
+      //   std::vector<bool> pass_left = prm_.GetLeftPassingVector(path);
 
-        std::cout << path.association_.id_ << ": ";
-        for (size_t i = 0; i < pass_left.size(); i++)
-        {
-          if (pass_left[i])
-            std::cout << "L | ";
-          else
-            std::cout << "R | ";
-        }
-        std::cout << "\b\b\n";
-      }
+      //   std::cout << path.association_.id_ << ": ";
+      //   for (size_t i = 0; i < pass_left.size(); i++)
+      //   {
+      //     if (pass_left[i])
+      //       std::cout << "L | ";
+      //     else
+      //       std::cout << "R | ";
+      //   }
+      //   std::cout << "\b\b\n";
+      // }
 
       splines_.clear();
 

@@ -73,7 +73,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t <= Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
@@ -150,7 +150,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t <= Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
@@ -225,7 +225,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t <= Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
@@ -301,7 +301,7 @@ public:
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
-                for (double t = 0; t == Config::N * Config::DT; t += Config::DT)
+                for (double t = 0; t <= Config::N * Config::DT; t += Config::DT)
                 {
                     Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                     x_traj.emplace_back(pos.x());
