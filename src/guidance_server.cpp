@@ -6,7 +6,7 @@
 #include <guidance_planner/GuidancePlannerConfig.h>
 #include <guidance_planner/ObstacleMSG.h>
 #include <guidance_planner/TrajectoryMSG.h>
-#include <guidance_planner/RightAvoidanceMSG.h>
+#include <guidance_planner/LeftHMSG.h>
 #include <guidance_planner/guidances.h>
 #include <guidance_planner/guidances_truth.h>
 #include <guidance_planner/guidances_cost.h>
@@ -313,10 +313,10 @@ public:
                 traj.y = y_traj;
                 res.trajectories.emplace_back(traj);
                 res.costs.emplace_back(guidance.GetHomotopicCost(i, truth_path));
-                guidance_planner::RightAvoidanceMSG h_signature_msg;
-                std::vector<bool> right = guidance.passes_right(i);
+                guidance_planner::LeftHMSG h_signature_msg;
+                std::vector<bool> right = guidance.LeftPassingH(i);
                 for(int i_obs = 0; i_obs < (int)right.size(); i_obs++){
-                    h_signature_msg.right_avoidance.push_back((double)right[i_obs]);
+                    h_signature_msg.left_passing.push_back((double)right[i_obs]);
                 }
                 res.h_signature.emplace_back(h_signature_msg);
                 // RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)

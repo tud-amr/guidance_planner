@@ -14,4 +14,4 @@ TrajectoryMSG truth
 bool success
 TrajectoryMSG[] trajectories
 float64[] costs
-RightAvoidanceMSG[] h_signature
+LeftHMSG[] h_signature

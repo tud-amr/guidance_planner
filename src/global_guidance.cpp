@@ -479,7 +479,7 @@ namespace GuidancePlanner
     return splines_[spline_id]; // Return the guidance trajectory
   }
 
-  std::vector<bool> GlobalGuidance::passes_right(int spline_id)
+  std::vector<bool> GlobalGuidance::LeftPassingH(int spline_id)
   {
     if (spline_id >= (int)paths_.size()){
       ROS_WARN("Trying to get the cost of a path that does not exist!");
@@ -487,7 +487,7 @@ namespace GuidancePlanner
       return empty;
     }
 
-    return this->prm_.passes_right(this->paths_[spline_id]); // Return the guidance trajectory
+    return this->prm_.LeftPassingH(this->paths_[spline_id]); // Return the guidance trajectory
   }
 
   double GlobalGuidance::GetHomotopicCost(int spline_id, const GeometricPath &path)

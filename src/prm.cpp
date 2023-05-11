@@ -730,7 +730,7 @@ namespace GuidancePlanner
     return homology_cost;
   }
 
-  std::vector<bool> PRM::passes_right(const GeometricPath &path)
+  std::vector<bool> PRM::LeftPassingH(const GeometricPath &path)
   {
     debug_benchmarker_->start();
 
