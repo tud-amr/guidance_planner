@@ -61,6 +61,7 @@ namespace GuidancePlanner
 
     retrieveParameter(nh, "prm/visuals/transparency", visuals_transparency_);
     retrieveParameter(nh, "prm/visuals/visualize_all_samples", visualize_all_samples_);
+    retrieveParameter(nh, "prm/visuals/visualize_homology", visualize_homology_);
 
     retrieveParameter(nh, "prm/enable/dynamically_propagate_nodes", dynamically_propagate_nodes_);
     retrieveParameter(nh, "prm/enable/project_from_obstacles", project_from_obstacles_);

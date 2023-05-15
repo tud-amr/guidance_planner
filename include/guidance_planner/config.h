@@ -79,7 +79,7 @@ namespace GuidancePlanner
     int num_points_;
 
     // Toggles
-    bool visualize_all_samples_;
+    bool visualize_all_samples_, visualize_homology_;
     bool dynamically_propagate_nodes_;
     bool project_from_obstacles_;
     bool debug_continuous_replanning_;

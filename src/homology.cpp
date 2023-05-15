@@ -2,8 +2,9 @@
 
 namespace GuidancePlanner
 {
-  Homology::Homology()
+  Homology::Homology(ros::NodeHandle &nh)
   {
+    debug_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "guidance_planner/homology", "map", 500));
     // Initialize workspace, parameters, functions
     // For multithreading!
     gsl_ws_.resize(8);
@@ -255,6 +256,32 @@ namespace GuidancePlanner
       result += Homology::GSLHValue(l, params);
 
     result *= (1. / num);
+  }
+
+  void Homology::Visualize(Environment &environment)
+  {
+    RosTools::ROSLine &line = debug_visuals_->getNewLine();
+    line.setScale(0.1);
+
+    const auto &obstacles = environment.GetDynamicObstacles();
+    for (auto &obstacle : obstacles)
+    {
+      line.setColorInt(obstacle.id_, 1., RosTools::Colormap::BRUNO);
+
+      ComputeObstacleLoop(obstacle);
+
+      obstacle_p1_(2) *= Config::DT;
+      obstacle_p2_(2) *= Config::DT;
+      obstacle_p3_(2) *= Config::DT;
+      obstacle_p4_(2) *= Config::DT;
+
+      line.addLine(obstacle_p1_, obstacle_p2_);
+      line.addLine(obstacle_p2_, obstacle_p3_);
+      line.addLine(obstacle_p3_, obstacle_p4_);
+      line.addLine(obstacle_p4_, obstacle_p1_);
+    }
+
+    debug_visuals_->publish();
   }
 
   bool operator==(const GeometricPath &a, const GeometricPath &b)

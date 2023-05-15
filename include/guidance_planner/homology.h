@@ -19,6 +19,8 @@
 #include "guidance_planner/paths.h"
 #include "guidance_planner/topology_comparison.h"
 
+#include <ros_tools/ros_visuals.h>
+
 namespace GuidancePlanner
 {
 #define GSL_ACCURACY 1e-1 // 1e-1
@@ -29,7 +31,7 @@ namespace GuidancePlanner
   class Homology : public TopologyComparison
   {
   public:
-    Homology();
+    Homology(ros::NodeHandle &nh);
     virtual ~Homology();
 
   public:
@@ -47,19 +49,16 @@ namespace GuidancePlanner
      */
     virtual std::vector<bool> LeftPassingVector(const GeometricPath &path, Environment &environment) override;
 
+    /** @brief Visualize obstacle and trajectory loops for homology computation */
+    void Visualize(Environment &environment) override;
+
     /** @brief Clear the cache */
     void Clear() override { cached_values_.clear(); };
 
   private:
-    std::vector<gsl_integration_workspace *> gsl_ws_;
-    std::vector<gsl_function> gsl_f_;
-    std::vector<GSLParams> gsl_params_;
-
-    /** Cached H-Values (over all obstacles) */
-    std::unordered_map<GeometricPath, std::vector<double>> cached_values_;
-
     /** @brief Integrate the H-value over a geometric path (with cached values) */
-    double PathHValue(const GeometricPath &path, std::vector<double> &cached_h, const int obstacle_id, const Obstacle &obstacle);
+    double
+    PathHValue(const GeometricPath &path, std::vector<double> &cached_h, const int obstacle_id, const Obstacle &obstacle);
 
     /** @brief Integrate the H-value in a point over an obstacle */
     double ObstacleHValue(const Eigen::Vector3d &r, const Eigen::Vector3d &dr);
@@ -78,6 +77,16 @@ namespace GuidancePlanner
     {
       return (1. - lambda) * start + lambda * end;
     };
+
+  private:
+    std::vector<gsl_integration_workspace *> gsl_ws_;
+    std::vector<gsl_function> gsl_f_;
+    std::vector<GSLParams> gsl_params_;
+
+    /** Cached H-Values (over all obstacles) */
+    std::unordered_map<GeometricPath, std::vector<double>> cached_values_;
+
+    std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
     /** Parameters for obstacle integration */
     Eigen::Vector3d start_, end_;

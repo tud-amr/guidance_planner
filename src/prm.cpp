@@ -13,6 +13,7 @@ namespace GuidancePlanner
 
     ros_sample_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/all_samples", "map", 500));
     ros_graph_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/graph", "map", 200));
+    ros_goal_start_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "guidance_planner/start_and_goals", "map", 50));
     ros_segment_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/segment_ids", "map", 200));
 
     debug_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/debug", "map", 200));
@@ -34,7 +35,7 @@ namespace GuidancePlanner
     }
     else
     {
-      topology_comparison_.reset(new Homology());
+      topology_comparison_.reset(new Homology(nh));
     }
     debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
@@ -907,6 +908,9 @@ namespace GuidancePlanner
     VisualizeAllSamples();
 
     debug_visuals_->publish(true);
+
+    if (config_->visualize_homology_)
+      topology_comparison_->Visualize(environment_);
   }
 
   void PRM::VisualizeGraph()
@@ -914,6 +918,9 @@ namespace GuidancePlanner
     // NODES IN THE GRAPH - COLORED BY PATH / TYPE
     RosTools::ROSPointMarker &sphere = ros_graph_visuals_->getNewPointMarker("SPHERE");
     sphere.setScale(0.3, 0.3, 0.3);
+
+    RosTools::ROSPointMarker &goal_start_sphere = ros_goal_start_visuals_->getNewPointMarker("SPHERE");
+    goal_start_sphere.setScale(0.3, 0.3, 0.3);
 
     RosTools::ROSLine &edge = ros_graph_visuals_->getNewLine();
     edge.setScale(0.1, 0.1);
@@ -931,11 +938,15 @@ namespace GuidancePlanner
       {
         num_guards++;
         if (node.id_ < 0)
-          sphere.setColor(1., 0.0, 0.0); // Start & End coloring
+        {
+          goal_start_sphere.setColor(1., 0.0, 0.0); // Start & End coloring
+          goal_start_sphere.addPointMarker(node.point_.MapToTime());
+        }
         else
+        {
           sphere.setColor(249. / 256., 142. / 256., 9. / 256., 1.); // Guard coloring
-
-        sphere.addPointMarker(node.point_.MapToTime());
+          sphere.addPointMarker(node.point_.MapToTime());
+        }
       }
       else
       {
@@ -968,6 +979,7 @@ namespace GuidancePlanner
       }
     }
     ros_graph_visuals_->publish();
+    ros_goal_start_visuals_->publish();
     ros_segment_visuals_->publish();
   }
 

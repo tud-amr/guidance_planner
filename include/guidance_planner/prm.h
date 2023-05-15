@@ -89,7 +89,7 @@ namespace GuidancePlanner
     Config *config_;
 
     // Classes for visualization
-    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_segment_visuals_;
+    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_goal_start_visuals_, ros_segment_visuals_;
     std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
     std::unique_ptr<Graph> graph_;                            // PRM Graph

@@ -224,7 +224,7 @@ namespace GuidancePlanner
       }
 
       // Test the passing left feature
-      for (auto &path : paths_)
+      /*for (auto &path : paths_)
       {
         std::vector<bool> pass_left = prm_.GetLeftPassingVector(path);
 
@@ -237,7 +237,7 @@ namespace GuidancePlanner
             std::cout << "R | ";
         }
         std::cout << "\b\b\n";
-      }
+      }*/
 
       splines_.clear();
 
@@ -481,7 +481,8 @@ namespace GuidancePlanner
 
   std::vector<bool> GlobalGuidance::passes_right(int spline_id)
   {
-    if (spline_id >= (int)paths_.size()){
+    if (spline_id >= (int)paths_.size())
+    {
       ROS_WARN("Trying to get the cost of a path that does not exist!");
       std::vector<bool> empty;
       return empty;
@@ -492,7 +493,8 @@ namespace GuidancePlanner
 
   double GlobalGuidance::GetHomotopicCost(int spline_id, const GeometricPath &path)
   {
-    if (spline_id >= (int)paths_.size()){
+    if (spline_id >= (int)paths_.size())
+    {
       ROS_WARN("Trying to get the cost of a path that does not exist!");
       return -1;
     }
