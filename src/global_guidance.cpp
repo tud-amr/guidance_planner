@@ -162,7 +162,7 @@ namespace GuidancePlanner
           paths_.emplace_back(path);
       }
 
-      FilterPaths();                    // Remove any poorly formed paths
+      // FilterPaths();
       RemoveHomotopicEquivalentPaths(); // Remove paths in duplicate topologies
 
       /* Select the best paths*/

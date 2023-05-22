@@ -53,7 +53,12 @@ namespace GuidancePlanner
     void Visualize(Environment &environment) override;
 
     /** @brief Clear the cache */
-    void Clear() override { cached_values_.clear(); };
+    void Clear() override
+    {
+      cached_values_.clear();
+      obstacle_points_ready_ = false;
+      obstacle_points_.clear();
+    };
 
   private:
     /** @brief Integrate the H-value over a geometric path (with cached values) */
@@ -66,7 +71,8 @@ namespace GuidancePlanner
     /** @brief Integrate the H-value in a point over a segment of an obstacle */
     double SegmentHValue(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const Eigen::Vector3d &r, const Eigen::Vector3d &dr);
 
-    void ComputeObstacleLoop(const Obstacle &obstacle);
+    void ComputeObstacleLoops(const std::vector<Obstacle> &obstacles);
+    void LoadObstacle(const Obstacle &obstacle);
 
     /** @brief Function that integrates the H value over a segment */
     static double GSLHValue(double x, void *params);
@@ -85,6 +91,9 @@ namespace GuidancePlanner
 
     /** Cached H-Values (over all obstacles) */
     std::unordered_map<GeometricPath, std::vector<double>> cached_values_;
+
+    bool obstacle_points_ready_ = false;
+    std::vector<std::vector<Eigen::Vector3d>> obstacle_points_; // For efficiency (4 x num_obstacles)
 
     std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 

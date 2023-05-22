@@ -12,7 +12,7 @@ namespace GuidancePlanner
     gsl_f_.resize(8);
     for (int i = 0; i < 8; i++)
     {
-      gsl_ws_[i] = gsl_integration_workspace_alloc(20);
+      gsl_ws_[i] = gsl_integration_workspace_alloc(GSL_POINTS);
       gsl_params_[i].homology_class = this;
 
       gsl_f_[i].function = &Homology::GSLHValue;
@@ -43,16 +43,16 @@ namespace GuidancePlanner
     auto &obstacles = environment.GetDynamicObstacles();
     double h;
 
+    ComputeObstacleLoops(obstacles);
+
     // For each obstacle
     for (size_t obstacle_id = 0; obstacle_id < obstacles.size(); obstacle_id++)
     {
       auto &obstacle = obstacles[obstacle_id];
+      LoadObstacle(obstacle);
 
       // Initialize the integration
       h = 0;
-
-      ComputeObstacleLoop(obstacle);
-
       h += PathHValue(a, cached_a, obstacle_id, obstacle); // Integrate over path A
 
       // Connect end points of a and b
@@ -96,16 +96,16 @@ namespace GuidancePlanner
     auto &obstacles = environment.GetDynamicObstacles();
     double h, h_total = 0;
 
+    ComputeObstacleLoops(obstacles);
+
     // For each obstacle
     for (size_t obstacle_id = 0; obstacle_id < obstacles.size(); obstacle_id++)
     {
       auto &obstacle = obstacles[obstacle_id];
+      LoadObstacle(obstacle);
 
       // Initialize the integration
       h = 0;
-
-      ComputeObstacleLoop(obstacle);
-
       h += PathHValue(a, cached_a, obstacle_id, obstacle); // Integrate over path A
 
       // Connect end points of a and b
@@ -115,7 +115,7 @@ namespace GuidancePlanner
 
         double result, error;
 
-        gsl_integration_qag(&gsl_f_[0], 0, 1, 1e-1, 0, 20, GSL_INTEG_GAUSS15, gsl_ws_[0], &result, &error);
+        gsl_integration_qag(&gsl_f_[0], 0, 1, GSL_ACCURACY, 0, GSL_POINTS, GSL_INTEG_GAUSS15, gsl_ws_[0], &result, &error);
 
         h += result;
       }
@@ -204,22 +204,40 @@ namespace GuidancePlanner
     return h.transpose() * dr;
   }
 
-  void Homology::ComputeObstacleLoop(const Obstacle &obstacle)
+  void Homology::LoadObstacle(const Obstacle &obstacle)
   {
-    // Retrieve and set the obstacle skeleton
-    start_ = Eigen::Vector3d(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
-    end_ = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N);
+    obstacle_p1_ = obstacle_points_[0][obstacle.id_];
+    obstacle_p2_ = obstacle_points_[1][obstacle.id_];
+    obstacle_p3_ = obstacle_points_[2][obstacle.id_];
+    obstacle_p4_ = obstacle_points_[3][obstacle.id_];
+  }
 
-    obstacle_p1_ = Line(start_, end_, -fraction_);                // A start below the actual start
-    obstacle_p2_ = Line(start_, end_, 1 + fraction_);             // An end above the actual end
-    obstacle_p3_ = obstacle_p2_ + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
-    obstacle_p4_ = obstacle_p3_;
-    obstacle_p4_(2) = obstacle_p1_(2); // Move down
+  void Homology::ComputeObstacleLoops(const std::vector<Obstacle> &obstacles)
+  {
+    if (!obstacle_points_ready_)
+    {
+      obstacle_points_.resize(4);
+      for (size_t i = 0; i < obstacle_points_.size(); i++)
+        obstacle_points_[i].resize(obstacles.size());
+
+      for (auto &obstacle : obstacles)
+      {
+        // Retrieve and set the obstacle skeleton
+        Eigen::Vector3d start(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
+        Eigen::Vector3d end(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N);
+
+        obstacle_points_[0][obstacle.id_] = Line(start, end, -fraction_);                                       // A start below the actual start
+        obstacle_points_[1][obstacle.id_] = Line(start, end, 1 + fraction_);                                    // An end above the actual end
+        obstacle_points_[2][obstacle.id_] = obstacle_points_[1][obstacle.id_] + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
+        obstacle_points_[3][obstacle.id_] = obstacle_points_[2][obstacle.id_];
+        obstacle_points_[3][obstacle.id_](2) = obstacle_points_[0][obstacle.id_](2); // Move down
+      }
+      obstacle_points_ready_ = true;
+    }
   }
 
   double Homology::PathHValue(const GeometricPath &path, std::vector<double> &cached_h, const int obstacle_id, const Obstacle &obstacle)
   {
-
     if (obstacle_id < (int)cached_h.size())
       return cached_h[obstacle_id]; // Retrieve from cache
 
@@ -268,7 +286,7 @@ namespace GuidancePlanner
     {
       line.setColorInt(obstacle.id_, 1., RosTools::Colormap::BRUNO);
 
-      ComputeObstacleLoop(obstacle);
+      LoadObstacle(obstacle);
 
       obstacle_p1_(2) *= Config::DT;
       obstacle_p2_(2) *= Config::DT;
