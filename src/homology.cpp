@@ -11,7 +11,7 @@ namespace GuidancePlanner
     gsl_f_.resize(8);
     for (int i = 0; i < 8; i++)
     {
-      gsl_ws_[i] = gsl_integration_workspace_alloc(20);
+      gsl_ws_[i] = gsl_integration_workspace_alloc(GSL_POINTS);
       gsl_params_[i].homology_class = this;
 
       gsl_f_[i].function = &Homology::GSLHValue;
@@ -114,7 +114,7 @@ namespace GuidancePlanner
 
         double result, error;
 
-        gsl_integration_qag(&gsl_f_[0], 0, 1, 1e-1, 0, 20, GSL_INTEG_GAUSS15, gsl_ws_[0], &result, &error);
+        gsl_integration_qag(&gsl_f_[0], 0, 1, 1e-1, 0, GSL_POINTS, GSL_INTEG_GAUSS15, gsl_ws_[0], &result, &error);
 
         h += result;
       }
