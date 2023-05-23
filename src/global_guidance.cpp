@@ -49,12 +49,12 @@ namespace GuidancePlanner
     static_obstacles_ = static_obstacles;
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width)
+  void GlobalGuidance::LoadReferencePath(double spline_start, RosTools::CubicSpline2D<tk::spline> *reference_path, double road_width)
   {
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path,
+  void GlobalGuidance::LoadReferencePath(double spline_start, RosTools::CubicSpline2D<tk::spline> *reference_path,
                                          double road_width_left, double road_width_right)
   {
     PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
@@ -86,7 +86,7 @@ namespace GuidancePlanner
       double s = s_start + (double)i * s_step;
 
       // Compute its cost (integer * 2), minimum at desired velocity
-      double long_cost = std::abs((grid_long - 2) - i) * 2.;
+      double long_cost = std::abs((grid_long - 1) - i) * 2.;
 
       // Compute the normal vector to the reference path
       Eigen::Vector2d line_point = reference_path->GetPoint(s);
@@ -224,7 +224,7 @@ namespace GuidancePlanner
       }
 
       // Test the passing left feature
-      for (auto &path : paths_)
+      /*for (auto &path : paths_)
       {
         std::vector<bool> pass_left = prm_.GetLeftPassingVector(path);
 
@@ -237,7 +237,7 @@ namespace GuidancePlanner
             std::cout << "R | ";
         }
         std::cout << "\b\b\n";
-      }
+      }*/
 
       splines_.clear();
 
@@ -245,8 +245,13 @@ namespace GuidancePlanner
       {
         // Fit Cubic-Splines for each path
         splines_.emplace_back(path, config_.get(), start_velocity_);
-        // splines_.back().Optimize(obstacles_);
+
+        if (config_->optimize_splines_)
+          splines_.back().Optimize(obstacles_);
       }
+
+      // Spline selection
+      OrderSplinesByHeuristic();
     }
     PRM_LOG("=========================");
 
@@ -433,6 +438,51 @@ namespace GuidancePlanner
     }
   }
 
+  void GlobalGuidance::OrderSplinesByHeuristic()
+  {
+    if (splines_.size() == 0)
+      return;
+
+    // Select the most suitable guidance trajectory
+    std::vector<double> spline_costs;
+    CubicSpline3D *best_spline = nullptr;
+
+    for (auto &spline : splines_)
+    {
+      // Standard penalty
+      double consistency_weight = 1.;
+
+      /* The last check verifies that the new path did not by accident get assigned the selected ID */
+      if (spline.id_ == selected_id_ && path_id_was_known_[spline.id_])
+        consistency_weight = 0.;
+
+      // Add costs for all splines
+      double spline_cost = 0.;
+      spline_cost += spline.WeightPathLength() * config_->selection_weight_length_;
+      spline_cost += spline.WeightVelocity() * config_->selection_weight_velocity_;
+      spline_cost += spline.WeightAcceleration() * config_->selection_weight_acceleration_;
+      spline_cost += consistency_weight * config_->selection_weight_consistency_;
+      spline_costs.push_back(spline_cost);
+    }
+
+    // Sort splines by their cost
+    std::vector<int> indices(splines_.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
+              { return spline_costs[a] < spline_costs[b]; });
+
+    // Apply the sorting to the splines vector
+    std::vector<CubicSpline3D> ordered_splines;
+    for (size_t i = 0; i < splines_.size(); i++)
+      ordered_splines.push_back(splines_[indices[i]]);
+    splines_ = ordered_splines;
+
+    // Save the best spline
+    best_spline = &(splines_[0]);
+    selected_id_ = best_spline->id_;
+    PRM_LOG("Selected Spline with ID: " << selected_id_);
+  }
+
   void GlobalGuidance::Reset()
   {
     PRM_LOG("Reset()");
@@ -481,7 +531,8 @@ namespace GuidancePlanner
 
   std::vector<bool> GlobalGuidance::passes_right(int spline_id)
   {
-    if (spline_id >= (int)paths_.size()){
+    if (spline_id >= (int)paths_.size())
+    {
       ROS_WARN("Trying to get the cost of a path that does not exist!");
       std::vector<bool> empty;
       return empty;
@@ -492,7 +543,8 @@ namespace GuidancePlanner
 
   double GlobalGuidance::GetHomotopicCost(int spline_id, const GeometricPath &path)
   {
-    if (spline_id >= (int)paths_.size()){
+    if (spline_id >= (int)paths_.size())
+    {
       ROS_WARN("Trying to get the cost of a path that does not exist!");
       return -1;
     }

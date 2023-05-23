@@ -9,9 +9,7 @@ CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Ei
   ConvertToTrajectory(path);
 
   acceleration_weights_computed_ = false;
-
   longitudinal_acceleration_weight_ = 0.;
-  lateral_acceleration_weight_ = 0.;
 
   std::vector<double> x_points, y_points;
   control_points_.GetX(x_points); // Get the vector of x including padding
@@ -104,7 +102,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
 
   // Compute the velocity control points
 
-  for (int repeat_id = 0; repeat_id < config_->repeat_times_; repeat_id++)
+  for (int repeat_id = 0; repeat_id < 1; repeat_id++)
   {
 
     // CLOSE TO GEOMETRIC PATH //
@@ -557,7 +555,7 @@ double CubicSpline3D::WeightVelocity()
   return result;
 }
 
-double CubicSpline3D::WeightLongitudinalAcceleration()
+double CubicSpline3D::WeightAcceleration()
 {
   if (!acceleration_weights_computed_)
     ComputeAccelerationWeights();
@@ -565,19 +563,10 @@ double CubicSpline3D::WeightLongitudinalAcceleration()
   return longitudinal_acceleration_weight_;
 }
 
-double CubicSpline3D::WeightLateralAcceleration()
-{
-  // if (!acceleration_weights_computed_)
-  // ComputeAccelerationWeights();
-
-  return 0.; // lateral_acceleration_weight_;
-}
-
 void CubicSpline3D::ComputeAccelerationWeights()
 {
 
   longitudinal_acceleration_weight_ = 0.;
-  lateral_acceleration_weight_ = 0.;
 
   Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->GetSplineLength());
 

@@ -17,8 +17,17 @@ prm:
   connection_filters:
     forward:      false
     acceleration: true
-  selection_weights:
+  selection_weights: # Weights on the spline selection heuristic cost
+    length: 1.
+    velocity: 100.
+    acceleration: 100.
     consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
+  spline_optimization:
+    enable: false
+    geometric: 25.
+    smoothness: 10.
+    collision: 0.5
+    velocity_tracking: 0.01
   goals:  # Only used when `LoadReferencePath` is used to set the goals
     longitudinal: 6   # Number of goals in direction of the path
     vertical: 3       # Number of goals in direction orthogonal to the path

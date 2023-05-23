@@ -220,12 +220,8 @@ namespace GuidancePlanner
         double WeightVelocity();
 
         /** @brief Return a measure of the longitudinal acceleration */
-        double WeightLongitudinalAcceleration();
+        double WeightAcceleration();
         double longitudinal_acceleration_weight_;
-
-        /** @brief Return a measure of the lateral acceleration */
-        double WeightLateralAcceleration();
-        double lateral_acceleration_weight_;
 
         std::vector<Eigen::Vector3d> &GetSamples();
 

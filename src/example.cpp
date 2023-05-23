@@ -121,7 +121,7 @@ int main(int argc, char **argv)
             reference_path.reset(new RosTools::CubicSpline2D<tk::spline>(x_spline, y_spline));
 
             double distance_on_spline = 0.;
-            guidance.LoadReferencePath(distance_on_spline, reference_path);
+            guidance.LoadReferencePath(distance_on_spline, reference_path.get());
         }
         // ----------------------------
         /** @brief Mimic a control loop */

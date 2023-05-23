@@ -65,12 +65,11 @@ namespace GuidancePlanner
     double sample_margin_;
 
     // Weights (deprecated, only here so that cubicspline3d still compiles)
-    int repeat_times_;
+    bool optimize_splines_;
     double geometric_weight_, smoothness_weight_, collision_weight_, velocity_tracking_;
 
     // Spline selection weights
-    // double selection_weight_length_, selection_weight_velocity_;
-    // double selection_weight_longitudinal_acceleration_, selection_weight_lateral_acceleration_;
+    double selection_weight_length_, selection_weight_velocity_, selection_weight_acceleration_;
     double selection_weight_consistency_;
 
     double visuals_transparency_;
