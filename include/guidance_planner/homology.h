@@ -72,7 +72,7 @@ namespace GuidancePlanner
     double SegmentHValue(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const Eigen::Vector3d &r, const Eigen::Vector3d &dr);
 
     void ComputeObstacleLoops(const std::vector<Obstacle> &obstacles);
-    void LoadObstacle(const Obstacle &obstacle);
+    void LoadObstacle(int i, const Obstacle &obstacle);
 
     /** @brief Function that integrates the H value over a segment */
     static double GSLHValue(double x, void *params);
