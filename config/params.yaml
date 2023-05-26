@@ -24,6 +24,7 @@ prm:
     consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
   spline_optimization:
     enable: false
+    num_points: -1
     geometric: 25.
     smoothness: 10.
     collision: 0.5

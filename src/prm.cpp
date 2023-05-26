@@ -74,7 +74,7 @@ namespace GuidancePlanner
     /* Goal */
     // Add goals that are collision free
     {
-      PROFILE_SCOPE("Setting goals");
+      PRM_LOG("Setting goals");
       goals_.clear();
       int goal_i = 0;
       for (auto &goal : goals)

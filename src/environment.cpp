@@ -139,8 +139,9 @@ namespace GuidancePlanner
 
     for (auto &obstacle : dynamic_obstacles_)
     {
-      PRM_LOG("Obstacle path len: " << obstacle.positions_.size());
-      for (size_t k = 0; k < obstacle.positions_.size(); k++)
+      PRM_LOG("Obstacle Predictions: " << obstacle.positions_.size() << " (configured horizon: " << Config::N + 1 << ")");
+      ROSTOOLS_ASSERT(obstacle.positions_.size() >= Config::N + 1, "Not enough obstacle prediction steps received, check the configuration!");
+      for (size_t k = 0; k < Config::N + 1; k++)
         grid_.InsertObstacle((int)k, SingleObstacle(obstacle.positions_[k], obstacle.radius_));
     }
   }
