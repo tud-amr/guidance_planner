@@ -1,5 +1,5 @@
 prm:
-  debug_output: true
+  debug_output: false
   seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
   T: 4.8                               # Time horizon [s]
   N: 12 # 40                                 # Discrete time steps [#]
