@@ -321,6 +321,8 @@ public:
                 res.h_signature.emplace_back(h_signature_msg);
                 // RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
             }
+            // guidance.Visualize();
+            ros::spinOnce();
             // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(0);
 
             /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
