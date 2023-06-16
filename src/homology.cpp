@@ -295,10 +295,10 @@ namespace GuidancePlanner
       obstacle_p3_(2) *= Config::DT;
       obstacle_p4_(2) *= Config::DT;
 
-      line.addLine(obstacle_p1_, obstacle_p2_);
-      line.addLine(obstacle_p2_, obstacle_p3_);
-      line.addLine(obstacle_p3_, obstacle_p4_);
-      line.addLine(obstacle_p4_, obstacle_p1_);
+      line.addBrokenLine(obstacle_p1_, obstacle_p2_, 1.);
+      line.addBrokenLine(obstacle_p2_, obstacle_p3_, 1.);
+      line.addBrokenLine(obstacle_p3_, obstacle_p4_, 1.);
+      line.addBrokenLine(obstacle_p4_, obstacle_p1_, 1.);
     }
 
     debug_visuals_->publish();

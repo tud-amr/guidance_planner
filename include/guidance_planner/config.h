@@ -74,6 +74,7 @@ namespace GuidancePlanner
     double selection_weight_consistency_;
 
     double visuals_transparency_;
+    bool show_trajectory_indices_;
 
     // Spline settings
     int num_points_;

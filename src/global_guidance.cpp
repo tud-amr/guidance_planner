@@ -67,11 +67,12 @@ namespace GuidancePlanner
     int grid_vert = config_->vertical_goals_;
 
     ROSTOOLS_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
+    ROSTOOLS_ASSERT(grid_long >= 3, "There should be at least three longitudinal goals (start, end, past end)");
     int vert_start = std::floor((double)grid_vert / 2.);
 
     double s_start = spline_start;
     double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
-    double s_step = (s_best - s_start) / ((double)grid_long - 1.); // -1 for starting at 0
+    double s_step = (s_best - s_start) / ((double)grid_long - 2.); // -1 for starting at 0
     ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
     double width = road_width_left + road_width_right;
@@ -520,25 +521,30 @@ namespace GuidancePlanner
     return -1;
   }
 
-  void GlobalGuidance::Visualize()
+  void GlobalGuidance::Visualize(bool highlight_selected, int only_path_nr)
   {
     // Visualize the method per component
     VisualizeObstacles();
     prm_.Visualize();
-    VisualizeGeometricPaths();
-    VisualizeTrajectories();
+    VisualizeGeometricPaths(only_path_nr);
+    VisualizeTrajectories(highlight_selected, only_path_nr);
     VisualizeSplinePoints();
     VisualizeDebug();
   }
 
-  void GlobalGuidance::VisualizeGeometricPaths()
+  void GlobalGuidance::VisualizeGeometricPaths(int path_nr)
   {
     // Geometric Paths
     RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
     path_line.setScale(0.15, 0.15, 0.15);
 
-    for (auto &path : paths_)
+    for (size_t i = 0; i < paths_.size(); i++)
     {
+      auto &path = paths_[i];
+
+      if (path_nr != -1 && path_nr != (int)i)
+        continue;
+
       path_line.setColorInt(path.association_.id_, config_->n_paths_, 0.75);
 
       Node *prev_node;
@@ -598,7 +604,7 @@ namespace GuidancePlanner
     ros_obstacle_visuals_->publish();
   }
 
-  void GlobalGuidance::VisualizeTrajectories()
+  void GlobalGuidance::VisualizeTrajectories(bool highlight_selected, int path_nr)
   {
     // Trajectories
     RosTools::ROSLine &selected_line = ros_selected_visuals_->getNewLine();
@@ -615,11 +621,19 @@ namespace GuidancePlanner
 
     bool visualize_trajectory_spheres = false;
 
-    for (auto &spline : splines_)
+    for (size_t i = 0; i < splines_.size(); i++)
     {
+      auto &spline = splines_[i];
+
+      if (path_nr != -1 && path_nr != (int)i)
+        continue;
+
       std::vector<Eigen::Vector3d> &points = spline.GetSamples(); // Get samples on the current spline
       bool text_added = false;
-      text_marker.setText(std::to_string(spline.id_)); // Add the spline number
+
+      if (config_->show_trajectory_indices_)
+        text_marker.setText(std::to_string(spline.id_)); // Add the spline number
+
       line.setColorInt(spline.id_, config_->n_paths_, 0.75);
       trajectory_spheres.setColorInt(spline.id_, config_->n_paths_, 1.0);
       line.setScale(0.15, 0.15);
@@ -633,7 +647,7 @@ namespace GuidancePlanner
         {
           Eigen::Vector3d prev_vec = points[j - 1];
 
-          if (spline.id_ == selected_id_) // highlight the selected spline
+          if (highlight_selected && spline.id_ == selected_id_) // highlight the selected spline
           {
             // selected_line.setColorInt(spline.id_, config_->n_paths_, 1.0);
             selected_line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
@@ -643,7 +657,8 @@ namespace GuidancePlanner
             if (visualize_trajectory_spheres && j % 10 == 0)
               trajectory_spheres.addPointMarker(cur_vec);
 
-            text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
+            if (config_->show_trajectory_indices_)
+              text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
           }
           else
           {
@@ -652,12 +667,14 @@ namespace GuidancePlanner
             if (visualize_trajectory_spheres && j % 10 == 0)
               trajectory_spheres.addPointMarker(cur_vec);
 
-            text_marker.setColorInt(spline.id_, config_->n_paths_, 1.0);
+            if (config_->show_trajectory_indices_)
+              text_marker.setColorInt(spline.id_, config_->n_paths_, 1.0);
           }
 
           if (!text_added && (double)j / (double)points.size() > 0.5)
           {
-            text_marker.addPointMarker(cur_vec + Eigen::Vector3d(3.0, 0., 3.0));
+            if (config_->show_trajectory_indices_)
+              text_marker.addPointMarker(cur_vec + Eigen::Vector3d(3.0, 0., 3.0));
             text_added = true;
           }
         }

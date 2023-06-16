@@ -920,7 +920,7 @@ namespace GuidancePlanner
     sphere.setScale(0.3, 0.3, 0.3);
 
     RosTools::ROSPointMarker &goal_start_sphere = ros_goal_start_visuals_->getNewPointMarker("SPHERE");
-    goal_start_sphere.setScale(0.3, 0.3, 0.3);
+    goal_start_sphere.setScale(0.15, 0.15, 0.15);
 
     RosTools::ROSLine &edge = ros_graph_visuals_->getNewLine();
     edge.setScale(0.1, 0.1);
@@ -939,7 +939,7 @@ namespace GuidancePlanner
         num_guards++;
         if (node.id_ < 0)
         {
-          goal_start_sphere.setColor(1., 0.0, 0.0); // Start & End coloring
+          goal_start_sphere.setColor(249. / 256., 142. / 256., 9. / 256., 1.); // Start & End coloring
           goal_start_sphere.addPointMarker(node.point_.MapToTime());
         }
         else

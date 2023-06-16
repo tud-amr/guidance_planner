@@ -101,7 +101,7 @@ namespace GuidancePlanner
     void Reset();
 
     /** @brief Visualize the results of this class */
-    void Visualize();
+    void Visualize(bool highlight_selected = true, int only_path_nr = -1);
 
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
@@ -163,10 +163,10 @@ namespace GuidancePlanner
     void AssignIDsToNewPaths(std::vector<int> &available_ids);
 
     /** Visualization functions */
-    void VisualizeGeometricPaths();
+    void VisualizeGeometricPaths(int path_nr = -1);
+    void VisualizeTrajectories(bool highlight_selected = true, int path_nr = -1);
     void VisualizeSplinePoints();
     void VisualizeObstacles();
-    void VisualizeTrajectories();
     void VisualizeDebug();
   };
 }; // namespace Homotopy
