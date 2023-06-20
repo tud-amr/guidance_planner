@@ -12,7 +12,26 @@
 #include <guidance_planner/guidances_cost.h>
 #include <guidance_planner/guidances_Hcost.h>
 
+#include "gsl/gsl_errno.h"
+
 using namespace GuidancePlanner;
+
+class IntegrationException : public std::exception {
+    public:
+        char * what () {
+            return "GSL integration Exception";
+        }
+};
+
+void my_error_handler (const char *reason, const char *file, int line, int err){
+    gsl_stream_printf ("ERROR", file, line, reason);
+    fflush (stdout);
+    fprintf (stderr, "Customized GSL error handler invoked.\n");
+    fflush (stderr);
+
+    // abort ();
+    throw IntegrationException();
+}
 
 class GuidanceServer
 {
@@ -31,72 +50,79 @@ public:
         this->guidance_cost_srv = this->nh.advertiseService("/get_guidances_cost", &GuidanceServer::guidances_cost_callback, this);
         this->guidance_Hcost_srv = this->nh.advertiseService("/get_guidances_Hcost", &GuidanceServer::guidances_Hcost_callback, this);
         this->config = guidance.GetConfig(); // Retrieves the configuration file, if you need it
+        gsl_set_error_handler(&my_error_handler);
     }
 
     bool guidances_callback(guidance_planner::guidances::Request &req, guidance_planner::guidances::Response &res)
     {
-        std::vector<GuidancePlanner::Obstacle> obstacles_vec;
-        for (size_t i = 0; i < req.obstacles.size(); i++)
-        {
-            std::vector<Eigen::Vector2d> obs_pos;
-            for (size_t j = 0; j < req.obstacles[i].pos_x.size(); j++)
+        try{
+            std::vector<GuidancePlanner::Obstacle> obstacles_vec;
+            for (size_t i = 0; i < req.obstacles.size(); i++)
             {
-                obs_pos.emplace_back(req.obstacles[i].pos_x[j], req.obstacles[i].pos_y[j]);
-            }
-            obstacles_vec.push_back(GuidancePlanner::Obstacle(req.obstacles[i].id, obs_pos, req.obstacles[i].radius));
-        }
-        std::vector<RosTools::Halfspace> static_obstacles;
-        for (size_t i = 0; i < req.static_x.size(); i++)
-        {
-            static_obstacles.emplace_back(Eigen::Vector2d(req.static_x[i], req.static_y[i]), req.static_n[i]);
-        }
-        guidance.SetStart(Eigen::Vector2d(req.x, req.y), req.oriantation, req.v); // Position, yaw angle, velocity magnitude
-        std::vector<Goal> goals;
-        for (size_t i = 0; i < req.goals_x.size(); i++)
-        {
-            goals.emplace_back(Eigen::Vector2d(req.goals_x[i], req.goals_y[i]), 1.);
-        }
-        guidance.SetGoals(goals);
-        guidance.LoadObstacles(obstacles_vec, static_obstacles);
-        // Update (i.e., compute) the guidance trajectories
-        guidance.Update();
-        // Show some results:
-        bool success = guidance.Succeeded();
-        res.success = success;
-        if (success)
-        {
-            ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
-            // for (int i = 0; i < req.n_trajectories; i++){
-            for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
-            {
-                // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(i%guidance.NumberOfGuidanceTrajectories());
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
-                RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
-                std::vector<double> x_traj, y_traj;
-                for (double t = 0; t <= Config::N * Config::DT; t += Config::DT)
+                std::vector<Eigen::Vector2d> obs_pos;
+                for (size_t j = 0; j < req.obstacles[i].pos_x.size(); j++)
                 {
-                    Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
-                    x_traj.emplace_back(pos.x());
-                    y_traj.emplace_back(pos.y());
-                    // ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
+                    obs_pos.emplace_back(req.obstacles[i].pos_x[j], req.obstacles[i].pos_y[j]);
                 }
-                guidance_planner::TrajectoryMSG traj;
-                traj.x = x_traj;
-                traj.y = y_traj;
-                res.trajectories.emplace_back(traj);
-                // RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
+                obstacles_vec.push_back(GuidancePlanner::Obstacle(req.obstacles[i].id, obs_pos, req.obstacles[i].radius));
             }
-            // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(0);
+            std::vector<RosTools::Halfspace> static_obstacles;
+            for (size_t i = 0; i < req.static_x.size(); i++)
+            {
+                static_obstacles.emplace_back(Eigen::Vector2d(req.static_x[i], req.static_y[i]), req.static_n[i]);
+            }
+            guidance.SetStart(Eigen::Vector2d(req.x, req.y), req.oriantation, req.v); // Position, yaw angle, velocity magnitude
+            std::vector<Goal> goals;
+            for (size_t i = 0; i < req.goals_x.size(); i++)
+            {
+                goals.emplace_back(Eigen::Vector2d(req.goals_x[i], req.goals_y[i]), 1.);
+            }
+            guidance.SetGoals(goals);
+            guidance.LoadObstacles(obstacles_vec, static_obstacles);
+            // Update (i.e., compute) the guidance trajectories
+            guidance.Update();
+            // Show some results:
+            bool success = guidance.Succeeded();
+            res.success = success;
+            if (success)
+            {
+                ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
+                // for (int i = 0; i < req.n_trajectories; i++){
+                for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
+                {
+                    // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(i%guidance.NumberOfGuidanceTrajectories());
+                    CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
+                    RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
+                    std::vector<double> x_traj, y_traj;
+                    for (double t = 0; t <= Config::N * Config::DT; t += Config::DT)
+                    {
+                        Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
+                        x_traj.emplace_back(pos.x());
+                        y_traj.emplace_back(pos.y());
+                        // ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
+                    }
+                    guidance_planner::TrajectoryMSG traj;
+                    traj.x = x_traj;
+                    traj.y = y_traj;
+                    res.trajectories.emplace_back(traj);
+                    // RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
+                }
+                // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(0);
 
-            /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
-            // int used_trajectory_id = guidance.GetUsedTrajectory()
-            // guidance.SetUsedTrajectory(int spline_id);
+                /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
+                // int used_trajectory_id = guidance.GetUsedTrajectory()
+                // guidance.SetUsedTrajectory(int spline_id);
+            }
+            else
+            {
+                ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
+            }
+            return true;
         }
-        else
-        {
+        catch (IntegrationException ie){
+            res.success = false;
             ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
         }
-        return true;
     }
 
     bool guidances_truth_callback(guidance_planner::guidances_truth::Request &req, guidance_planner::guidances_truth::Response &res)
