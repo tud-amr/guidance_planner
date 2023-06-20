@@ -122,6 +122,7 @@ public:
         catch (IntegrationException ie){
             res.success = false;
             ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
+            return true;
         }
     }
 
