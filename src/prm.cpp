@@ -34,7 +34,7 @@ namespace GuidancePlanner
     }
     else
     {
-      topology_comparison_.reset(new Homology());
+      topology_comparison_.reset(new Homology(nh));
     }
     debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
@@ -725,6 +725,7 @@ namespace GuidancePlanner
     debug_benchmarker_->start();
 
     double homology_cost = reinterpret_cast<Homology *>(topology_comparison_.get())->GetCost(a, b, environment_);
+ 
     debug_benchmarker_->stop();
 
     return homology_cost;
@@ -905,6 +906,7 @@ namespace GuidancePlanner
   {
     VisualizeGraph();
     VisualizeAllSamples();
+    topology_comparison_->Visualize(environment_);
 
     debug_visuals_->publish(true);
   }

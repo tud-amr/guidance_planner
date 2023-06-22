@@ -6,4 +6,6 @@
     <param name="clock_frequency" value="20"/>
     <node pkg="guidance_planner" type="guidance_server" name="guidance_server" cwd="node" respawn="false" output="screen">
     </node>
+     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find guidance_planner)/rviz/test.rviz" output="log"/>
+
 </launch>  

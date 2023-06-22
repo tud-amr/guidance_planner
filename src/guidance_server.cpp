@@ -119,7 +119,7 @@ public:
             }
             return true;
         }
-        catch (IntegrationException ie){
+        catch (IntegrationException& ie){
             res.success = false;
             ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
             return true;
@@ -334,22 +334,23 @@ public:
                         Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
                         x_traj.emplace_back(pos.x());
                         y_traj.emplace_back(pos.y());
-                        // ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
                     }
                     guidance_planner::TrajectoryMSG traj;
                     traj.x = x_traj;
                     traj.y = y_traj;
                     res.trajectories.emplace_back(traj);
                     res.costs.emplace_back(guidance.GetHomotopicCost(i, truth_path));
+                    // ROS_INFO_STREAM("H-cost: " << res.costs.back());
                     guidance_planner::LeftHMSG h_signature_msg;
-                    std::vector<bool> right = guidance.LeftPassingH(i);
+                    std::vector<bool> right = guidance.LeftPassingH(i, Eigen::Vector2d(req.goals_x[0], req.goals_y[0]));
                     for(int i_obs = 0; i_obs < (int)right.size(); i_obs++){
                         h_signature_msg.left_passing.push_back((double)right[i_obs]);
                     }
                     res.h_signature.emplace_back(h_signature_msg);
                     // RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
                 }
-                // guidance.Visualize();
+                guidance.Visualize();
+                guidance.VisualizePath(truth_path);
                 ros::spinOnce();
                 // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(0);
 
@@ -363,7 +364,7 @@ public:
             }
             return true;
         }
-        catch (IntegrationException ie){
+        catch (IntegrationException& ie){
             res.success = false;
             ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
             return true;

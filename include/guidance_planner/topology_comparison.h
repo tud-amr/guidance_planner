@@ -10,6 +10,7 @@ namespace GuidancePlanner
   {
 
   public:
+    virtual void Visualize(Environment &environment){};
     virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) = 0;
     virtual std::vector<bool> LeftPassingVector(const GeometricPath &path, Environment &environment) { return std::vector<bool>({}); };
 

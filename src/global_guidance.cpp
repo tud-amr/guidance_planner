@@ -470,6 +470,8 @@ namespace GuidancePlanner
     std::iota(indices.begin(), indices.end(), 0);
     std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
               { return spline_costs[a] < spline_costs[b]; });
+    
+    this->sorted_indices = indices;
 
     // Apply the sorting to the splines vector
     std::vector<CubicSpline3D> ordered_splines;
@@ -529,7 +531,7 @@ namespace GuidancePlanner
     return splines_[spline_id]; // Return the guidance trajectory
   }
 
-  std::vector<bool> GlobalGuidance::LeftPassingH(int spline_id)
+  std::vector<bool> GlobalGuidance::LeftPassingH(int spline_id, Eigen::Vector2d goal)
   {
     if (spline_id >= (int)paths_.size())
     {
@@ -537,8 +539,12 @@ namespace GuidancePlanner
       std::vector<bool> empty;
       return empty;
     }
-
-    return this->prm_.LeftPassingH(this->paths_[spline_id]); // Return the guidance trajectory
+    GuidancePlanner::GeometricPath h_def_path = this->paths_[sorted_indices[spline_id]];
+    // Add a common goal to close the loop with every path
+    GuidancePlanner::SpaceTimePoint goal_point(goal.x(), goal.y(), h_def_path.nodes_.back()->point_.Time());
+    GuidancePlanner::Node goal_node(h_def_path.nodes_.back()->id_, goal_point, h_def_path.nodes_.back()->type_);
+    h_def_path.nodes_.push_back(&goal_node);
+    return this->prm_.LeftPassingH(h_def_path); // Return the guidance trajectory
   }
 
   double GlobalGuidance::GetHomotopicCost(int spline_id, const GeometricPath &path)
@@ -549,7 +555,7 @@ namespace GuidancePlanner
       return -1;
     }
 
-    return this->prm_.GetHomotopicCost(this->paths_[spline_id], path); // Return the guidance trajectory
+    return this->prm_.GetHomotopicCost(this->paths_[sorted_indices[spline_id]], path); // Return the guidance trajectory
   }
 
   int GlobalGuidance::GetUsedTrajectory() const { return selected_id_; }
@@ -579,6 +585,30 @@ namespace GuidancePlanner
     VisualizeTrajectories();
     VisualizeSplinePoints();
     VisualizeDebug();
+  }
+
+  void GlobalGuidance::VisualizePath(GeometricPath & path){
+    // Geometric Paths
+    RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
+    path_line.setScale(0.15, 0.15, 0.15);
+    path_line.setColorInt(path.association_.id_, config_->n_paths_, 0.75);
+
+    Node *prev_node;
+    bool first_node = true;
+    for (auto &node : path.nodes_)
+    {
+      if (!first_node)
+      {
+        path_line.addLine(node->point_.MapToTime(), prev_node->point_.MapToTime());
+      }
+      else
+      {
+        first_node = false;
+      }
+
+      prev_node = node;
+    }
+    ros_path_visuals_->publish();
   }
 
   void GlobalGuidance::VisualizeGeometricPaths()

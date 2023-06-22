@@ -132,6 +132,7 @@ namespace GuidancePlanner
   void Environment::LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles)
   {
     dynamic_obstacles_ = dynamic_obstacles;
+
     static_obstacles_ = static_obstacles;
 
     grid_.SetDimensions(50, 50, dynamic_obstacles_[0].radius_);

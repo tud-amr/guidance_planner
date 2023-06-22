@@ -78,7 +78,7 @@ namespace GuidancePlanner
      * @return double The cost
      */
     double GetHomotopicCost(int spline_id, const GeometricPath &path);
-    std::vector<bool> LeftPassingH(int spline_id);
+    std::vector<bool> LeftPassingH(int spline_id, Eigen::Vector2d goal);
 
     /** @brief Get the ID of the used trajectory */
     int GetUsedTrajectory() const;
@@ -102,6 +102,9 @@ namespace GuidancePlanner
 
     /** @brief Visualize the results of this class */
     void Visualize();
+
+    /** @brief Visualize geometric path */
+    void VisualizePath(GeometricPath & path);
 
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
@@ -143,6 +146,8 @@ namespace GuidancePlanner
     std::vector<Goal> goals_;
     double orientation_;
     Eigen::Vector2d start_velocity_;
+
+    std::vector<int> sorted_indices;
 
     bool first_reconfigure_callback_;
 
