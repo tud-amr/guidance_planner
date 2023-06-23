@@ -42,6 +42,7 @@ namespace GuidancePlanner
     double obstacle_radius_extension_;
     int n_samples_;
     double timeout_;
+    bool assume_constant_velocity_;
     int n_paths_;
     int path_after_samples_;
     double min_path_improvement_;

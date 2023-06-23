@@ -35,7 +35,7 @@ namespace GuidancePlanner
     }
     else
     {
-      topology_comparison_.reset(new Homology(nh));
+      topology_comparison_.reset(new Homology(nh, config_->assume_constant_velocity_));
     }
     debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 

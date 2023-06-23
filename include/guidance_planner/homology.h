@@ -31,7 +31,7 @@ namespace GuidancePlanner
   class Homology : public TopologyComparison
   {
   public:
-    Homology(ros::NodeHandle &nh);
+    Homology(ros::NodeHandle &nh, bool assume_constant_velocity = true);
     virtual ~Homology();
 
   public:
@@ -92,14 +92,16 @@ namespace GuidancePlanner
     /** Cached H-Values (over all obstacles) */
     std::unordered_map<GeometricPath, std::vector<double>> cached_values_;
 
+    bool assume_constant_velocity_;
     bool obstacle_points_ready_ = false;
     std::vector<std::vector<Eigen::Vector3d>> obstacle_points_; // For efficiency (4 x num_obstacles)
 
     std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
     /** Parameters for obstacle integration */
-    Eigen::Vector3d start_, end_;
-    Eigen::Vector3d obstacle_p1_, obstacle_p2_, obstacle_p3_, obstacle_p4_;
+    // Eigen::Vector3d start_, end_;
+    // Eigen::Vector3d obstacle_p1_, obstacle_p2_, obstacle_p3_, obstacle_p4_;
+    std::vector<Eigen::Vector3d> obstacle_segments_;
     double fraction_;
   };
 
