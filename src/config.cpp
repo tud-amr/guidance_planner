@@ -32,6 +32,7 @@ namespace GuidancePlanner
     view_angle_ *= M_PI;
 
     retrieveParameter(nh, "prm/topology_comparison", topology_comparison_function_, std::string("Homology"));
+    retrieveParameter(nh, "prm/use_learning", use_learning, false);
     retrieveParameter(nh, "prm/sampling_function", sampling_function_, std::string("Uniform"));
     retrieveParameter(nh, "prm/rules", rules_, std::string());
     pass_left_ = rules_ == "pass_left";

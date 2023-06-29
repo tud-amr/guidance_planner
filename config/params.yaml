@@ -6,6 +6,7 @@ prm:
   # T: 8.0
   # N: 20
   topology_comparison: Homology         # Homology (default) or UVD
+  use_learning: true
   sampling_function: Uniform # Uniform (default)
   sample_margin: 5.0
   n_samples: 1000 #200    # Number of samples for PRM
@@ -19,9 +20,9 @@ prm:
     acceleration: true
   selection_weights: # Weights on the spline selection heuristic cost
     length: 1.
-    velocity: 100.
-    acceleration: 100.
-    consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
+    velocity: 0 #100.
+    acceleration: 0. #100.
+    consistency: 0 #0.24904675216524505  # How much better should a new trajectory be to be selected [%]
   spline_optimization:
     enable: false
     num_points: -1

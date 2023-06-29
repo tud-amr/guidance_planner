@@ -36,6 +36,9 @@ namespace GuidancePlanner
     benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Visibility-PRM", false, 0)));
     benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Path Search", false, 0)));
 
+    /* Initialize service client */
+    this->estimate_cost_client = nh_.serviceClient<guidance_planner::guidances_estimate_cost>("guidances_estimate_cost");
+
     // thread_pool_.reset(new ThreadPool(1));
 
     start_velocity_ = Eigen::Vector2d(0., 0.);
@@ -43,10 +46,85 @@ namespace GuidancePlanner
     Reset();
   }
 
+  void GlobalGuidance::UpdateLearning(){
+    this->learning_selected_id = 0;
+    double minimum_achieved_cost = 9999.9;
+    for (int i = 0; i < this->NumberOfGuidanceTrajectories(); i++){
+        // ROS_INFO_STREAM("H-cost: " << res.costs.back());
+        guidance_planner::LeftHMSG h_signature_msg;
+        Eigen::Vector2d main_goal = goals_[0].pos;
+        std::vector<bool> right = this->LeftPassingH(i, main_goal);
+        for(int i_obs = 0; i_obs < (int)right.size(); i_obs++){
+            h_signature_msg.left_passing.push_back((double)right[i_obs]);
+        }
+        guidance_planner::guidances_estimate_cost srv;
+        // INCLUDE ROBOT TRAJECTORY
+        srv.request.robot_trajectory;
+        for (auto& obs_saved :previous_positions_obstacles){
+          guidance_planner::ObstacleMSG obs_aux;
+          obs_aux.id = obs_saved.id_;
+          obs_aux.radius = obs_saved.radius_;
+          for (auto it = obs_saved.positions_.rbegin(); it!=obs_saved.positions_.rend(); it++){
+              obs_aux.pos_x.push_back(it->x());
+              obs_aux.pos_y.push_back(it->y());
+          }
+          srv.request.previous_obstacles.push_back(obs_aux);
+        }
+        srv.request.h_signature = h_signature_msg;
+        if (this->estimate_cost_client.call(srv))
+        {
+          if (srv.response.cost < minimum_achieved_cost){
+              this->learning_selected_id = i;
+              minimum_achieved_cost = srv.response.cost;
+          }
+        }
+        else
+        {
+          ROS_ERROR("Failed to call service guidances_estimate_cost");
+        }
+    }
+  }
+
   void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles)
   {
     obstacles_ = obstacles;
     static_obstacles_ = static_obstacles;
+    // Check time interval and how many to store
+    int max_size = 8;
+    if (config_->use_learning){
+      // Iterate over the current obstacles
+      for (const auto& currentObstacle : obstacles) {
+          // Check if the obstacle exists in the original vector
+          auto it = std::find_if(previous_positions_obstacles.begin(), previous_positions_obstacles.end(),
+              [currentId = currentObstacle.id_](const Obstacle& o) {
+                  return o.id_ == currentId;
+              });
+
+          // If the obstacle doesn't exist in the original vector, add it
+          if (it == previous_positions_obstacles.end()) {
+              previous_positions_obstacles.push_back(currentObstacle);
+              continue;
+          }
+
+          // Update the positions of the existing obstacle
+          it->positions_.push_back(currentObstacle.positions_[0]);
+          if (it->positions_.size() > max_size) {
+            // Erase the first (oldest) position
+            it->positions_.erase(it->positions_.begin());
+          }
+      }
+
+      // Iterate over the original obstacles and remove the ones that don't appear in the current vector
+      previous_positions_obstacles.erase(std::remove_if(previous_positions_obstacles.begin(), previous_positions_obstacles.end(),
+          [&](const Obstacle& o) {
+              auto it = std::find_if(obstacles.begin(), obstacles.end(),
+                  [currentId = o.id_](const Obstacle& co) {
+                      return co.id_ == currentId;
+                  });
+              return it == obstacles.end();
+          }),
+          previous_positions_obstacles.end());
+      }
   }
 
   void GlobalGuidance::LoadReferencePath(double spline_start, RosTools::CubicSpline2D<tk::spline> *reference_path, double road_width)
@@ -800,6 +878,7 @@ namespace GuidancePlanner
       config.n_paths = config_->n_paths_;
       config.n_samples = config_->n_samples_;
       config.visualize_samples = config_->visualize_all_samples_;
+      config.use_learning = config_->use_learning;
     }
 
     Config::debug_output_ = config.debug;
@@ -807,6 +886,7 @@ namespace GuidancePlanner
     config_->n_paths_ = config.n_paths;
     config_->n_samples_ = config.n_samples;
     config_->visualize_all_samples_ = config.visualize_samples;
+    config_->use_learning = config.use_learning;
   }
 
 } // namespace GuidancePlanner

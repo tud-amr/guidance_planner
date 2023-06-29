@@ -2,7 +2,8 @@
 
 namespace GuidancePlanner
 {
-  Homology::Homology(ros::NodeHandle &nh)
+  Homology::Homology(ros::NodeHandle &nh, bool assume_constant_velocity)
+      : assume_constant_velocity_(assume_constant_velocity)
   {
     debug_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "guidance_planner/homology", "map", 500));
     // Initialize workspace, parameters, functions
@@ -186,10 +187,17 @@ namespace GuidancePlanner
   double Homology::ObstacleHValue(const Eigen::Vector3d &r, const Eigen::Vector3d &dr)
   {
     double h = 0;
-    h += SegmentHValue(obstacle_p1_, obstacle_p2_, r, dr); // The obstacle itself
-    h += SegmentHValue(obstacle_p2_, obstacle_p3_, r, dr); // A line above the state-space
-    h += SegmentHValue(obstacle_p3_, obstacle_p4_, r, dr); // A downwards line
-    h += SegmentHValue(obstacle_p4_, obstacle_p1_, r, dr); // Close the loop
+
+    // H-signature over the segments in the obstacle skeleton from start to end
+    for (size_t obstacle_segment = 1; obstacle_segment < obstacle_segments_.size(); obstacle_segment++)
+      h += SegmentHValue(obstacle_segments_[obstacle_segment - 1], obstacle_segments_[obstacle_segment], r, dr);
+
+    h += SegmentHValue(obstacle_segments_.back(), obstacle_segments_[0], r, dr); // Connect the end and the start
+
+    // h += SegmentHValue(obstacle_p1_, obstacle_p2_, r, dr); // The obstacle itself
+    // h += SegmentHValue(obstacle_p2_, obstacle_p3_, r, dr); // A line above the state-space
+    // h += SegmentHValue(obstacle_p3_, obstacle_p4_, r, dr); // A downwards line
+    // h += SegmentHValue(obstacle_p4_, obstacle_p1_, r, dr); // Close the loop
     return h * (1. / (4. * M_PI));
   }
 
@@ -206,32 +214,55 @@ namespace GuidancePlanner
 
   void Homology::LoadObstacle(int i, const Obstacle &obstacle)
   {
-    obstacle_p1_ = obstacle_points_[0][i];
-    obstacle_p2_ = obstacle_points_[1][i];
-    obstacle_p3_ = obstacle_points_[2][i];
-    obstacle_p4_ = obstacle_points_[3][i];
+    obstacle_segments_ = obstacle_points_[i];
+    // obstacle_p1_ = obstacle_points_[0][i];
+    // obstacle_p2_ = obstacle_points_[1][i];
+    // obstacle_p3_ = obstacle_points_[2][i];
+    // obstacle_p4_ = obstacle_points_[3][i];
   }
 
   void Homology::ComputeObstacleLoops(const std::vector<Obstacle> &obstacles)
   {
-    if (!obstacle_points_ready_)
+    if (!obstacle_points_ready_ && obstacles.size() > 0)
     {
-      obstacle_points_.resize(4);
-      for (size_t i = 0; i < obstacle_points_.size(); i++)
-        obstacle_points_[i].resize(obstacles.size());
-
-      for (size_t i = 0; i < obstacles.size(); i++)
+      obstacle_points_.resize(obstacles.size());
+      for (size_t o = 0; o < obstacle_points_.size(); o++)
       {
-        const auto &obstacle = obstacles[i];
-        // Retrieve and set the obstacle skeleton
-        Eigen::Vector3d start(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
-        Eigen::Vector3d end(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N);
+        obstacle_points_[o].clear();
+        obstacle_points_[o].reserve(obstacles[o].positions_.size() + 4); // Positions is from 0 to N, we need 0 / 1 - N / +
+      }
 
-        obstacle_points_[0][i] = Line(start, end, -fraction_);                            // A start below the actual start
-        obstacle_points_[1][i] = Line(start, end, 1 + fraction_);                         // An end above the actual end
-        obstacle_points_[2][i] = obstacle_points_[1][i] + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
-        obstacle_points_[3][i] = obstacle_points_[2][i];
-        obstacle_points_[3][i](2) = obstacle_points_[0][i](2); // Move down
+      // Retrieve and set the obstacle skeleton
+      for (size_t o = 0; o < obstacles.size(); o++)
+      {
+        const auto &obstacle = obstacles[o];
+
+        Eigen::Vector3d start(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
+        // Eigen::Vector3d end(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N);
+
+        obstacle_points_[o].push_back(Eigen::Vector3d(start(0), start(1), -1)); // A start below the actual start
+
+        if (!assume_constant_velocity_)
+        {
+          for (size_t p = 0; p < obstacle.positions_.size(); p++) // Add the obstacle predictions, skipping the current position
+            obstacle_points_[o].push_back(Eigen::Vector3d(obstacle.positions_[p](0), obstacle.positions_[p](1), p));
+        }
+        else
+        {
+          // For constant velocity, only one line is sufficient
+          obstacle_points_[o].push_back(Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), obstacle.positions_.size()));
+        }
+        // obstacle_points_[o].push_back(Line(start, end, -fraction_)); // A start below the actual start
+        // obstacle_points_[0][i] = Line(start, end, -fraction_);                            // A start below the actual start
+        // obstacle_points_[1][i] = Line(start, end, 1 + fraction_);                         // An end above the actual end
+        // obstacle_points_[2][i] = obstacle_points_[1][i] + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
+
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));    // An end above the actual end
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-250., 0., 0.)); // Move outside of the region
+        obstacle_points_[o].push_back(obstacle_points_[o].back());                                  // In that same (x,y) move down
+        obstacle_points_[o].back()(2) = obstacle_points_[o][0](2);
+        // obstacle_points_[3][i] = obstacle_points_[2][i];
+        // obstacle_points_[3][i](2) = obstacle_points_[0][i](2); // Move down
       }
       obstacle_points_ready_ = true;
     }
@@ -280,10 +311,9 @@ namespace GuidancePlanner
   void Homology::Visualize(Environment &environment)
   {
     RosTools::ROSLine &line = debug_visuals_->getNewLine();
-    line.setScale(0.1);
+    line.setScale(0.05);
 
     const auto &obstacles = environment.GetDynamicObstacles();
-    ComputeObstacleLoops(obstacles);
     for (size_t i = 0; i < obstacles.size(); i++)
     {
       const auto &obstacle = obstacles[i];
@@ -291,15 +321,25 @@ namespace GuidancePlanner
 
       LoadObstacle(i, obstacle);
 
-      obstacle_p1_(2) *= Config::DT;
-      obstacle_p2_(2) *= Config::DT;
-      obstacle_p3_(2) *= Config::DT;
-      obstacle_p4_(2) *= Config::DT;
+      for (auto &p : obstacle_segments_)
+        p(2) *= Config::DT; // Scale the time axis
 
-      line.addBrokenLine(obstacle_p1_, obstacle_p2_, 1.);
-      line.addBrokenLine(obstacle_p2_, obstacle_p3_, 1.);
-      line.addBrokenLine(obstacle_p3_, obstacle_p4_, 1.);
-      line.addBrokenLine(obstacle_p4_, obstacle_p1_, 1.);
+      for (size_t p = 1; p < obstacle_segments_.size(); p++)
+        line.addLine(obstacle_segments_[p - 1], obstacle_segments_[p]);
+      // line.addBrokenLine(obstacle_segments_[p - 1], obstacle_segments_[p], 1.);
+
+      line.addLine(obstacle_segments_.back(), obstacle_segments_.front());
+      // line.addBrokenLine(obstacle_segments_.back(), obstacle_segments_.front(), 1.);
+
+      // obstacle_p1_(2) *= Config::DT;
+      // obstacle_p2_(2) *= Config::DT;
+      // obstacle_p3_(2) *= Config::DT;
+      // obstacle_p4_(2) *= Config::DT;
+
+      // line.addBrokenLine(obstacle_p1_, obstacle_p2_, 1.);
+      // line.addBrokenLine(obstacle_p2_, obstacle_p3_, 1.);
+      // line.addBrokenLine(obstacle_p3_, obstacle_p4_, 1.);
+      // line.addBrokenLine(obstacle_p4_, obstacle_p1_, 1.);
     }
 
     debug_visuals_->publish();

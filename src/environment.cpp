@@ -153,7 +153,7 @@ namespace GuidancePlanner
 
   bool Environment::IsVisibleRayCast(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two)
   {
-
+    // ROS_INFO_STREAM("Point one: " << point_one << ". Point two: "<< point_two);
     if (RosTools::dist(point_one.Pos(), point_two.Pos()) < 2. * dynamic_obstacles_[0].radius_)
       return true;
 
@@ -168,29 +168,32 @@ namespace GuidancePlanner
 
     for (auto &obstacle : dynamic_obstacles_)
     {
-      // for (int k = 0; k < Config::N - 1; k++) // For constant velocity, only one line segment
-      // {
-      c = Eigen::Vector3d(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
-      d = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N) - c;
+      for (int k = 0; k < Config::N; k++) // For constant velocity, only one line segment
+      {
+          c = Eigen::Vector3d(obstacle.positions_[k](0), obstacle.positions_[k](1), k);
+          d = Eigen::Vector3d(obstacle.positions_[k + 1](0), obstacle.positions_[k + 1](1), k + 1) - c;
+          // c = Eigen::Vector3d(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
+          // d = Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N) - c;
 
-      e = a - c;
+          e = a - c;
 
-      A = -(b.dot(b) * d.dot(d) - std::pow(b.dot(d), 2.));
+          A = -(b.dot(b) * d.dot(d) - std::pow(b.dot(d), 2.));
 
-      double s = (-(b.dot(b)) * (d.dot(e)) + (b.dot(e)) * (d.dot(b))) / A;
-      double t = ((d.dot(d)) * (b.dot(e)) - (d.dot(e)) * (d.dot(b))) / A;
+          double s = (-(b.dot(b)) * (d.dot(e)) + (b.dot(e)) * (d.dot(b))) / A;
+          double t = ((d.dot(d)) * (b.dot(e)) - (d.dot(e)) * (d.dot(b))) / A;
 
-      s = std::max(0., std::min(s, 1.));
-      t = std::max(0., std::min(t, 1.));
+          s = std::max(0., std::min(s, 1.));
+          t = std::max(0., std::min(t, 1.));
 
-      // std::cout << "s: " << s << ", t: " << t << std::endl;
-      dist = (e + b * t - d * s).norm();
+          // std::cout << "s: " << s << ", t: " << t << std::endl;
+          dist = (e + b * t - d * s).norm();
 
-      // std::cout << "distance: " << dist << std::endl;
+          // ROS_INFO_STREAM("Point one: " << point_one << ". Point two: " << ". Obstacle point: " << obstacle.positions_[k] << ". K: " << k);
+          // std::cout << "distance: " << dist << std::endl;
 
-      if (dist < obstacle.radius_)
-        return false;
-      // }
+          if (dist < obstacle.radius_)
+            return false;
+      }
     }
 
     return true;

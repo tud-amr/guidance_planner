@@ -1,0 +1,5 @@
+ObstacleMSG[] previous_obstacles
+TrajectoryMSG robot_trajectory
+LeftHMSG h_signature
+---
+float64 cost

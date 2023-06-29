@@ -51,6 +51,8 @@ namespace GuidancePlanner
 
     int longitudinal_goals_, vertical_goals_;
 
+    bool use_learning;
+
     // Topology
     std::string topology_comparison_function_;
     std::string sampling_function_;
@@ -81,7 +83,7 @@ namespace GuidancePlanner
     bool visualize_all_samples_;
     bool dynamically_propagate_nodes_;
     bool project_from_obstacles_;
-    bool debug_continuous_replanning_;
+    bool debug_continuous_replanning_; 
 
   private:
     /**

@@ -16,6 +16,11 @@
 #include <guidance_planner/paths.h>
 #include <guidance_planner/prm.h>
 
+#include <guidance_planner/ObstacleMSG.h>
+#include <guidance_planner/TrajectoryMSG.h>
+#include <guidance_planner/LeftHMSG.h>
+#include <guidance_planner/guidances_estimate_cost.h>
+
 #include <third_party/spline.h>
 
 namespace GuidancePlanner
@@ -114,7 +119,17 @@ namespace GuidancePlanner
     Eigen::Vector2d GetStart() const { return prm_.GetStart(); };                 /** @brief Get the start position */
     Eigen::Vector2d GetStartVelocity() const { return prm_.GetStartVelocity(); }; /** @brief Get the start velocity */
 
+    // --- Learning guidances functions --- // 
+    /** @brief Get learning based selected trajectory id */
+    int GetLearningId() const { return learning_selected_id; };
+    /** @brief Select trajectory using learning and saved data */
+    void UpdateLearning();
+
   private:
+    // Learning guidances variables
+    int learning_selected_id = 0;
+    ros::ServiceClient estimate_cost_client;
+
     ros::NodeHandle nh_;
     std::unique_ptr<Config> config_; // Owns the configuration
 
@@ -138,7 +153,7 @@ namespace GuidancePlanner
     int selected_id_;
 
     // Real-time data
-    std::vector<Obstacle> obstacles_;
+    std::vector<Obstacle> obstacles_, previous_positions_obstacles;
     std::vector<RosTools::Halfspace> static_obstacles_;
 
     Eigen::Vector2d start_;
