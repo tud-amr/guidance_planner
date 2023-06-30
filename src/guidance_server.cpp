@@ -295,9 +295,16 @@ public:
             {
                 std::vector<Eigen::Vector2d> obs_pos;
                 PRM_LOG("Request obstacle len: " << req.obstacles[i].pos_x.size());
+                int last_no_nan = -1;
                 for (size_t j = 0; j < req.obstacles[i].pos_x.size(); j++)
                 {
-                    obs_pos.emplace_back(req.obstacles[i].pos_x[j], req.obstacles[i].pos_y[j]);
+                    if (!isnan(req.obstacles[i].pos_x[j]) && !isnan(req.obstacles[i].pos_y[j])){
+                        obs_pos.emplace_back(req.obstacles[i].pos_x[j], req.obstacles[i].pos_y[j]);
+                        last_no_nan = j;
+                    }
+                    else{
+                        obs_pos.emplace_back(req.obstacles[i].pos_x[last_no_nan], req.obstacles[i].pos_y[last_no_nan]);
+                    }
                 }
                 obstacles_vec.push_back(GuidancePlanner::Obstacle(req.obstacles[i].id, obs_pos, req.obstacles[i].radius));
             }

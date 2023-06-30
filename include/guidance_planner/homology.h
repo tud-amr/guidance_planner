@@ -24,7 +24,7 @@
 namespace GuidancePlanner
 {
 #define GSL_ACCURACY 1e-1 // 1e-1
-#define GSL_POINTS 20
+#define GSL_POINTS 50
   bool operator==(const GeometricPath &a, const GeometricPath &b);
 
   struct GSLParams;

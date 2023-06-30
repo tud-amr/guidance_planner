@@ -7,6 +7,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
 
+#include <ros/ros.h>
 #include <ros_tools/helpers.h>
 #include <ros_tools/ros_visuals.h>
 
@@ -127,8 +128,32 @@ namespace GuidancePlanner
 
   private:
     // Learning guidances variables
+    struct PoseInfo
+    {
+      Eigen::Vector2d position;
+      double orientation;
+      double velocity;
+      ros::Time timestamp;
+    };
+    struct PositionTime
+    {
+      Eigen::Vector2d position;
+      ros::Time timestamp;
+    };
+    //POSITION WITH ITS TIMESTAMP
+    struct ObstacleInfo
+    {
+      int id_;
+      std::vector<PositionTime> positions_;
+      double radius_;
+    };
+
+    //UPDATE POSE AND OBSTACLE TIMES LIST
+    
     int learning_selected_id = 0;
     ros::ServiceClient estimate_cost_client;
+    std::vector<PoseInfo> poses_list;
+    std::vector<ObstacleInfo> previous_obstacles_list;
 
     ros::NodeHandle nh_;
     std::unique_ptr<Config> config_; // Owns the configuration
@@ -153,7 +178,7 @@ namespace GuidancePlanner
     int selected_id_;
 
     // Real-time data
-    std::vector<Obstacle> obstacles_, previous_positions_obstacles;
+    std::vector<Obstacle> obstacles_;
     std::vector<RosTools::Halfspace> static_obstacles_;
 
     Eigen::Vector2d start_;

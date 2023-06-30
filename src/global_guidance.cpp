@@ -59,14 +59,28 @@ namespace GuidancePlanner
         }
         guidance_planner::guidances_estimate_cost srv;
         // INCLUDE ROBOT TRAJECTORY
-        srv.request.robot_trajectory;
-        for (auto& obs_saved :previous_positions_obstacles){
+        // The trained timestep is 0.4
+        double full_diff = (poses_list.back().timestamp - poses_list.front().timestamp).toSec();
+        double time_diff = full_diff - (std::fmod(full_diff, 0.4));
+        for (int i_poses = 0; i_poses < poses_list.size(); i_poses++){
+          if ((poses_list.back().timestamp - poses_list[i_poses].timestamp).toSec() <= time_diff){
+            srv.request.robot_trajectory.x.push_back(poses_list[i_poses].position.x());
+            srv.request.robot_trajectory.y.push_back(poses_list[i_poses].position.y());
+            time_diff -= 0.4;
+            ROS_INFO_STREAM("ADDED POSE " << i_poses);
+          }
+        }
+        for (auto& obs_saved :previous_obstacles_list){
           guidance_planner::ObstacleMSG obs_aux;
           obs_aux.id = obs_saved.id_;
           obs_aux.radius = obs_saved.radius_;
-          for (auto it = obs_saved.positions_.rbegin(); it!=obs_saved.positions_.rend(); it++){
-              obs_aux.pos_x.push_back(it->x());
-              obs_aux.pos_y.push_back(it->y());
+          for (int i_poses = 0; i_poses < obs_saved.positions_.size(); i_poses++){
+            if ((obs_saved.positions_.back().timestamp - obs_saved.positions_[i_poses].timestamp).toSec() <= time_diff){
+              obs_aux.pos_x.push_back(obs_saved.positions_[i_poses].position.x());
+              obs_aux.pos_y.push_back(obs_saved.positions_[i_poses].position.y());
+              time_diff -= 0.4;
+              ROS_INFO_STREAM("ADDED POSE " << i_poses);
+            }
           }
           srv.request.previous_obstacles.push_back(obs_aux);
         }
@@ -89,41 +103,51 @@ namespace GuidancePlanner
   {
     obstacles_ = obstacles;
     static_obstacles_ = static_obstacles;
-    // Check time interval and how many to store
-    int max_size = 8;
     if (config_->use_learning){
+      ros::Time timestamp = ros::Time::now();
       // Iterate over the current obstacles
       for (const auto& currentObstacle : obstacles) {
           // Check if the obstacle exists in the original vector
-          auto it = std::find_if(previous_positions_obstacles.begin(), previous_positions_obstacles.end(),
-              [currentId = currentObstacle.id_](const Obstacle& o) {
+          auto it = std::find_if(previous_obstacles_list.begin(), previous_obstacles_list.end(),
+              [currentId = currentObstacle.id_](const ObstacleInfo& o) {
                   return o.id_ == currentId;
               });
 
           // If the obstacle doesn't exist in the original vector, add it
-          if (it == previous_positions_obstacles.end()) {
-              previous_positions_obstacles.push_back(currentObstacle);
-              continue;
+          if (it == previous_obstacles_list.end()) {
+              ObstacleInfo obs_new;
+              obs_new.id_ = currentObstacle.id_;
+              obs_new.radius_ = currentObstacle.radius_;
+              PositionTime pos_new;
+              pos_new.timestamp = timestamp;
+              pos_new.position = currentObstacle.positions_[0];
+              obs_new.positions_.push_back(pos_new);
+              previous_obstacles_list.push_back(obs_new);
           }
-
           // Update the positions of the existing obstacle
-          it->positions_.push_back(currentObstacle.positions_[0]);
-          if (it->positions_.size() > max_size) {
-            // Erase the first (oldest) position
-            it->positions_.erase(it->positions_.begin());
+          else{
+              // Check time interval and how many to store
+              if (it->positions_.size() > 0 && (it->positions_.front().timestamp - timestamp >= ros::Duration(2.8))) {
+                // Erase the first (oldest) position
+                it->positions_.erase(it->positions_.begin());
+              }
+              PositionTime pos_new;
+              pos_new.timestamp = timestamp;
+              pos_new.position = currentObstacle.positions_[0];
+              it->positions_.push_back(pos_new);
           }
       }
 
       // Iterate over the original obstacles and remove the ones that don't appear in the current vector
-      previous_positions_obstacles.erase(std::remove_if(previous_positions_obstacles.begin(), previous_positions_obstacles.end(),
-          [&](const Obstacle& o) {
+      previous_obstacles_list.erase(std::remove_if(previous_obstacles_list.begin(), previous_obstacles_list.end(),
+          [&](const ObstacleInfo& o) {
               auto it = std::find_if(obstacles.begin(), obstacles.end(),
                   [currentId = o.id_](const Obstacle& co) {
                       return co.id_ == currentId;
                   });
               return it == obstacles.end();
           }),
-          previous_positions_obstacles.end());
+          previous_obstacles_list.end());
       }
   }
 
@@ -193,6 +217,19 @@ namespace GuidancePlanner
     start_ = start;
     orientation_ = orientation;
     start_velocity_ = Eigen::Vector2d(velocity * std::cos(orientation), velocity * std::sin(orientation));
+    if (this->config_->use_learning){
+      ros::Time timestamp = ros::Time::now();
+      if (this->poses_list.size() > 0 && (poses_list.front().timestamp - timestamp >= ros::Duration(2.8))) {
+        // Erase the first (oldest) position
+        poses_list.erase(poses_list.begin());
+      }
+      PoseInfo pose_new;
+      pose_new.orientation = orientation;
+      pose_new.position = start;
+      pose_new.timestamp = timestamp;
+      pose_new.velocity = velocity;
+      poses_list.push_back(pose_new);
+    }
   }
 
   bool GlobalGuidance::Update()
