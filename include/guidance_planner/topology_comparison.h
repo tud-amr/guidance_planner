@@ -4,6 +4,9 @@
 #include "guidance_planner/environment.h"
 #include "guidance_planner/paths.h"
 
+class Environment;
+class GeometricPath;
+
 namespace GuidancePlanner
 {
   class TopologyComparison

@@ -37,7 +37,7 @@ namespace GuidancePlanner
     {
       topology_comparison_.reset(new Homology(nh, config_->assume_constant_velocity_));
     }
-    debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
+    // debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
     done_ = false;
   }
@@ -52,12 +52,12 @@ namespace GuidancePlanner
       /* Obstacles */
       environment_.SetPosition(start);
       PRM_LOG("Static obstacles size: " << static_obstacles.size());
-      if (static_obstacles.size() > 0)
-        environment_.LoadObstacles(obstacles, static_obstacles);
-      else
-        environment_.LoadObstacles(obstacles, std::vector<RosTools::Halfspace>({}));
+      environment_.LoadObstacles(obstacles, static_obstacles);
+      // if (static_obstacles.size() > 0)
+      //   environment_.LoadObstacles(obstacles, static_obstacles);
+      // else
+      //   environment_.LoadObstacles(obstacles, static_obstacles);
     }
-
     /* Start */
     start_ = start;
     orientation_ = orientation;
@@ -144,6 +144,8 @@ namespace GuidancePlanner
 
     SampleNewPoints(samples_, sample_succes_); // Draw random samples
 
+    PRM_LOG("New candidate nodes ready. Inserting them into the Visibility-PRM graph");
+
     // Then add them to the graph
     for (int i = 0; i < config_->n_samples_; i++)
     {
@@ -195,6 +197,8 @@ namespace GuidancePlanner
         break;
       }
     }
+
+    PRM_LOG("Visibility-PRM Graph Done.");
 
     done_ = true;
     return *graph_;
@@ -714,29 +718,29 @@ namespace GuidancePlanner
 
   bool PRM::AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b)
   {
-    debug_benchmarker_->start();
+    // debug_benchmarker_->start();
     bool homology_result = topology_comparison_->AreEquivalent(a, b, environment_);
-    debug_benchmarker_->stop();
+    // debug_benchmarker_->stop();
 
     return homology_result;
   }
 
   double PRM::GetHomotopicCost(const GeometricPath &a, const GeometricPath &b)
   {
-    debug_benchmarker_->start();
+    // debug_benchmarker_->start();
 
     double homology_cost = reinterpret_cast<Homology *>(topology_comparison_.get())->GetCost(a, b, environment_);
-    debug_benchmarker_->stop();
+    // debug_benchmarker_->stop();
 
     return homology_cost;
   }
 
   std::vector<bool> PRM::passes_right(const GeometricPath &path)
   {
-    debug_benchmarker_->start();
+    // debug_benchmarker_->start();
 
     std::vector<bool> h = topology_comparison_->LeftPassingVector(path, environment_);
-    debug_benchmarker_->stop();
+    // debug_benchmarker_->stop();
 
     return h;
   }

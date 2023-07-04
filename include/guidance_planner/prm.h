@@ -12,7 +12,7 @@
 #define __PRM_H__
 
 #include <chrono>
-#include <unordered_map>
+// #include <unordered_map>
 
 #include <ros_tools/helpers.h>
 #include <ros_tools/ros_visuals.h>
@@ -121,7 +121,7 @@ namespace GuidancePlanner
 
     // Debugging variables
     std::vector<SpaceTimePoint> all_samples_; // For visualizing the sampling algorithm
-    std::unique_ptr<RosTools::Benchmarker> debug_benchmarker_;
+    // std::unique_ptr<RosTools::Benchmarker> debug_benchmarker_;
 
     void SampleNewPoints(std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes); // Sample ALL new points
 
