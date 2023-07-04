@@ -303,6 +303,16 @@ public:
                         last_no_nan = j;
                     }
                     else{
+                        if (last_no_nan == -1){
+                            j++;
+                            while (isnan(req.obstacles[i].pos_x[j]) || isnan(req.obstacles[i].pos_y[j])){
+                                j++;
+                            }
+                            last_no_nan = j;
+                            for (size_t aux_j = 0; aux_j < j; aux_j++){
+                                obs_pos.emplace_back(req.obstacles[i].pos_x[last_no_nan], req.obstacles[i].pos_y[last_no_nan]);
+                            }
+                        }
                         obs_pos.emplace_back(req.obstacles[i].pos_x[last_no_nan], req.obstacles[i].pos_y[last_no_nan]);
                     }
                 }
@@ -356,8 +366,8 @@ public:
                     res.h_signature.emplace_back(h_signature_msg);
                     // RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
                 }
-                guidance.Visualize();
-                guidance.VisualizePath(truth_path);
+                // guidance.Visualize();
+                // guidance.VisualizePath(truth_path);
                 ros::spinOnce();
                 // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(0);
 

@@ -28,9 +28,48 @@ namespace GuidancePlanner
   public:
     Environment(){};
 
-    void Init();
+    virtual void Init();
 
-  private: // Two data structures that make the code easier to use
+  public:
+    virtual void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
+    virtual void SetPosition(const Eigen::Vector2d &pos){};
+
+    /** @brief Check if a point is in collision */
+    virtual bool InCollision(const SpaceTimePoint &point, double with_margin = 0.);
+
+    /** @brief Check if the line from point_one to point_two is collision free */
+    virtual bool IsVisible(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two);
+    virtual bool IsVisible(const Node &a, const Node &b); // Wrapper
+
+    /** @brief Project a point from the obstacles with an additional margin */
+    virtual void ProjectToFreeSpace(Eigen::Vector2d &point, int k, double with_margin = 0.);
+    virtual void ProjectToFreeSpace(SpaceTimePoint &point, double with_margin = 0.); // wrapper
+
+    /** @brief Only for dynamic obstacles and deprecated. 2-D version of IsVisibility for a particular time */
+    virtual bool IsVisible2D(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two);
+
+    virtual std::vector<Obstacle> &GetDynamicObstacles() { return dynamic_obstacles_; };
+
+  protected:
+    std::vector<Obstacle> dynamic_obstacles_;
+    std::vector<RosTools::Halfspace> static_obstacles_;
+
+    /** @brief Various implementations of visibility checks */
+    virtual bool IsVisibleRayCast(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two); // Fast for constant velocity prediction
+    virtual bool IsVisibleRaySampling(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two);
+  };
+
+  class GriddedEnvironment : public Environment
+  {
+  public:
+    virtual void Init() override;
+    virtual void SetPosition(const Eigen::Vector2d &pos) override { grid_.SetOrigin(pos); };
+    virtual void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles,
+                               const std::vector<RosTools::Halfspace> &static_obstacles) override;
+
+    virtual bool InCollision(const SpaceTimePoint &point, double with_margin = 0.) override;
+
+  private:
     /** @brief Struct to store useful data when gridding obstacles */
     struct SingleObstacle
     {
@@ -46,6 +85,7 @@ namespace GuidancePlanner
 
     class ObstacleGrid
     {
+
     public:
       ObstacleGrid(){};
 
@@ -79,41 +119,8 @@ namespace GuidancePlanner
       void GetGridIndices(const Eigen::Vector2d &pos, int &i_x_out, int &i_y_out); // Convert (x, y) to grid indices i_x, i_y
     };
 
-  public:
-    void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
-    void SetPosition(const Eigen::Vector2d &pos) { grid_.SetOrigin(pos); };
-
-    /** @brief Check if a point is in collision */
-    bool InCollision(const SpaceTimePoint &point, double with_margin = 0.);
-
-    /** @brief Check if the line from point_one to point_two is collision free */
-    bool IsVisible(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two);
-    bool IsVisible(const Node &a, const Node &b); // Wrapper
-
-    /** @brief Project a point from the obstacles with an additional margin */
-    void ProjectToFreeSpace(Eigen::Vector2d &point, int k, double with_margin = 0.);
-    void ProjectToFreeSpace(SpaceTimePoint &point, double with_margin = 0.); // wrapper
-
-    /** @brief Only for dynamic obstacles and deprecated. 2-D version of IsVisibility for a particular time */
-    bool IsVisible2D(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two);
-
-    std::vector<Obstacle> &GetDynamicObstacles() { return dynamic_obstacles_; };
-
   private:
     ObstacleGrid grid_;
-
-    std::vector<Obstacle> dynamic_obstacles_;
-    std::vector<RosTools::Halfspace> static_obstacles_;
-
-    /** @brief Various implementations of visibility checks */
-    bool IsVisibleRayCast(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two); // Fast for constant velocity prediction
-    bool IsVisibleRaySampling(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two);
-
-    // Todo: separate struct
-    // std::vector<std::vector<std::vector<std::vector<SingleObstacle>>>> grid_; // t X (x, y) X obstacles
-    // Eigen::Vector2d origin_;
-    // double grid_size_;
-    // int num_cells_;
   };
 
 };     // namespace Homotopy

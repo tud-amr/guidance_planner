@@ -126,6 +126,10 @@ namespace GuidancePlanner
     /** @brief Select trajectory using learning and saved data */
     void UpdateLearning();
 
+    bool checkGuidanceVisible(int id);
+    std::vector<GeometricPath> paths_;   // Found using path search
+
+
   private:
     // Learning guidances variables
     struct PoseInfo
@@ -168,7 +172,7 @@ namespace GuidancePlanner
     PRM prm_;
     GraphSearch graph_search_;
 
-    std::vector<GeometricPath> paths_;   // Found using path search
+    // std::vector<GeometricPath> paths_;   // Found using path search
     std::vector<CubicSpline3D> splines_; // Fitted B-Splines (list because referred to in selected splines) -> not necessary anymore!
 
     // Topology propagation

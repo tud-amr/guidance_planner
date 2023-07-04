@@ -83,6 +83,8 @@ namespace GuidancePlanner
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
 
+    bool isVisiblePoints(SpaceTimePoint& p1, SpaceTimePoint& p2);
+
   private:
     bool done_;
 

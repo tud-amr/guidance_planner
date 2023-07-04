@@ -617,6 +617,10 @@ namespace GuidancePlanner
                           random_generator_.Int(Config::N - 2) + 1);
   }
 
+  bool PRM::isVisiblePoints(SpaceTimePoint& p1, SpaceTimePoint& p2){
+    return this->environment_.IsVisible(p1, p2);
+  }
+
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
   {
     for (Node &node : graph_->nodes_)

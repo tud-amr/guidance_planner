@@ -646,6 +646,15 @@ namespace GuidancePlanner
     return splines_[spline_id]; // Return the guidance trajectory
   }
 
+  bool GlobalGuidance::checkGuidanceVisible(int id){
+    PRM_LOG("Path " << sorted_indices[id] << " size: " << paths_[sorted_indices[id]].nodes_.size());
+    for (size_t i = 0; i < paths_[sorted_indices[id]].nodes_.size()-1; i++){
+      prm_.isVisiblePoints(paths_[sorted_indices[id]].nodes_[i]->point_, paths_[sorted_indices[id]].nodes_[i+1]->point_);
+    }
+    return true;
+  }
+
+
   std::vector<bool> GlobalGuidance::LeftPassingH(int spline_id, Eigen::Vector2d goal)
   {
     if (spline_id >= (int)paths_.size())
