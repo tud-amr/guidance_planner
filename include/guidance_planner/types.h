@@ -12,17 +12,16 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
-#include <vector>
-#include <Eigen/Dense>
-#include <unordered_map>
+#include <ros_tools/helpers.h>
+
 #include <geometry_msgs/Pose.h>
 #include <jsk_rviz_plugins/OverlayText.h>
 
-#include <third_party/spline.h>
-
-#include <ros_tools/helpers.h>
-
 #include <boost/bind.hpp>
+
+#include <vector>
+#include <Eigen/Dense>
+#include <unordered_map>
 
 namespace GuidancePlanner
 {

@@ -11,12 +11,6 @@
 #ifndef __PRM_H__
 #define __PRM_H__
 
-#include <chrono>
-// #include <unordered_map>
-
-#include <ros_tools/helpers.h>
-#include <ros_tools/ros_visuals.h>
-
 #include <guidance_planner/cubic_spline.h>
 #include <guidance_planner/environment.h>
 #include <guidance_planner/graph_search.h>
@@ -26,7 +20,8 @@
 #include <guidance_planner/homology.h>
 #include <guidance_planner/uvd.h>
 
-#include <third_party/spline.h>
+#include <ros_tools/helpers.h>
+#include <ros_tools/ros_visuals.h>
 
 namespace GuidancePlanner
 {

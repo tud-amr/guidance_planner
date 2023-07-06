@@ -1,20 +1,22 @@
 #ifndef __CUBIC_SPLINE_H__
 #define __CUBIC_SPLINE_H__
 
-#include <ros/ros.h>
+#include <ros_tools/ros_visuals.h>
+#include <ros_tools/types.h>
+
+#include <third_party/spline.h>
 
 #include <vector>
 #include <Eigen/Dense>
 
-#include <guidance_planner/paths.h>
-#include <guidance_planner/types.h>
-
-#include <ros_tools/ros_visuals.h>
-
-#include <third_party/spline.h>
-
 namespace GuidancePlanner
 {
+
+    class Config;
+    class GeometricPath;
+    struct SpaceTimePoint;
+    struct Node;
+    struct Obstacle;
 
     /** @brief Struct to simplify working with control points that are padded on both sides */
     struct ControlPoints
@@ -50,12 +52,7 @@ namespace GuidancePlanner
         }
 
         // Add an optimized point
-        void AddPoint(const SpaceTimePoint &point)
-        {
-            points_.col(cur_col) = point.Pos();
-            t_points_.push_back(point.Time() * Config::DT);
-            cur_col++;
-        }
+        void AddPoint(const SpaceTimePoint &point);
 
         // Get an optimized point
         Eigen::Vector2d GetPoint(int i)
@@ -133,22 +130,10 @@ namespace GuidancePlanner
         }
 
         // Pad the start of the control points
-        void PadStart(const SpaceTimePoint &start_padding)
-        {
-            ROSTOOLS_ASSERT(t_start_.size() == 0, "Only one start padding is supported");
-
-            start_ = start_padding.Pos();
-            t_start_.push_back(start_padding.Time() * Config::DT);
-        }
+        void PadStart(const SpaceTimePoint &start_padding);
 
         // Pad the end of the control points
-        void PadEnd(const SpaceTimePoint &end_padding)
-        {
-            ROSTOOLS_ASSERT(t_end_.size() == 0, "Only one end padding is supported");
-
-            end_ = end_padding.Pos();
-            t_end_.push_back(end_padding.Time() * Config::DT);
-        }
+        void PadEnd(const SpaceTimePoint &end_padding);
 
         void GetStartVectorized(Eigen::VectorXd &start)
         {
@@ -179,27 +164,7 @@ namespace GuidancePlanner
         CubicSpline3D(const CubicSpline3D &other) = default;
 
         /** @brief Static function when an empty trajectory is needed */
-        static CubicSpline3D &Empty(const Eigen::Vector2d &start, Config *config)
-        {
-            // Get some points close to the start
-            static Node a(-1, {start(0), start(1), 0.}, NodeType::NONE);
-            static Node mid(-1, {start(0) + 0.005, start(1), (double)Config::N / 2}, NodeType::NONE);
-            static Node b(-1, {start(0) + 0.01, start(1), (double)Config::N}, NodeType::NONE); // Small forward deviation to make the path valid
-
-            // Create a path
-            std::vector<Node *> nodes;
-            nodes.push_back(&a);
-            nodes.push_back(&mid);
-            nodes.push_back(&b);
-            GeometricPath empty_path(nodes);
-
-            // Define an empty trajectory
-            static std::unique_ptr<CubicSpline3D> empty_trajectory;
-            empty_trajectory.reset(new CubicSpline3D(empty_path, config, Eigen::Vector2d(0., 0.)));
-            empty_trajectory->Optimize({});
-
-            return *empty_trajectory;
-        }
+        static CubicSpline3D &Empty(const Eigen::Vector2d &start, Config *config);
 
         void PadStart(const SpaceTimePoint &start_padding, const Eigen::Vector2d &previous_velocity);
 

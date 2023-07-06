@@ -11,18 +11,22 @@
 #ifndef __HOMOLOGY_H__
 #define __HOMOLOGY_H__
 
-#include <functional>
+#include <guidance_planner/topology_comparison.h>
+#include <guidance_planner/paths.h>
 
-#include "gsl/gsl_integration.h"
-
-#include "guidance_planner/environment.h"
-#include "guidance_planner/paths.h"
-#include "guidance_planner/topology_comparison.h"
+#include <gsl/gsl_integration.h>
 
 #include <ros_tools/ros_visuals.h>
 
+#include <functional>
+#include <vector>
+#include <unordered_map>
+
 namespace GuidancePlanner
 {
+  class Environment;
+  struct Obstacle;
+
 #define GSL_ACCURACY 1e-1 // 1e-1
 #define GSL_POINTS 20
   bool operator==(const GeometricPath &a, const GeometricPath &b);
@@ -99,8 +103,6 @@ namespace GuidancePlanner
     std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
     /** Parameters for obstacle integration */
-    // Eigen::Vector3d start_, end_;
-    // Eigen::Vector3d obstacle_p1_, obstacle_p2_, obstacle_p3_, obstacle_p4_;
     std::vector<Eigen::Vector3d> obstacle_segments_;
     double fraction_;
   };

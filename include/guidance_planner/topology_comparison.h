@@ -1,14 +1,13 @@
 #ifndef __TOPOLOGY_COMPARISON_H__
 #define __TOPOLOGY_COMPARISON_H__
 
-#include "guidance_planner/environment.h"
-#include "guidance_planner/paths.h"
-
-// class Environment;
-// class GeometricPath;
+#include <vector>
 
 namespace GuidancePlanner
 {
+  class Environment;
+  class GeometricPath;
+
   class TopologyComparison
   {
 

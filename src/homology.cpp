@@ -1,5 +1,7 @@
 #include "guidance_planner/homology.h"
 
+#include <guidance_planner/environment.h>
+
 namespace GuidancePlanner
 {
   Homology::Homology(ros::NodeHandle &nh, bool assume_constant_velocity)

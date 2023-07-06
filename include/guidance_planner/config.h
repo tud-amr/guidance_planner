@@ -13,6 +13,9 @@
 #define HOMOTOPY_CONFIGURATION_H
 
 #include <ros/ros.h>
+
+#include <string>
+
 namespace GuidancePlanner
 {
   class Config

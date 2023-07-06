@@ -1,7 +1,7 @@
 #ifndef __PATHS_H__
 #define __PATHS_H__
 
-#include "guidance_planner/homotopy.h"
+#include <guidance_planner/homotopy.h>
 
 namespace GuidancePlanner
 {

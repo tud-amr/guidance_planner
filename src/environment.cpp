@@ -1,4 +1,8 @@
 #include "guidance_planner/environment.h"
+
+#include <guidance_planner/homotopy.h>
+#include <guidance_planner/types.h>
+
 namespace GuidancePlanner
 {
 
@@ -11,7 +15,6 @@ namespace GuidancePlanner
     for (auto &obstacle : dynamic_obstacles_)
     {
       // Round the time index to the nearest integer
-      // std::cout << std::round(point.Time()) << std::endl;
       if (RosTools::dist(obstacle.positions_[std::round(point.Time())], point.Pos()) < obstacle.radius_ + with_margin) // Note that the obstacle positions at k = 0 is the initial state
         return true;
     }
@@ -45,8 +48,8 @@ namespace GuidancePlanner
   {
 
     // Skip the search if the two points are close (assumes the points themselves are not in collision)
-    if (dynamic_obstacles_.size() > 0 && RosTools::dist(point_one.Pos(), point_two.Pos()) < 2. * dynamic_obstacles_[0].radius_)
-      return true;
+    // if (dynamic_obstacles_.size() > 0 && RosTools::dist(point_one.Pos(), point_two.Pos()) < 2. * dynamic_obstacles_[0].radius_)
+    //   return true;
 
     /** @note raycast implementation: scales with horizon length */
     /*https: // math.stackexchange.com/questions/2213165/find-shortest-distance-between-lines-in-3d (second solution )*/

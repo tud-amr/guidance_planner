@@ -1,5 +1,10 @@
 #include "guidance_planner/cubic_spline.h"
 
+#include <guidance_planner/config.h>
+#include <guidance_planner/types.h>
+#include <guidance_planner/homotopy.h>
+#include <guidance_planner/paths.h>
+
 using namespace GuidancePlanner;
 
 CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Eigen::Vector2d &current_velocity)
@@ -650,6 +655,51 @@ void CubicSpline3D::Visualize(RosTools::ROSMarkerPublisher *ros_visuals)
     cube.addPointMarker(
         Eigen::Vector3d(control_points_.GetPaddedPoint(i)(0), control_points_.GetPaddedPoint(i)(1), control_points_.GetPaddedTime(i)));
   }
+}
+
+void ControlPoints::AddPoint(const SpaceTimePoint &point)
+{
+  points_.col(cur_col) = point.Pos();
+  t_points_.push_back(point.Time() * Config::DT);
+  cur_col++;
+}
+
+void ControlPoints::PadStart(const SpaceTimePoint &start_padding)
+{
+  ROSTOOLS_ASSERT(t_start_.size() == 0, "Only one start padding is supported");
+
+  start_ = start_padding.Pos();
+  t_start_.push_back(start_padding.Time() * Config::DT);
+}
+
+void ControlPoints::PadEnd(const SpaceTimePoint &end_padding)
+{
+  ROSTOOLS_ASSERT(t_end_.size() == 0, "Only one end padding is supported");
+
+  end_ = end_padding.Pos();
+  t_end_.push_back(end_padding.Time() * Config::DT);
+}
+
+CubicSpline3D &CubicSpline3D::Empty(const Eigen::Vector2d &start, Config *config)
+{
+  // Get some points close to the start
+  static Node a(-1, {start(0), start(1), 0.}, NodeType::NONE);
+  static Node mid(-1, {start(0) + 0.005, start(1), (double)Config::N / 2}, NodeType::NONE);
+  static Node b(-1, {start(0) + 0.01, start(1), (double)Config::N}, NodeType::NONE); // Small forward deviation to make the path valid
+
+  // Create a path
+  std::vector<Node *> nodes;
+  nodes.push_back(&a);
+  nodes.push_back(&mid);
+  nodes.push_back(&b);
+  GeometricPath empty_path(nodes);
+
+  // Define an empty trajectory
+  static std::unique_ptr<CubicSpline3D> empty_trajectory;
+  empty_trajectory.reset(new CubicSpline3D(empty_path, config, Eigen::Vector2d(0., 0.)));
+  empty_trajectory->Optimize({});
+
+  return *empty_trajectory;
 }
 
 void CubicSpline3D::DebugPrintControlPoints()

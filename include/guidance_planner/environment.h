@@ -11,14 +11,13 @@
 #ifndef __ENVIRONMENT_H__
 #define __ENVIRONMENT_H__
 
-// #include <omp.h>
-
-#include "guidance_planner/homotopy.h"
-#include "guidance_planner/types.h"
+#include <ros_tools/helpers.h>
 
 namespace GuidancePlanner
 {
-
+  class Node;
+  struct SpaceTimePoint;
+  struct Obstacle;
   /**
    * @brief This class should make it easier to define different collision checks or state spaces
    *

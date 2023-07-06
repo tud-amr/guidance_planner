@@ -3,7 +3,7 @@
 
 #include <Eigen/Dense>
 
-#include "guidance_planner/topology_comparison.h"
+#include <guidance_planner/topology_comparison.h>
 
 namespace GuidancePlanner
 {

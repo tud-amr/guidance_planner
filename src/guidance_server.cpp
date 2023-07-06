@@ -1,6 +1,6 @@
-#include <ros/ros.h>
 #include "guidance_planner/global_guidance.h"
 #include "guidance_planner/types.h"
+#include <guidance_planner/paths.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <guidance_planner/GuidancePlannerConfig.h>
@@ -11,6 +11,8 @@
 #include <guidance_planner/guidances_truth.h>
 #include <guidance_planner/guidances_cost.h>
 #include <guidance_planner/guidances_Hcost.h>
+
+#include <ros/ros.h>
 
 using namespace GuidancePlanner;
 
@@ -140,7 +142,7 @@ public:
                 SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node * Config::DT);
                 truth_vec_node.emplace_back(new Node(i_node, point, NodeType::NONE));
             }
-            GeometricPath truth_path(truth_vec_node);
+            GuidancePlanner::GeometricPath truth_path(truth_vec_node);
             res.truth_idx = guidance.GetIdSamePath(truth_path);
             ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories. Id same as truth: " << res.truth_idx);
             // for (int i = 0; i < req.n_trajectories; i++){
@@ -216,7 +218,7 @@ public:
                 SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node * Config::DT);
                 truth_vec_node.emplace_back(new Node(i_node, point, NodeType::NONE));
             }
-            GeometricPath truth_path(truth_vec_node);
+            GuidancePlanner::GeometricPath truth_path(truth_vec_node);
             ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
             // for (int i = 0; i < req.n_trajectories; i++){
             for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
@@ -292,7 +294,7 @@ public:
                 SpaceTimePoint point(req.truth.x[i_node], req.truth.y[i_node], i_node * Config::DT);
                 truth_vec_node.emplace_back(new Node(i_node, point, NodeType::NONE));
             }
-            GeometricPath truth_path(truth_vec_node);
+            GuidancePlanner::GeometricPath truth_path(truth_vec_node);
             ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
             // for (int i = 0; i < req.n_trajectories; i++){
             for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
@@ -315,7 +317,8 @@ public:
                 res.costs.emplace_back(guidance.GetHomotopicCost(i, truth_path));
                 guidance_planner::RightAvoidanceMSG h_signature_msg;
                 std::vector<bool> right = guidance.passes_right(i);
-                for(int i_obs = 0; i_obs < (int)right.size(); i_obs++){
+                for (int i_obs = 0; i_obs < (int)right.size(); i_obs++)
+                {
                     h_signature_msg.right_avoidance.push_back((double)right[i_obs]);
                 }
                 res.h_signature.emplace_back(h_signature_msg);

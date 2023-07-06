@@ -63,6 +63,11 @@ namespace GuidancePlanner
     orientation_ = orientation;
     start_velocity_ = velocity;
 
+    SpaceTimePoint start_point(start_(0), start_(1), 0.);
+    environment_.ProjectToFreeSpace(start_point, 0.1);
+    start_(0) = start_point.Pos()(0);
+    start_(1) = start_point.Pos()(1);
+
     /*for (auto &obstacle : obstacles)
     {
       if ((obstacle.positions_[0] - start_).norm() < obstacle.radius_)

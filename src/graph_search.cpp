@@ -1,10 +1,13 @@
 #include "guidance_planner/graph_search.h"
 
+#include <guidance_planner/homotopy.h>
+#include <guidance_planner/paths.h>
+
 using namespace GuidancePlanner;
 
 GraphSearch::GraphSearch() {}
 
-void GraphSearch::Search(const Graph &graph, uint max_paths, std::vector<Node *> &L, std::vector<GeometricPath> &T, const Node *goal)
+void GraphSearch::Search(const Graph &graph, unsigned int max_paths, std::vector<Node *> &L, std::vector<GeometricPath> &T, const Node *goal)
 {
   // Stop if the maximum number of paths was reached
   if (T.size() >= max_paths)
