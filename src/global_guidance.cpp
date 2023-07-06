@@ -1,5 +1,18 @@
 #include "guidance_planner/global_guidance.h"
 
+#include <guidance_planner/config.h>
+#include <guidance_planner/cubic_spline.h>
+#include <guidance_planner/paths.h>
+
+#include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
+
+#include <third_party/spline.h>
+
+#include <ros_tools/profiling.h>
+#include <ros_tools/data_saver.h>
+#include <ros_tools/helpers.h>
+#include <ros_tools/ros_visuals.h>
+
 namespace GuidancePlanner
 {
   GlobalGuidance::~GlobalGuidance()

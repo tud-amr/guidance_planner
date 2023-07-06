@@ -11,7 +11,14 @@
 #ifndef __ENVIRONMENT_H__
 #define __ENVIRONMENT_H__
 
-#include <ros_tools/helpers.h>
+#include <vector>
+
+#include <Eigen/Dense>
+
+namespace RosTools
+{
+  struct Halfspace;
+};
 
 namespace GuidancePlanner
 {

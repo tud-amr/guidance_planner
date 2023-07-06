@@ -16,8 +16,6 @@
 
 #include <gsl/gsl_integration.h>
 
-#include <ros_tools/ros_visuals.h>
-
 #include <functional>
 #include <vector>
 #include <unordered_map>

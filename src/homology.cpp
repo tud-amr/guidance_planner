@@ -1,5 +1,8 @@
 #include "guidance_planner/homology.h"
 
+#include <ros_tools/ros_visuals.h>
+#include <ros_tools/types.h>
+
 #include <guidance_planner/environment.h>
 
 namespace GuidancePlanner

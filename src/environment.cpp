@@ -2,6 +2,9 @@
 
 #include <guidance_planner/homotopy.h>
 #include <guidance_planner/types.h>
+#include <ros_tools/types.h>
+
+#include <ros_tools/helpers.h>
 
 namespace GuidancePlanner
 {
@@ -337,7 +340,7 @@ namespace GuidancePlanner
     for (auto &obstacle : dynamic_obstacles_)
     {
       PRM_LOG("Obstacle path len: " << obstacle.positions_.size());
-      for (size_t k = 0; k < Config::N + 1; k++)
+      for (int k = 0; k < Config::N + 1; k++)
         grid_.InsertObstacle((int)k, SingleObstacle(obstacle.positions_[k], obstacle.radius_));
     }
   }

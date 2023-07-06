@@ -1,5 +1,8 @@
 #include "guidance_planner/prm.h"
 
+#include <ros_tools/profiling.h>
+#include <ros_tools/data_saver.h>
+
 namespace GuidancePlanner
 {
 

@@ -1,24 +1,28 @@
 #ifndef __GLOBAL_GUIDANCE_H__
 #define __GLOBAL_GUIDANCE_H__
 
-#include <guidance_planner/cubic_spline.h>
-#include <guidance_planner/graph_search.h>
-#include <guidance_planner/config.h>
-#include <guidance_planner/paths.h>
 #include <guidance_planner/prm.h>
+#include <guidance_planner/graph_search.h>
 
 #include <dynamic_reconfigure/server.h>
-#include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
 
-#include <ros_tools/helpers.h>
-#include <ros_tools/ros_visuals.h>
+namespace RosTools
+{
+  class DataSaver;
+  class ROSMarkerPublisher;
+}
 
-#include <third_party/spline.h>
-
-#include <chrono>
+namespace tk
+{
+  class spline;
+}
 
 namespace GuidancePlanner
 {
+  class Config;
+  class CubicSpline3D;
+  struct GeometricPath;
+  class GuidancePlannerConfig;
 
   class GlobalGuidance
   {

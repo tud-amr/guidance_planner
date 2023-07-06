@@ -20,8 +20,12 @@
 #include <guidance_planner/homology.h>
 #include <guidance_planner/uvd.h>
 
-#include <ros_tools/helpers.h>
 #include <ros_tools/ros_visuals.h>
+
+namespace RosTools
+{
+  class DataSaver;
+}
 
 namespace GuidancePlanner
 {
