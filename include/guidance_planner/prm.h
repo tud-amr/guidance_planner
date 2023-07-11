@@ -15,6 +15,9 @@
 #include <unordered_map>
 
 #include <ros_tools/helpers.h>
+#include <ros_tools/data_saver.h>
+#include <ros_tools/profiling.h>
+#include <ros_tools/types.h>
 #include <ros_tools/ros_visuals.h>
 
 #include <guidance_planner/cubic_spline.h>

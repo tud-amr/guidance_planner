@@ -21,6 +21,7 @@
 #include <third_party/spline.h>
 
 #include <ros_tools/helpers.h>
+#include <ros_tools/types.h>
 
 #include <boost/bind.hpp>
 

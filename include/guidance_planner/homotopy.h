@@ -12,6 +12,7 @@
 #include <guidance_planner/config.h>
 
 #include <ros_tools/helpers.h>
+#include <ros_tools/types.h>
 #include <ros_tools/ros_visuals.h>
 
 /** Logging definitions */

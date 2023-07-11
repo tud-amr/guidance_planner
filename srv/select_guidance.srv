@@ -1,5 +1,5 @@
 ObstacleMSG[] previous_obstacles
 TrajectoryMSG robot_trajectory
-LeftHMSG h_signature
+LeftHMSG[] h_signatures
 ---
-float64 cost
+int32 chosen_guidance

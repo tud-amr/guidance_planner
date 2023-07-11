@@ -9,6 +9,9 @@
 
 #include <ros/ros.h>
 #include <ros_tools/helpers.h>
+#include <ros_tools/data_saver.h>
+#include <ros_tools/profiling.h>
+#include <ros_tools/types.h>
 #include <ros_tools/ros_visuals.h>
 
 #include <guidance_planner/cubic_spline.h>
@@ -20,9 +23,18 @@
 #include <guidance_planner/ObstacleMSG.h>
 #include <guidance_planner/TrajectoryMSG.h>
 #include <guidance_planner/LeftHMSG.h>
-#include <guidance_planner/guidances_estimate_cost.h>
+#include <guidance_planner/select_guidance.h>
 
 #include <third_party/spline.h>
+
+#include "gsl/gsl_errno.h"
+
+class IntegrationException : public std::exception {
+    public:
+        char * what () {
+            return "GSL integration Exception";
+        }
+};
 
 namespace GuidancePlanner
 {
@@ -122,7 +134,8 @@ namespace GuidancePlanner
 
     // --- Learning guidances functions --- // 
     /** @brief Get learning based selected trajectory id */
-    int GetLearningId() const { return learning_selected_id; };
+    // int GetLearningId() const { return learning_selected_id; };
+    int GetLearningId() const { return learning_selected_position; };
     /** @brief Select trajectory using learning and saved data */
     void UpdateLearning();
 
@@ -144,7 +157,6 @@ namespace GuidancePlanner
       Eigen::Vector2d position;
       ros::Time timestamp;
     };
-    //POSITION WITH ITS TIMESTAMP
     struct ObstacleInfo
     {
       int id_;
@@ -154,8 +166,9 @@ namespace GuidancePlanner
 
     //UPDATE POSE AND OBSTACLE TIMES LIST
     
-    int learning_selected_id = 0;
-    ros::ServiceClient estimate_cost_client;
+    // int learning_selected_id = 0, 
+    int learning_selected_position = 0;
+    ros::ServiceClient select_guidance_client;
     std::vector<PoseInfo> poses_list;
     std::vector<ObstacleInfo> previous_obstacles_list;
 
@@ -166,7 +179,8 @@ namespace GuidancePlanner
     boost::recursive_mutex reconfig_mutex_;
 
     // Classes for visualization
-    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, ros_selected_visuals_, ros_obstacle_visuals_;
+    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, 
+                                                  ros_selected_visuals_, ros_learning_selected_visuals_, ros_obstacle_visuals_;
     std::unique_ptr<RosTools::ROSMarkerPublisher> ros_path_visuals_;
 
     PRM prm_;
@@ -179,7 +193,7 @@ namespace GuidancePlanner
     int next_segment_id_;
     std::vector<PathAssociation> known_paths_;
     std::vector<bool> path_id_was_known_;
-    int selected_id_;
+    int selected_id_, zero_id;
 
     // Real-time data
     std::vector<Obstacle> obstacles_;

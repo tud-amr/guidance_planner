@@ -12,18 +12,9 @@
 #include <guidance_planner/guidances_cost.h>
 #include <guidance_planner/guidances_Hcost.h>
 
-#include "gsl/gsl_errno.h"
-
 using namespace GuidancePlanner;
 
-class IntegrationException : public std::exception {
-    public:
-        char * what () {
-            return "GSL integration Exception";
-        }
-};
-
-void my_error_handler (const char *reason, const char *file, int line, int err){
+void IntegrationExceptionHandler (const char *reason, const char *file, int line, int err){
     gsl_stream_printf ("ERROR", file, line, reason);
     fflush (stdout);
     fprintf (stderr, "Customized GSL error handler invoked.\n");
@@ -50,7 +41,7 @@ public:
         this->guidance_cost_srv = this->nh.advertiseService("/get_guidances_cost", &GuidanceServer::guidances_cost_callback, this);
         this->guidance_Hcost_srv = this->nh.advertiseService("/get_guidances_Hcost", &GuidanceServer::guidances_Hcost_callback, this);
         this->config = guidance.GetConfig(); // Retrieves the configuration file, if you need it
-        gsl_set_error_handler(&my_error_handler);
+        gsl_set_error_handler(&IntegrationExceptionHandler);
     }
 
     bool guidances_callback(guidance_planner::guidances::Request &req, guidance_planner::guidances::Response &res)
