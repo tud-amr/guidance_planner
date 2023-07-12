@@ -313,7 +313,6 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
   // Set the velocity as a boundary condition of the spline
   // x_.set_boundary(tk::spline::bd_type::first_deriv, previous_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
   // y_.set_boundary(tk::spline::bd_type::first_deriv, previous_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-  ROS_INFO("Optimize");
   // x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
   // y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
 
