@@ -49,17 +49,22 @@ namespace GuidancePlanner
     retrieveParameter(nh, "prm/connection_filters/forward", enable_forward_filter_);
     retrieveParameter(nh, "prm/connection_filters/acceleration", enable_acceleration_filter_);
 
-    // I may need these for guidance objective
-    // retrieveParameter(nh, "prm/weights/geometric", geometric_weight_);
-    // retrieveParameter(nh, "prm/weights/smoothness", smoothness_weight_);
-    // retrieveParameter(nh, "prm/weights/collision", collision_weight_);
-    // retrieveParameter(nh, "prm/weights/velocity_tracking", velocity_tracking_);
-    // retrieveParameter(nh, "prm/weights/repeat_times", repeat_times_);
+    retrieveParameter(nh, "prm/spline_optimization/enable", optimize_splines_);
+    retrieveParameter(nh, "prm/spline_optimization/geometric", geometric_weight_);
+    retrieveParameter(nh, "prm/spline_optimization/smoothness", smoothness_weight_);
+    retrieveParameter(nh, "prm/spline_optimization/collision", collision_weight_);
+    retrieveParameter(nh, "prm/spline_optimization/velocity_tracking", velocity_tracking_);
+
+    // Parameters that determine the heuristic spline weighting
+    retrieveParameter(nh, "prm/selection_weights/length", selection_weight_length_);
+    retrieveParameter(nh, "prm/selection_weights/velocity", selection_weight_velocity_);
+    retrieveParameter(nh, "prm/selection_weights/acceleration", selection_weight_acceleration_);
 
     retrieveParameter(nh, "prm/selection_weights/consistency", selection_weight_consistency_);
 
-    // retrieveParameter(nh, "prm/spline/num_points", num_points_);
-    num_points_ = N;
+    retrieveParameter(nh, "prm/spline_optimization/num_points", num_points_);
+    if (num_points_ == -1)
+      num_points_ = N;
 
     retrieveParameter(nh, "prm/visuals/transparency", visuals_transparency_);
     retrieveParameter(nh, "prm/visuals/visualize_all_samples", visualize_all_samples_);

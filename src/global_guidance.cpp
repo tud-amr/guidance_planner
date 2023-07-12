@@ -237,30 +237,17 @@ namespace GuidancePlanner
         return false;
       }
 
-      // Test the passing left feature
-      /*for (auto &path : paths_)
-      {
-        std::vector<bool> pass_left = prm_.GetLeftPassingVector(path);
-
-        std::cout << path.association_.id_ << ": ";
-        for (size_t i = 0; i < pass_left.size(); i++)
-        {
-          if (pass_left[i])
-            std::cout << "L | ";
-          else
-            std::cout << "R | ";
-        }
-        std::cout << "\b\b\n";
-      }*/
-
       splines_.clear();
-
       for (auto &path : paths_)
       {
-        // Fit Cubic-Splines for each path
-        splines_.emplace_back(path, config_.get(), start_velocity_);
-        // splines_.back().Optimize(obstacles_);
+        splines_.emplace_back(path, config_.get(), start_velocity_); // Fit Cubic-Splines for each path
+
+        if (config_->optimize_splines_)
+          splines_.back().Optimize(obstacles_);
       }
+
+      // Spline selection
+      OrderSplinesByHeuristic();
     }
     PRM_LOG("=========================");
 
@@ -366,6 +353,52 @@ namespace GuidancePlanner
     }
 
     paths_ = ordered_paths;
+  }
+
+  void GlobalGuidance::OrderSplinesByHeuristic()
+  {
+    if (splines_.size() == 0)
+      return;
+
+    // Select the most suitable guidance trajectory
+    std::vector<double> spline_costs;
+    CubicSpline3D *best_spline = nullptr;
+
+    for (auto &spline : splines_)
+    {
+      // Standard penalty
+      double consistency_weight = 1.;
+
+      /* The last check verifies that the new path did not by accident get assigned the selected ID */
+      if (spline.id_ == selected_id_ && path_id_was_known_[spline.id_])
+        consistency_weight = 0.;
+
+      // Add costs for all splines
+      double spline_cost = 0.;
+      spline_cost += spline.WeightPathLength() * config_->selection_weight_length_;
+      spline_cost += spline.WeightVelocity() * config_->selection_weight_velocity_;
+      spline_cost += spline.WeightAcceleration() * config_->selection_weight_acceleration_;
+      spline_cost += consistency_weight * config_->selection_weight_consistency_;
+      spline_costs.push_back(spline_cost);
+    }
+
+    // Sort splines by their cost
+    std::vector<int> indices(splines_.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
+              { return spline_costs[a] < spline_costs[b]; });
+    sorted_indices_ = indices;
+
+    // Apply the sorting to the splines vector
+    std::vector<CubicSpline3D> ordered_splines;
+    for (size_t i = 0; i < splines_.size(); i++)
+      ordered_splines.push_back(splines_[indices[i]]);
+    splines_ = ordered_splines;
+
+    // Save the best spline
+    best_spline = &(splines_[0]);
+    selected_id_ = best_spline->id_;
+    PRM_LOG("Selected Spline with ID: " << selected_id_);
   }
 
   void GlobalGuidance::RemoveHomotopicEquivalentPaths()

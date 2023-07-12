@@ -14,9 +14,7 @@ CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Ei
   ConvertToTrajectory(path);
 
   acceleration_weights_computed_ = false;
-
-  longitudinal_acceleration_weight_ = 0.;
-  lateral_acceleration_weight_ = 0.;
+  acceleration_weight_ = 0.;
 
   std::vector<double> x_points, y_points;
   control_points_.GetX(x_points); // Get the vector of x including padding
@@ -109,7 +107,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
 
   // Compute the velocity control points
 
-  for (int repeat_id = 0; repeat_id < config_->repeat_times_; repeat_id++)
+  for (int repeat_id = 0; repeat_id < 1; repeat_id++)
   {
 
     // CLOSE TO GEOMETRIC PATH //
@@ -561,50 +559,25 @@ double CubicSpline3D::WeightVelocity()
 
   return result;
 }
-
-double CubicSpline3D::WeightLongitudinalAcceleration()
+double CubicSpline3D::WeightAcceleration()
 {
   if (!acceleration_weights_computed_)
     ComputeAccelerationWeights();
 
-  return longitudinal_acceleration_weight_;
-}
-
-double CubicSpline3D::WeightLateralAcceleration()
-{
-  // if (!acceleration_weights_computed_)
-  // ComputeAccelerationWeights();
-
-  return 0.; // lateral_acceleration_weight_;
+  return acceleration_weight_;
 }
 
 void CubicSpline3D::ComputeAccelerationWeights()
 {
 
-  longitudinal_acceleration_weight_ = 0.;
-  lateral_acceleration_weight_ = 0.;
+  acceleration_weight_ = 0.;
 
   Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->GetSplineLength());
 
   for (int i = 0; i < t_sampled.rows(); i++)
-  {
-    // Determine the orientation along the trajectory
-    // Eigen::Vector2d cur_vel = trajectory_spline_->GetVelocity(t_sampled[i]);
-    // Eigen::MatrixXd R = RosTools::rotationMatrixFromHeading(-std::atan2(cur_vel(1), cur_vel(0)));
+    acceleration_weight_ += trajectory_spline_->GetAcceleration(t_sampled[i]).norm() * std::pow(0.95, i);
 
-    // Get the acceleration in longitudinal / lateral direction
-    // double cur_accel_long = (R * trajectory_spline_->GetAcceleration(t_sampled[i]))(0);
-    // longitudinal_acceleration_weight_ += cur_accel_long * cur_accel_long;
-
-    // double cur_accel_lat = (R * trajectory_spline_->GetAcceleration(t_sampled[i]))(1);
-    // lateral_acceleration_weight_ += cur_accel_lat * cur_accel_lat;
-
-    /** @note Just the norm of the acceleration instead of separate terms */
-    longitudinal_acceleration_weight_ += trajectory_spline_->GetAcceleration(t_sampled[i]).norm() * std::pow(0.95, i);
-  }
-
-  longitudinal_acceleration_weight_ /= (double)t_sampled.rows();
-  // lateral_acceleration_weight_ /= (double)t_sampled.rows();
+  acceleration_weight_ /= (double)t_sampled.rows();
 
   acceleration_weights_computed_ = true;
 }

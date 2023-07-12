@@ -130,6 +130,7 @@ namespace GuidancePlanner
 
     std::vector<GeometricPath> paths_;   // Found using path search
     std::vector<CubicSpline3D> splines_; // Fitted B-Splines (list because referred to in selected splines) -> not necessary anymore!
+    std::vector<int> sorted_indices_;
 
     // Topology propagation
     int next_segment_id_;
@@ -156,6 +157,9 @@ namespace GuidancePlanner
     /** @brief Check for all the paths if there are any unfollowable paths and remove them if necessary */
     void FilterPaths();
     void OrderPaths();
+
+    /** @brief Order splines if the splines are used */
+    void OrderSplinesByHeuristic();
 
     /** @brief Identify paths that are homotopy equivalent by checking each pair */
     void RemoveHomotopicEquivalentPaths();
