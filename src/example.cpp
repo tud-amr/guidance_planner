@@ -154,7 +154,7 @@ int main(int argc, char **argv)
             if (success)
             {
                 ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(0);
+                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(0).spline;
                 ROS_INFO("[Best Trajectory]");
 
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))

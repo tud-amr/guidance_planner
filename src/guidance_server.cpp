@@ -72,7 +72,7 @@ public:
             for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
             {
                 // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(i%guidance.NumberOfGuidanceTrajectories());
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
+                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i).spline;
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
                 for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
@@ -149,7 +149,7 @@ public:
             for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
             {
                 // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(i%guidance.NumberOfGuidanceTrajectories());
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
+                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i).spline;
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
                 for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
@@ -224,7 +224,7 @@ public:
             for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
             {
                 // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(i%guidance.NumberOfGuidanceTrajectories());
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
+                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i).spline;
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
                 for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
@@ -300,7 +300,7 @@ public:
             for (int i = 0; i < guidance.NumberOfGuidanceTrajectories(); i++)
             {
                 // CubicSpline3D& guidance_spline = guidance.GetGuidanceTrajectory(i%guidance.NumberOfGuidanceTrajectories());
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i);
+                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(i).spline;
                 RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 std::vector<double> x_traj, y_traj;
                 for (double t = 0; t < Config::N * Config::DT; t += Config::DT)
@@ -316,7 +316,7 @@ public:
                 res.trajectories.emplace_back(traj);
                 res.costs.emplace_back(guidance.GetHomotopicCost(i, truth_path));
                 guidance_planner::RightAvoidanceMSG h_signature_msg;
-                std::vector<bool> right = guidance.passes_right(i);
+                std::vector<bool> right = guidance.PassesRight(i);
                 for (int i_obs = 0; i_obs < (int)right.size(); i_obs++)
                 {
                     h_signature_msg.right_avoidance.push_back((double)right[i_obs]);

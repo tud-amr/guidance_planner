@@ -15,6 +15,21 @@
 
 namespace GuidancePlanner
 {
+  GlobalGuidance::OutputTrajectory::OutputTrajectory(const GeometricPath &_path, const CubicSpline3D &_spline)
+  {
+    path = _path;
+    spline = _spline;
+
+    topology_class = path.association_.id_;
+  }
+
+  GlobalGuidance::OutputTrajectory &GlobalGuidance::OutputTrajectory::Empty(const Eigen::Vector2d &start, Config *config)
+  {
+    static std::unique_ptr<OutputTrajectory> empty_trajectory;
+    empty_trajectory.reset(new OutputTrajectory(GeometricPath(), CubicSpline3D::Empty(start, config)));
+    return *empty_trajectory;
+  }
+
   GlobalGuidance::~GlobalGuidance()
   {
     // TODO
@@ -137,6 +152,9 @@ namespace GuidancePlanner
     PRM_LOG("GlobalGuidance::Update")
     benchmarkers_[0]->start();
 
+    if (outputs_.size() > 0)
+      previous_outputs_ = outputs_;
+
     no_message_sent_yet_ = true;
     goals_set_ = false;
 
@@ -238,18 +256,28 @@ namespace GuidancePlanner
       }
 
       splines_.clear();
+      // spline_goal_costs_.clear();
       for (auto &path : paths_)
       {
         splines_.emplace_back(path, config_.get(), start_velocity_); // Fit Cubic-Splines for each path
 
         if (config_->optimize_splines_)
           splines_.back().Optimize(obstacles_);
+
+        // spline_goal_costs_.emplace_back(Goal::FindGoalWithNode(*prm_.GetGoals(), path.nodes_.back()).cost);
       }
 
       // Spline selection
-      OrderSplinesByHeuristic();
+      // OrderSplinesByHeuristic(); // This reorders and therefore ruins the warmstart
     }
     PRM_LOG("=========================");
+
+    outputs_.clear();
+    for (size_t i = 0; i < paths_.size(); i++)
+      outputs_.emplace_back(paths_[i], splines_[i]);
+
+    // ORDER OUTPUTS!
+    OrderOutputByHeuristic(outputs_);
 
     benchmarkers_[0]->stop();
 
@@ -312,6 +340,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::OrderPaths() // Keep paths that previously were there in the same place!
   {
+    // std::unordered_map?
     std::vector<GeometricPath> ordered_paths;
     ordered_paths.resize(paths_.size());
 
@@ -355,49 +384,47 @@ namespace GuidancePlanner
     paths_ = ordered_paths;
   }
 
-  void GlobalGuidance::OrderSplinesByHeuristic()
+  void GlobalGuidance::OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs)
   {
-    if (splines_.size() == 0)
+    if (outputs.size() == 0)
       return;
 
     // Select the most suitable guidance trajectory
-    std::vector<double> spline_costs;
-    CubicSpline3D *best_spline = nullptr;
-
-    for (auto &spline : splines_)
+    std::vector<double> heuristics;
+    for (auto &output : outputs)
     {
-      // Standard penalty
-      double consistency_weight = 1.;
-
+      double consistency_weight = 1.; // Standard penalty
       /* The last check verifies that the new path did not by accident get assigned the selected ID */
-      if (spline.id_ == selected_id_ && path_id_was_known_[spline.id_])
+      if (output.topology_class == selected_id_ && path_id_was_known_[output.topology_class])
         consistency_weight = 0.;
 
       // Add costs for all splines
-      double spline_cost = 0.;
-      spline_cost += spline.WeightPathLength() * config_->selection_weight_length_;
-      spline_cost += spline.WeightVelocity() * config_->selection_weight_velocity_;
-      spline_cost += spline.WeightAcceleration() * config_->selection_weight_acceleration_;
-      spline_cost += consistency_weight * config_->selection_weight_consistency_;
-      spline_costs.push_back(spline_cost);
+      double heuristic = 0.;
+      // spline_cost += spline.WeightPathLength() * config_->selection_weight_length_;
+      double goal_cost = Goal::FindGoalWithNode(*prm_.GetGoals(), output.path.nodes_.back()).cost;
+      heuristic += goal_cost * config_->selection_weight_length_;
+
+      heuristic += output.spline.WeightVelocity() * config_->selection_weight_velocity_;
+      heuristic += output.spline.WeightAcceleration() * config_->selection_weight_acceleration_;
+      heuristic += consistency_weight * config_->selection_weight_consistency_;
+      heuristics.push_back(heuristic);
     }
 
-    // Sort splines by their cost
+    // Sort splines by the heuristic
     std::vector<int> indices(splines_.size());
     std::iota(indices.begin(), indices.end(), 0);
     std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
-              { return spline_costs[a] < spline_costs[b]; });
+              { return heuristics[a] < heuristics[b]; });
     sorted_indices_ = indices;
 
     // Apply the sorting to the splines vector
-    std::vector<CubicSpline3D> ordered_splines;
-    for (size_t i = 0; i < splines_.size(); i++)
-      ordered_splines.push_back(splines_[indices[i]]);
-    splines_ = ordered_splines;
+    std::vector<OutputTrajectory> ordered_outputs;
+    for (size_t i = 0; i < outputs.size(); i++)
+      ordered_outputs.push_back(outputs[indices[i]]);
+    outputs = ordered_outputs;
 
-    // Save the best spline
-    best_spline = &(splines_[0]);
-    selected_id_ = best_spline->id_;
+    // Save the best trajectory topology class
+    selected_id_ = outputs[0].topology_class;
     PRM_LOG("Selected Spline with ID: " << selected_id_);
   }
 
@@ -506,47 +533,59 @@ namespace GuidancePlanner
     selected_id_ = -1;
   }
 
-  CubicSpline3D &GlobalGuidance::GetGuidanceTrajectory(int spline_id)
+  GlobalGuidance::OutputTrajectory &GlobalGuidance::GetGuidanceTrajectory(int trajectory_id)
   {
-    if (spline_id >= (int)splines_.size())
-      ROS_WARN("Trying to retrieve a spline that does not exist!");
+    if (trajectory_id >= (int)outputs_.size())
+      ROS_WARN("Trying to retrieve a trajectory that does not exist!");
 
-    if (splines_.size() == 0) // selected_spline_ == nullptr) // If there is no spline - we return an "empty" trajectory
-                              // to be able to keep running
+    if (outputs_.size() == 0)
     {
-      if (no_message_sent_yet_)
+      if (trajectory_id < (int)previous_outputs_.size())
       {
-        ROS_WARN("Returning zero trajectory (no path was found)");
-        no_message_sent_yet_ = false;
-      }
 
-      return CubicSpline3D::Empty(start_, config_.get());
+        if (no_message_sent_yet_)
+        {
+          ROS_WARN("Returning previous trajectory (no path was found)");
+          no_message_sent_yet_ = false;
+        }
+        return previous_outputs_[trajectory_id];
+      }
+      else
+      {
+        if (no_message_sent_yet_)
+        {
+          ROS_WARN("Returning zero trajectory (no path was found)");
+          no_message_sent_yet_ = false;
+        }
+
+        return GlobalGuidance::OutputTrajectory::Empty(start_, config_.get());
+      }
     }
 
-    return splines_[spline_id]; // Return the guidance trajectory
+    return outputs_[trajectory_id]; // Return the guidance trajectory
   }
 
-  std::vector<bool> GlobalGuidance::passes_right(int spline_id)
+  std::vector<bool> GlobalGuidance::PassesRight(int output_id)
   {
-    if (spline_id >= (int)paths_.size())
+    if (output_id >= (int)outputs_.size())
     {
-      ROS_WARN("Trying to get the cost of a path that does not exist!");
+      ROS_WARN("Trying to get the cost of a trajectory that does not exist!");
       std::vector<bool> empty;
       return empty;
     }
 
-    return this->prm_.passes_right(this->paths_[spline_id]); // Return the guidance trajectory
+    return prm_.PassesRight(outputs_[output_id].path); // Return the guidance trajectory
   }
 
-  double GlobalGuidance::GetHomotopicCost(int spline_id, const GeometricPath &path)
+  double GlobalGuidance::GetHomotopicCost(int output_id, const GeometricPath &path)
   {
-    if (spline_id >= (int)paths_.size())
+    if (output_id >= (int)outputs_.size())
     {
       ROS_WARN("Trying to get the cost of a path that does not exist!");
       return -1;
     }
 
-    return this->prm_.GetHomotopicCost(this->paths_[spline_id], path); // Return the guidance trajectory
+    return this->prm_.GetHomotopicCost(outputs_[output_id].path, path); // Return the guidance trajectory
   }
 
   int GlobalGuidance::GetUsedTrajectory() const { return selected_id_; }
@@ -584,14 +623,14 @@ namespace GuidancePlanner
     RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
     path_line.setScale(0.15, 0.15, 0.15);
 
-    for (size_t i = 0; i < paths_.size(); i++)
+    for (size_t i = 0; i < outputs_.size(); i++)
     {
-      auto &path = paths_[i];
+      auto &path = outputs_[i].path;
 
       if (path_nr != -1 && path_nr != (int)i)
         continue;
 
-      path_line.setColorInt(path.association_.id_, config_->n_paths_, 0.75);
+      path_line.setColorInt(outputs_[i].topology_class, config_->n_paths_, 0.75);
 
       Node *prev_node;
       bool first_node = true;
@@ -667,9 +706,9 @@ namespace GuidancePlanner
 
     bool visualize_trajectory_spheres = false;
 
-    for (size_t i = 0; i < splines_.size(); i++)
+    for (size_t i = 0; i < outputs_.size(); i++)
     {
-      auto &spline = splines_[i];
+      auto &spline = outputs_[i].spline;
 
       if (path_nr != -1 && path_nr != (int)i)
         continue;
@@ -678,10 +717,10 @@ namespace GuidancePlanner
       bool text_added = false;
 
       if (config_->show_trajectory_indices_)
-        text_marker.setText(std::to_string(spline.id_)); // Add the spline number
+        text_marker.setText(std::to_string(outputs_[i].topology_class)); // Add the spline number
 
-      line.setColorInt(spline.id_, config_->n_paths_, 0.75);
-      trajectory_spheres.setColorInt(spline.id_, config_->n_paths_, 1.0);
+      line.setColorInt(outputs_[i].topology_class, config_->n_paths_, 0.75);
+      trajectory_spheres.setColorInt(outputs_[i].topology_class, config_->n_paths_, 1.0);
       line.setScale(0.15, 0.15);
 
       // Draw a line for the time scaled points

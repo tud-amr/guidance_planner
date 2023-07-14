@@ -62,6 +62,7 @@ namespace GuidancePlanner
 
     Eigen::Vector2d GetStart() const { return start_; };                  /** @brief Get the start position */
     Eigen::Vector2d GetStartVelocity() const { return start_velocity_; }; /** @brief Get the start velocity */
+    std::vector<Goal> *GetGoals() { return &goals_; }
 
     /** @brief Are paths a, b homotopically equivalent? Checked with Uniform Visibility Deformation */
     bool AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b);
@@ -69,7 +70,7 @@ namespace GuidancePlanner
 
     /** @brief Get homotopic cost between paths if using homologies*/
     double GetHomotopicCost(const GeometricPath &a, const GeometricPath &b);
-    std::vector<bool> passes_right(const GeometricPath &path);
+    std::vector<bool> PassesRight(const GeometricPath &path);
 
     bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
 

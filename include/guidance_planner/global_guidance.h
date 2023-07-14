@@ -60,6 +60,18 @@ namespace GuidancePlanner
     bool Update();
 
     // --- RESULTS --- //
+    struct OutputTrajectory
+    {
+      int topology_class;
+
+      GeometricPath path;   // Geometric Path
+      CubicSpline3D spline; // Spline
+
+      OutputTrajectory(const GeometricPath &_path, const CubicSpline3D &_spline);
+
+      static OutputTrajectory &Empty(const Eigen::Vector2d &start, Config *config);
+    };
+
     /** @brief Returns how many guidance trajectories were found */
     int NumberOfGuidanceTrajectories() const;
 
@@ -67,12 +79,10 @@ namespace GuidancePlanner
     int GetIdSamePath(const GeometricPath &path);
 
     /**
-     * @brief Get guidance trajectory #spline_id
-     *
-     * @param spline_id Index of the spline, with 0 the best spline and worse splines at higher indices
-     * @return CubicSpline3D& The spline object
+     * @brief Get guidance trajectory
+     * @param trajectory_id 0 returns the best trajectory and other trajectories are sequentially sorted on quality
      */
-    CubicSpline3D &GetGuidanceTrajectory(int spline_id = 0);
+    OutputTrajectory &GetGuidanceTrajectory(int trajectory_id = 0);
 
     /**
      * @brief Get the homology cost of a geometric path with respect of the one with id spline_id
@@ -80,8 +90,8 @@ namespace GuidancePlanner
      * @param spline_id Index of the spline, with 0 the best spline and worse splines at higher indices
      * @return double The cost
      */
-    double GetHomotopicCost(int spline_id, const GeometricPath &path);
-    std::vector<bool> passes_right(int spline_id);
+    double GetHomotopicCost(int output_id, const GeometricPath &path);
+    std::vector<bool> PassesRight(int output_id);
 
     /** @brief Get the ID of the used trajectory */
     int GetUsedTrajectory() const;
@@ -128,8 +138,13 @@ namespace GuidancePlanner
     PRM prm_;
     GraphSearch graph_search_;
 
+    // Join in a structure
     std::vector<GeometricPath> paths_;   // Found using path search
     std::vector<CubicSpline3D> splines_; // Fitted B-Splines (list because referred to in selected splines) -> not necessary anymore!
+
+    // Outputs
+    std::vector<OutputTrajectory> outputs_, previous_outputs_;
+
     std::vector<int> sorted_indices_;
 
     // Topology propagation
@@ -145,6 +160,7 @@ namespace GuidancePlanner
     Eigen::Vector2d start_;
     bool goals_set_ = false;
     std::vector<Goal> goals_;
+    std::vector<double> spline_goal_costs_;
     double orientation_;
     Eigen::Vector2d start_velocity_;
 
@@ -159,7 +175,7 @@ namespace GuidancePlanner
     void OrderPaths();
 
     /** @brief Order splines if the splines are used */
-    void OrderSplinesByHeuristic();
+    void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs);
 
     /** @brief Identify paths that are homotopy equivalent by checking each pair */
     void RemoveHomotopicEquivalentPaths();
