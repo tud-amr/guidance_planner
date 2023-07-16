@@ -1,0 +1,5 @@
+ObstacleMSG[] previous_obstacles
+TrajectoryMSG robot_trajectory
+RightAvoidanceMSG[] h_signatures
+---
+float64[] cost_guidances

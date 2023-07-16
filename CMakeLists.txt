@@ -37,7 +37,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
 
 add_message_files(FILES TrajectoryMSG.msg ObstacleMSG.msg RightAvoidanceMSG.msg)
-add_service_files(FILES guidances.srv guidances_truth.srv guidances_cost.srv guidances_Hcost.srv)
+add_service_files(FILES guidances.srv guidances_Hcost.srv select_guidance.srv)
 generate_messages(DEPENDENCIES std_msgs)
 
 

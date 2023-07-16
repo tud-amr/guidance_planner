@@ -12,3 +12,4 @@ int64 n_trajectories
 ---
 bool success
 TrajectoryMSG[] trajectories
+RightAvoidanceMSG[] h_signature
