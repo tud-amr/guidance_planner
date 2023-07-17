@@ -4,11 +4,8 @@
 #include <guidance_planner/prm.h>
 #include <guidance_planner/graph_search.h>
 
-#include <guidance_planner/ObstacleMSG.h>
-#include <guidance_planner/TrajectoryMSG.h>
-#include <guidance_planner/select_guidance.h>
-#include <guidance_planner/RightAvoidanceMSG.h>
-
+#include <guidance_planner/learning_guidance.h>
+#include <guidance_planner/learning_types.h>
 
 #include <dynamic_reconfigure/server.h>
 
@@ -25,11 +22,13 @@ namespace tk
 
 #include "gsl/gsl_errno.h"
 
-class IntegrationException : public std::exception {
-    public:
-        char * what () {
-            return "GSL integration Exception";
-        }
+class IntegrationException : public std::exception
+{
+public:
+  char *what()
+  {
+    return "GSL integration Exception";
+  }
 };
 
 namespace GuidancePlanner
@@ -83,6 +82,7 @@ namespace GuidancePlanner
       CubicSpline3D spline; // Spline
 
       OutputTrajectory(const GeometricPath &_path, const CubicSpline3D &_spline);
+      OutputTrajectory(const OutputTrajectory &other);
 
       static OutputTrajectory &Empty(const Eigen::Vector2d &start, Config *config);
     };
@@ -132,7 +132,7 @@ namespace GuidancePlanner
     void Visualize(bool highlight_selected = true, int only_path_nr = -1);
 
     /** @brief Visualize geometric path */
-    void VisualizePath(GeometricPath & path);
+    void VisualizePath(GeometricPath &path);
 
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
@@ -143,33 +143,6 @@ namespace GuidancePlanner
     Eigen::Vector2d GetStartVelocity() const { return prm_.GetStartVelocity(); }; /** @brief Get the start velocity */
 
   private:
-    // Learning guidances variables
-    struct PoseInfo
-    {
-      Eigen::Vector2d position;
-      double orientation;
-      double velocity;
-      ros::Time timestamp;
-    };
-    struct PositionTime
-    {
-      Eigen::Vector2d position;
-      ros::Time timestamp;
-    };
-    struct ObstacleInfo
-    {
-      int id_;
-      std::vector<PositionTime> positions_;
-      double radius_;
-    };
-
-    //UPDATE POSE AND OBSTACLE TIMES LIST
-    
-
-    ros::ServiceClient select_guidance_client;
-    std::vector<PoseInfo> poses_list;
-    std::vector<ObstacleInfo> previous_obstacles_list;
-
     ros::NodeHandle nh_;
     std::unique_ptr<Config> config_; // Owns the configuration
 
@@ -182,12 +155,14 @@ namespace GuidancePlanner
 
     PRM prm_;
     GraphSearch graph_search_;
+    LearningGuidance learning_guidance_;
 
     // Join in a structure
     std::vector<GeometricPath> paths_;   // Found using path search
     std::vector<CubicSpline3D> splines_; // Fitted B-Splines (list because referred to in selected splines) -> not necessary anymore!
 
     // Outputs
+    std::vector<OutputTrajectory> heuristic_outputs_, learning_outputs_;
     std::vector<OutputTrajectory> outputs_, previous_outputs_;
 
     std::vector<int> sorted_indices_;
