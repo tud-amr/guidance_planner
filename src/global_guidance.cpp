@@ -474,7 +474,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::OrderOutputByLearning(std::vector<OutputTrajectory> &outputs)
   {
-    if (outputs.size() == 0)
+    if (outputs.size() <= 1)
       return;
 
     PRM_LOG("OrderOutputByLearning");
