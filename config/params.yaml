@@ -1,12 +1,14 @@
 prm:
   debug_output: false
   seed: 1                               # Seed of the visibility-PRM. Set to -1 for random!
-  # T: 4.8                               # Time horizon [s]
-  # N: 12 # 40                                 # Discrete time steps [#]
-  T: 8.0
-  N: 20
+  T: 4.8                               # Time horizon [s]
+  N: 12 # 40                                 # Discrete time steps [#]
+  # T: 8.0
+  # N: 20
   topology_comparison: Homology         # Homology (default) or UVD
+  use_learning: false
   sampling_function: Uniform # Uniform (default)
+  predictions_are_constant_velocity: false
   sample_margin: 5.0
   n_samples: 1000 #200    # Number of samples for PRM
   timeout: 200 #15       # Timeout for PRM sampling [ms]
@@ -17,11 +19,21 @@ prm:
   connection_filters:
     forward:      false
     acceleration: true
-  selection_weights:
-    consistency: 0.24904675216524505  # How much better should a new trajectory be to be selected [%]
+  selection_weights: # Weights on the spline selection heuristic cost
+    length: 1.
+    velocity: 0 #100.
+    acceleration: 0. #100.
+    consistency: 0 #0.24904675216524505  # How much better should a new trajectory be to be selected [%]
   goals:  # Only used when `LoadReferencePath` is used to set the goals
     longitudinal: 6   # Number of goals in direction of the path
     vertical: 3       # Number of goals in direction orthogonal to the path
+  spline_optimization:  # Settings when the splines are optimized and used as reference trajectory
+    enable: true #false
+    num_points: 10      # -1 = N
+    geometric: 25.
+    smoothness: 10.
+    collision: 0.5
+    velocity_tracking: 0.01
   visuals:
     transparency: 0.7               # The least transparent the obstacle visualization is (0-1)
     visualize_all_samples: true    # Visualizes all PRM samples

@@ -4,6 +4,12 @@
 #include <guidance_planner/prm.h>
 #include <guidance_planner/graph_search.h>
 
+#include <guidance_planner/ObstacleMSG.h>
+#include <guidance_planner/TrajectoryMSG.h>
+#include <guidance_planner/select_guidance.h>
+#include <guidance_planner/RightAvoidanceMSG.h>
+
+
 #include <dynamic_reconfigure/server.h>
 
 namespace RosTools
@@ -16,6 +22,15 @@ namespace tk
 {
   class spline;
 }
+
+#include "gsl/gsl_errno.h"
+
+class IntegrationException : public std::exception {
+    public:
+        char * what () {
+            return "GSL integration Exception";
+        }
+};
 
 namespace GuidancePlanner
 {
@@ -91,7 +106,7 @@ namespace GuidancePlanner
      * @return double The cost
      */
     double GetHomotopicCost(int output_id, const GeometricPath &path);
-    std::vector<bool> PassesRight(int output_id);
+    std::vector<bool> PassesRight(int output_id, const Eigen::Vector2d &goal);
 
     /** @brief Get the ID of the used trajectory */
     int GetUsedTrajectory() const;
@@ -116,6 +131,9 @@ namespace GuidancePlanner
     /** @brief Visualize the results of this class */
     void Visualize(bool highlight_selected = true, int only_path_nr = -1);
 
+    /** @brief Visualize geometric path */
+    void VisualizePath(GeometricPath & path);
+
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
 
@@ -125,6 +143,33 @@ namespace GuidancePlanner
     Eigen::Vector2d GetStartVelocity() const { return prm_.GetStartVelocity(); }; /** @brief Get the start velocity */
 
   private:
+    // Learning guidances variables
+    struct PoseInfo
+    {
+      Eigen::Vector2d position;
+      double orientation;
+      double velocity;
+      ros::Time timestamp;
+    };
+    struct PositionTime
+    {
+      Eigen::Vector2d position;
+      ros::Time timestamp;
+    };
+    struct ObstacleInfo
+    {
+      int id_;
+      std::vector<PositionTime> positions_;
+      double radius_;
+    };
+
+    //UPDATE POSE AND OBSTACLE TIMES LIST
+    
+
+    ros::ServiceClient select_guidance_client;
+    std::vector<PoseInfo> poses_list;
+    std::vector<ObstacleInfo> previous_obstacles_list;
+
     ros::NodeHandle nh_;
     std::unique_ptr<Config> config_; // Owns the configuration
 
@@ -176,6 +221,8 @@ namespace GuidancePlanner
 
     /** @brief Order splines if the splines are used */
     void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs);
+    /** @brief Order splines using learning */
+    void OrderOutputByLearning(std::vector<OutputTrajectory> &outputs);
 
     /** @brief Identify paths that are homotopy equivalent by checking each pair */
     void RemoveHomotopicEquivalentPaths();

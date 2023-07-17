@@ -53,7 +53,7 @@ void ReadFile(const std::string &file_name, GuidancePlanner::GlobalGuidance &gui
         // std::cout << std::endl;
         obstacles_vec.push_back(obs);
 
-        for (int l = 0; l < obstacles_vec.back().x.size(); l++)
+        for (size_t l = 0; l < obstacles_vec.back().x.size(); l++)
         {
             predictions.emplace_back(obstacles_vec.back().x[l], obstacles_vec.back().y[l]);
         }
