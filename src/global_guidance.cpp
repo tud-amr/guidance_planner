@@ -850,9 +850,13 @@ namespace GuidancePlanner
 
   void GlobalGuidance::VisualizeTrajectories(bool highlight_selected, int path_nr)
   {
-    // Trajectories
-    RosTools::ROSLine &selected_line = ros_selected_visuals_->getNewLine();
-    selected_line.setScale(0.25, 0.25);
+    // Visualize the heuristic and learning lines
+    RosTools::ROSLine &heuristic_line = ros_selected_visuals_->getNewLine();
+    heuristic_line.setScale(0.25, 0.25);
+    heuristic_line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
+    RosTools::ROSLine &learning_line = ros_selected_visuals_->getNewLine();
+    learning_line.setScale(0.25, 0.25);
+    learning_line.setColorInt(3.0, 1.0, RosTools::Colormap::BRUNO);
 
     RosTools::ROSLine &line = ros_visuals_->getNewLine();
     line.setScale(0.3, 0.3);
@@ -891,18 +895,25 @@ namespace GuidancePlanner
         {
           Eigen::Vector3d prev_vec = points[j - 1];
 
-          if (highlight_selected && spline.id_ == selected_id_) // highlight the selected spline
+          if (highlight_selected && spline.id_ == heuristic_outputs_[0].topology_class) // highlight the selected spline
           {
-            // selected_line.setColorInt(spline.id_, config_->n_paths_, 1.0);
-            selected_line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
-            selected_line.addLine(prev_vec, cur_vec);
-            // line.addLine(prev_vec, cur_vec); // Also add a regular line
+            heuristic_line.addLine(prev_vec, cur_vec);
 
             if (visualize_trajectory_spheres && j % 10 == 0)
               trajectory_spheres.addPointMarker(cur_vec);
 
             if (config_->show_trajectory_indices_)
               text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
+          }
+          else if (highlight_selected && spline.id_ == learning_outputs_[0].topology_class)
+          {
+            learning_line.addLine(prev_vec, cur_vec);
+
+            if (visualize_trajectory_spheres && j % 10 == 0)
+              trajectory_spheres.addPointMarker(cur_vec);
+
+            if (config_->show_trajectory_indices_)
+              text_marker.setColorInt(3.0, 1.0, RosTools::Colormap::BRUNO);
           }
           else
           {
