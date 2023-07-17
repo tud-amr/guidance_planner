@@ -100,7 +100,7 @@ namespace GuidancePlanner
     void SetUsedTrajectory(int spline_id);
 
     /** @brief Checks if there were any paths found */
-    bool Succeeded() { return NumberOfGuidanceTrajectories() > 0; };
+    bool Succeeded() { return (NumberOfGuidanceTrajectories() > 0); };
 
     // --- Other internal functionality --- //
 

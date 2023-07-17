@@ -154,6 +154,7 @@ namespace GuidancePlanner
 
     if (outputs_.size() > 0)
       previous_outputs_ = outputs_;
+    outputs_.clear();
 
     no_message_sent_yet_ = true;
     goals_set_ = false;
@@ -272,7 +273,6 @@ namespace GuidancePlanner
     }
     PRM_LOG("=========================");
 
-    outputs_.clear();
     for (size_t i = 0; i < paths_.size(); i++)
       outputs_.emplace_back(paths_[i], splines_[i]);
 
@@ -592,7 +592,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::SetUsedTrajectory(int spline_id) { selected_id_ = spline_id; }
 
-  int GlobalGuidance::NumberOfGuidanceTrajectories() const { return splines_.size(); }
+  int GlobalGuidance::NumberOfGuidanceTrajectories() const { return (int)outputs_.size(); }
 
   int GlobalGuidance::GetIdSamePath(const GeometricPath &path)
   {

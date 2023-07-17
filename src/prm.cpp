@@ -451,12 +451,11 @@ namespace GuidancePlanner
       propagated_node.point_.Time() = node.point_.Time() - (Config::CONTROL_DT / Config::DT); // Drop by however much discrete steps we
                                                                                               // are moving in one control iteration
 
-      if (propagated_node.point_.Pos()(0) < start_(0)) /** @note Not robust */ //  Do not propagate nodes behind the
-                                                                               //  robot
-      {
-        previous_nodes_.pop_back();
-        return;
-      }
+      // if (propagated_node.point_.Pos()(0) < start_(0)) // Do not propagate nodes behind the
+      // {
+      // previous_nodes_.pop_back();
+      // return;
+      // }
 
       // If a node hits the floor when it belongs to a path, then we should resample to ensure that the path remains valid
       if (propagated_node.point_.Time() < 1)
