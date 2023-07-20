@@ -258,10 +258,37 @@ namespace GuidancePlanner
 
         // Create a list of indices to be used for the paths
         /** @NOTE: In some cases the previous path ID may be higher than the number of paths we have currently, that is okay */
-        std::vector<int> available_ids(config_->n_paths_);
+        std::vector<int> available_ids(config_->n_paths_*2);
         std::iota(available_ids.begin(), available_ids.end(), 0);
 
         AssignIDsToKnownPaths(available_ids); // Consistently assign IDs to paths that we found in the previous iteration
+        for (auto &previous_path_assocation : known_paths_)
+        {
+          for(size_t i = 0; i< available_ids.size(); i++)
+          {
+            if(available_ids[i] == previous_path_assocation.id_)
+            {
+              available_ids.erase(available_ids.begin() + i);
+              break;
+            }
+          }
+
+          // std::cout << previous_path_assocation.id_ << std::endl;
+          // auto iterator_at_available_id = std::find(available_ids.begin(), available_ids.end(),
+          //                                           previous_path_assocation.id_); // Should be updated after erasing
+          //                                                   ROSTOOLS_HOOK;
+
+          // if(iterator_at_available_id != std::end(available_ids)); // This ID must still be available
+          // {
+          //   std::cout << *iterator_at_available_id << std::endl;
+          //           ROSTOOLS_HOOK;
+
+          //   available_ids.erase(iterator_at_available_id); // The ID is not available anymore
+          // }
+          //         ROSTOOLS_HOOK;
+
+        }
+
         AssignIDsToNewPaths(available_ids);   // Now for all paths that do not have an ID assigned, assign them in order
         OrderPaths();                         // Try to keep the same guidance trajectories in the same place for consistency
 
@@ -307,9 +334,17 @@ namespace GuidancePlanner
       learning_outputs_ = outputs_;
 
       // ORDER OUTPUTS!
-      OrderOutputByHeuristic(heuristic_outputs_);
-      OrderOutputByLearning(learning_outputs_);
+      if(!config_->use_learning)
+      {
+        OrderOutputByHeuristic(heuristic_outputs_);
+      }else{
+        OrderOutputByLearning(learning_outputs_);
+      }
       outputs_ = config_->use_learning ? learning_outputs_ : heuristic_outputs_;
+
+      // Save the best trajectory topology class
+      selected_id_ = config_->use_learning ? learning_outputs_[0].topology_class : heuristic_outputs_[0].topology_class;
+      PRM_LOG("Selected Spline with ID: " << selected_id_);
 
       benchmarkers_[0]->stop();
 
@@ -347,8 +382,8 @@ namespace GuidancePlanner
           ROSTOOLS_ASSERT(iterator_at_available_id != std::end(available_ids),
                           "When assigning path IDs, an ID was assigned twice"); // This ID must still be available
 
+          std::cout << *iterator_at_available_id << std::endl;
           available_ids.erase(iterator_at_available_id); // The ID is not available anymore
-
           break;
         }
       }
@@ -466,10 +501,6 @@ namespace GuidancePlanner
     for (size_t i = 0; i < outputs.size(); i++)
       ordered_outputs.push_back(outputs[indices[i]]);
     outputs = ordered_outputs;
-
-    // Save the best trajectory topology class
-    selected_id_ = outputs[0].topology_class;
-    PRM_LOG("Selected Spline with ID: " << selected_id_);
   }
 
   void GlobalGuidance::OrderOutputByLearning(std::vector<OutputTrajectory> &outputs)
@@ -537,6 +568,17 @@ namespace GuidancePlanner
     {
       // Sort splines by the heuristic
       std::vector<int> indices(splines_.size());
+      ROS_INFO_STREAM(previous_outputs_[0].path);
+
+      for (size_t i_output = 0; i_output < outputs.size(); i_output++){
+        // if (this->prm_.GetHomotopicCost(previous_outputs_[0].path, outputs[i_output].path) <= 0.1){
+        if (previous_outputs_[0].topology_class == outputs[i_output].topology_class){
+          srv.response.cost_guidances[i_output] *= 1./config_->selection_weight_consistency_;
+        }
+        ROS_INFO_STREAM("id path: " << i_output << ", " << previous_outputs_[0].topology_class << ", " << outputs[i_output].topology_class << " Final cost: " << srv.response.cost_guidances[i_output]);
+        // ROS_INFO_STREAM(outputs[i_output].path);
+      }
+      
       std::iota(indices.begin(), indices.end(), 0);
       std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
                 { return srv.response.cost_guidances[a] < srv.response.cost_guidances[b]; });
@@ -548,9 +590,7 @@ namespace GuidancePlanner
         ordered_outputs.push_back(outputs[indices[i]]);
       outputs = ordered_outputs;
 
-      // Save the best trajectory topology class
-      selected_id_ = outputs[0].topology_class;
-      PRM_LOG("Selected Spline with ID: " << selected_id_);
+
     }
     else
     {
@@ -586,8 +626,7 @@ namespace GuidancePlanner
         if (removal_marker[i]) // break from the "j" loop as path i will be replaced by another
           break;
 
-        // If these two paths are homotopic equivalent (can also be checked by verifying that the associations are the
-        // same)
+        // If these two paths are homotopic equivalent (can also be checked by verifying that the associations are the same)
         if (paths_[i].association_.Matches(paths_[j].association_) || prm_.AreHomotopicEquivalent(paths_[i], paths_[j]))
         {
           PRM_LOG(paths_[i] << " and " << paths_[j] << " are homotopic equivalent paths");
@@ -895,7 +934,7 @@ namespace GuidancePlanner
         {
           Eigen::Vector3d prev_vec = points[j - 1];
 
-          if (highlight_selected && spline.id_ == heuristic_outputs_[0].topology_class) // highlight the selected spline
+          if (highlight_selected && !config_->use_learning && spline.id_ == heuristic_outputs_[0].topology_class) // highlight the selected spline
           {
             heuristic_line.addLine(prev_vec, cur_vec);
 
@@ -905,7 +944,7 @@ namespace GuidancePlanner
             if (config_->show_trajectory_indices_)
               text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
           }
-          else if (highlight_selected && spline.id_ == learning_outputs_[0].topology_class)
+          else if (highlight_selected && config_->use_learning && spline.id_ == learning_outputs_[0].topology_class)
           {
             learning_line.addLine(prev_vec, cur_vec);
 

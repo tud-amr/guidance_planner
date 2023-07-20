@@ -72,7 +72,7 @@ namespace GuidancePlanner
     double GetHomotopicCost(const GeometricPath &a, const GeometricPath &b);
     std::vector<bool> PassesRight(const GeometricPath &path);
 
-    bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
+    bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path, double min_improvement = 0.);
 
     /** @brief Reset this PRM. Removes previous nodes and all other transferred data. Use only when resetting the environment */
     void Reset();

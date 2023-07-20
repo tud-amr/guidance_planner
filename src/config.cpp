@@ -29,6 +29,7 @@ namespace GuidancePlanner
     retrieveParameter(nh, "prm/timeout", timeout_);
 
     retrieveParameter(nh, "prm/predictions_are_constant_velocity", assume_constant_velocity_);
+    retrieveParameter(nh, "prm/min_path_improvement", min_path_improvement_);
 
     retrieveParameter(nh, "prm/view_angle_times_pi", view_angle_);
     view_angle_ *= M_PI;

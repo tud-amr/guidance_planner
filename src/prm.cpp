@@ -226,8 +226,7 @@ namespace GuidancePlanner
       // Get a new sample (either from the previous iteration, or a new one)
       SpaceTimePoint sample = sample_is_from_previous_iteration ? previous_nodes_[i].point_ : SampleNewPoint();
 
-      PRM_LOG("==== [" << i << "] New Sample ====\n"
-                       << sample);
+      PRM_LOG("==== [" << i << "] New Sample ====\n" << sample);
 
       // Check if the sample is in collision
       if (environment_.InCollision(sample))
@@ -267,7 +266,7 @@ namespace GuidancePlanner
 
       // Check the connection
       // if (!ConnectionIsValid(visible_guards[0], goal, new_node.point_))
-      if (ConnectionIsValid(new_path))
+      if (ConnectionIsValid(new_path) || new_node.segment_association_id_ != -1) // Exclude existing nodes
       {
         PRM_LOG("Found a valid connection to a goal");
         topology_distinct_goals.push_back(goal);
@@ -331,7 +330,7 @@ namespace GuidancePlanner
     PRM_LOG("Guards: " << *guards[0] << " and " << *guards[1]);
 
     // // Check if the proposed connection is valid
-    if (!ConnectionIsValid(guards[0], guards[1], sample))
+    if (!ConnectionIsValid(guards[0], guards[1], sample) && !sample_is_from_previous_iteration)
     {
       PRM_LOG("Sampled connector is not a valid connector");
       return;
@@ -375,7 +374,7 @@ namespace GuidancePlanner
         path_is_distinct = false;
 
         // If they are and the new sample has a shorter path
-        if (FirstPathIsBetter(new_path, other_path))
+        if (FirstPathIsBetter(new_path, other_path, config_->min_path_improvement_))
         {
           PRM_LOG("Replacing existing node " << *neighbour << "with faster node " << new_node
                                              << " (difference in length: " << other_path.Length3D() - new_path.Length3D() << " = "
@@ -484,13 +483,13 @@ namespace GuidancePlanner
           // Create a node to replace the old
           // Node replacement_node(/*config_->n_samples_ + previous_nodes_.size()*/, new_sample, NodeType::CONNECTOR);
           Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR);
-          replacement_node.SetSegmentAssociation(propagated_node.segment_association_id_); // This may not be homotopically equivalent to the
-                                                                                           // previous, but at least this ID is free
+          replacement_node.SetSegmentAssociation(propagated_node.segment_association_id_);
           replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
 
           // Remove the previous node and add the replacement
           previous_nodes_.pop_back();
           previous_nodes_.push_back(replacement_node);
+
         }
         else
         {
@@ -651,8 +650,7 @@ namespace GuidancePlanner
 
   void PRM::ReplaceConnector(Node &new_node, Node *neighbour, const std::vector<Node *> &visible_guards)
   {
-    // Add the new node to the graph (note that we are keeping the old one around, but setting its "replaced" flag to
-    // true)
+    // Add the new node to the graph (note that we are keeping the old one around, but setting its "replaced" flag to true)
     Node *new_node_ptr = graph_->AddNode(new_node);
 
     // Set its neighbours
@@ -662,6 +660,7 @@ namespace GuidancePlanner
     // If the new node has no association, load the association of the neighbour
     if (new_node_ptr->segment_association_id_ == -1)
     {
+
       new_node_ptr->SetSegmentAssociation(neighbour->segment_association_id_);
     }
     else if (neighbour->segment_association_id_ != -1 && new_node_ptr->segment_association_id_ != -1) // If both nodes have an association
@@ -671,7 +670,7 @@ namespace GuidancePlanner
       // If they both have an association, then we need to pick one. We should prefer the previously selected ID
       for (auto &previous_path_association : known_paths_) // Find the previously selected path association
       {
-        if (previous_path_association.id_ == previously_selected_id_)
+        if (previous_path_association.id_ == previously_selected_id_) // WRONG
         {
           // Keep the neighbours one if it was selected, otherwise keep our own
           if (previous_path_association.ContainsSegment(neighbour->segment_association_id_))
@@ -685,6 +684,7 @@ namespace GuidancePlanner
     // replace the neighbours of the guards with the new node
     visible_guards[0]->ReplaceNeighbour(neighbour, new_node_ptr);
     visible_guards[1]->ReplaceNeighbour(neighbour, new_node_ptr);
+
   }
 
   void PRM::AddNewConnector(Node &new_node, const std::vector<Node *> &visible_guards)
@@ -879,7 +879,7 @@ namespace GuidancePlanner
     return true; // This connection is valid
   }
 
-  bool PRM::FirstPathIsBetter(const GeometricPath &first_path, const GeometricPath &second_path)
+  bool PRM::FirstPathIsBetter(const GeometricPath &first_path, const GeometricPath &second_path, double min_improvement)
   {
     // Prefer goals
     double goal_1_cost, goal_2_cost;
@@ -892,9 +892,9 @@ namespace GuidancePlanner
       if (goal_1_cost != goal_2_cost)
         return goal_1_cost < goal_2_cost; // Is the goal better?
       else
-        return first_path.RelativeSmoothness() < second_path.RelativeSmoothness(); // Is it smoother
+        return first_path.RelativeSmoothness() < (1 - min_improvement) * second_path.RelativeSmoothness(); // Is it smoother
     }
-    return first_path.RelativeSmoothness() < second_path.RelativeSmoothness();
+    return first_path.RelativeSmoothness() < (1 - min_improvement) * second_path.RelativeSmoothness();
   }
 
   void PRM::Reset()
