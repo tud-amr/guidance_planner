@@ -226,7 +226,8 @@ namespace GuidancePlanner
       // Get a new sample (either from the previous iteration, or a new one)
       SpaceTimePoint sample = sample_is_from_previous_iteration ? previous_nodes_[i].point_ : SampleNewPoint();
 
-      PRM_LOG("==== [" << i << "] New Sample ====\n" << sample);
+      PRM_LOG("==== [" << i << "] New Sample ====\n"
+                       << sample);
 
       // Check if the sample is in collision
       if (environment_.InCollision(sample))
@@ -266,7 +267,7 @@ namespace GuidancePlanner
 
       // Check the connection
       // if (!ConnectionIsValid(visible_guards[0], goal, new_node.point_))
-      if (ConnectionIsValid(new_path) || new_node.segment_association_id_ != -1) // Exclude existing nodes
+      if (ConnectionIsValid(new_path))
       {
         PRM_LOG("Found a valid connection to a goal");
         topology_distinct_goals.push_back(goal);
@@ -330,7 +331,7 @@ namespace GuidancePlanner
     PRM_LOG("Guards: " << *guards[0] << " and " << *guards[1]);
 
     // // Check if the proposed connection is valid
-    if (!ConnectionIsValid(guards[0], guards[1], sample) && !sample_is_from_previous_iteration)
+    if (!ConnectionIsValid(guards[0], guards[1], sample))
     {
       PRM_LOG("Sampled connector is not a valid connector");
       return;
@@ -489,7 +490,6 @@ namespace GuidancePlanner
           // Remove the previous node and add the replacement
           previous_nodes_.pop_back();
           previous_nodes_.push_back(replacement_node);
-
         }
         else
         {
@@ -684,7 +684,6 @@ namespace GuidancePlanner
     // replace the neighbours of the guards with the new node
     visible_guards[0]->ReplaceNeighbour(neighbour, new_node_ptr);
     visible_guards[1]->ReplaceNeighbour(neighbour, new_node_ptr);
-
   }
 
   void PRM::AddNewConnector(Node &new_node, const std::vector<Node *> &visible_guards)

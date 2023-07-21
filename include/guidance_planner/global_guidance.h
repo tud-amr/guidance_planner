@@ -77,6 +77,7 @@ namespace GuidancePlanner
     struct OutputTrajectory
     {
       int topology_class;
+      bool previously_selected_;
 
       GeometricPath path;   // Geometric Path
       CubicSpline3D spline; // Spline
@@ -165,6 +166,10 @@ namespace GuidancePlanner
     std::vector<OutputTrajectory> heuristic_outputs_, learning_outputs_;
     std::vector<OutputTrajectory> outputs_, previous_outputs_;
 
+    GeometricPath previous_path_;         // We store here the previously best path for homology comparison
+    std::list<Node> previous_path_nodes_; // Because paths store pointers, we need to save the nodes here
+    std::vector<Node *> node_ptrs_;
+
     std::vector<int> sorted_indices_;
 
     // Topology propagation
@@ -193,6 +198,8 @@ namespace GuidancePlanner
     /** @brief Check for all the paths if there are any unfollowable paths and remove them if necessary */
     void FilterPaths();
     void OrderPaths();
+
+    void IdentifyPreviousHomology(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
 
     /** @brief Order splines if the splines are used */
     void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs);
