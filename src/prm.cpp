@@ -891,9 +891,9 @@ namespace GuidancePlanner
       if (goal_1_cost != goal_2_cost)
         return goal_1_cost < goal_2_cost; // Is the goal better?
       else
-        return first_path.RelativeSmoothness() < (1 - min_improvement) * second_path.RelativeSmoothness(); // Is it smoother
+        return first_path.RelativeSmoothness() < second_path.RelativeSmoothness(); // Is it smoother
     }
-    return first_path.RelativeSmoothness() < (1 - min_improvement) * second_path.RelativeSmoothness();
+    return first_path.RelativeSmoothness() < second_path.RelativeSmoothness();
   }
 
   void PRM::Reset()
