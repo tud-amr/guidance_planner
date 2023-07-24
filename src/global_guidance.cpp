@@ -496,22 +496,18 @@ namespace GuidancePlanner
     std::vector<double> heuristics;
     for (auto &output : outputs)
     {
-      /* The last check verifies that the new path did not by accident get assigned the selected ID */
-      // if (output.topology_class == selected_id_ && path_id_was_known_[output.topology_class])
-      double consistency_weight = 1.; // Standard penalty
-      if (output.previously_selected_)
-      {
-        consistency_weight = 0.;
-      }
       // Add costs for all splines
       double heuristic = 0.;
+
       // spline_cost += spline.WeightPathLength() * config_->selection_weight_length_;
       double goal_cost = Goal::FindGoalWithNode(*prm_.GetGoals(), output.path.nodes_.back()).cost;
       heuristic += goal_cost * config_->selection_weight_length_;
 
       heuristic += output.spline.WeightVelocity() * config_->selection_weight_velocity_;
       heuristic += output.spline.WeightAcceleration() * config_->selection_weight_acceleration_;
-      heuristic += consistency_weight * config_->selection_weight_consistency_;
+
+      if(output.previously_selected_)
+        heuristic *= 1. / config_->selection_weight_consistency_;
       heuristics.push_back(heuristic);
     }
 
