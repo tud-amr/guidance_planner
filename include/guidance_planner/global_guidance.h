@@ -27,7 +27,7 @@ class IntegrationException : public std::exception
 public:
   char *what()
   {
-    return "GSL integration Exception";
+    return (char *)"GSL integration Exception";
   }
 };
 
@@ -65,6 +65,7 @@ namespace GuidancePlanner
     /** @brief Additional configuration */
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
     void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = reference_velocity; }
+    void SetTrackOnlyTheSelectedHomology() { config_->track_selected_homology_only_ = true; }
 
     /**
      * @brief Compute Guidance trajectories
@@ -76,11 +77,13 @@ namespace GuidancePlanner
     // --- RESULTS --- //
     struct OutputTrajectory
     {
+    public:
       int topology_class;
       bool previously_selected_;
+      bool is_new_topology_;
 
-      GeometricPath path;   // Geometric Path
-      CubicSpline3D spline; // Spline
+      StandaloneGeometricPath path; // Geometric Path
+      CubicSpline3D spline;         // Spline
 
       OutputTrajectory(const GeometricPath &_path, const CubicSpline3D &_spline);
       OutputTrajectory(const OutputTrajectory &other);
@@ -103,7 +106,7 @@ namespace GuidancePlanner
     /**
      * @brief Get the homology cost of a geometric path with respect of the one with id spline_id
      *
-     * @param spline_id Index of the spline, with 0 the best spline and worse splines at higher indices
+     * @param output_id Index of the spline, with 0 the best spline and worse splines at higher indices
      * @return double The cost
      */
     double GetHomotopicCost(int output_id, const GeometricPath &path);
@@ -113,7 +116,8 @@ namespace GuidancePlanner
     int GetUsedTrajectory() const;
 
     /** @brief Set the ID of the used trajectory */
-    void SetUsedTrajectory(int spline_id);
+    // void SetUsedTrajectory(int spline_id);
+    void OverrideSelectedTrajectory(int output_id);
 
     /** @brief Checks if there were any paths found */
     bool Succeeded() { return (NumberOfGuidanceTrajectories() > 0); };
@@ -133,7 +137,7 @@ namespace GuidancePlanner
     void Visualize(bool highlight_selected = true, int only_path_nr = -1);
 
     /** @brief Visualize geometric path */
-    void VisualizePath(GeometricPath &path);
+    // void VisualizePath(GeometricPath &path);
 
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
@@ -166,15 +170,11 @@ namespace GuidancePlanner
     std::vector<OutputTrajectory> heuristic_outputs_, learning_outputs_;
     std::vector<OutputTrajectory> outputs_, previous_outputs_;
 
-    GeometricPath previous_path_;         // We store here the previously best path for homology comparison
-    std::list<Node> previous_path_nodes_; // Because paths store pointers, we need to save the nodes here
-    std::vector<Node *> node_ptrs_;
-
     std::vector<int> sorted_indices_;
 
     // Topology propagation
     int next_segment_id_;
-    std::vector<PathAssociation> known_paths_;
+    // std::vector<PathAssociation> known_paths_;
     std::vector<bool> path_id_was_known_;
     int selected_id_;
 
@@ -196,10 +196,10 @@ namespace GuidancePlanner
     std::vector<std::unique_ptr<RosTools::Benchmarker>> benchmarkers_;
 
     /** @brief Check for all the paths if there are any unfollowable paths and remove them if necessary */
-    void FilterPaths();
-    void OrderPaths();
+    // void FilterPaths();
+    // void OrderPaths();
 
-    void IdentifyPreviousHomology(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
+    void IdentifyPreviousHomologies(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
 
     /** @brief Order splines if the splines are used */
     void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs);
@@ -211,8 +211,8 @@ namespace GuidancePlanner
 
     double PathSelectionCost(const GeometricPath &path);
 
-    void AssignIDsToKnownPaths(std::vector<int> &available_ids);
-    void AssignIDsToNewPaths(std::vector<int> &available_ids);
+    // void AssignIDsToKnownPaths(std::vector<int> &available_ids);
+    // void AssignIDsToNewPaths(std::vector<int> &available_ids);
 
     /** Visualization functions */
     void VisualizeGeometricPaths(int path_nr = -1);

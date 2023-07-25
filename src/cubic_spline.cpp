@@ -8,7 +8,7 @@
 using namespace GuidancePlanner;
 
 CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Eigen::Vector2d &current_velocity)
-    : id_(path.association_.id_), config_(config), current_velocity_(current_velocity)
+    : config_(config), current_velocity_(current_velocity)
 {
   // Convert the path in 3D to a 2D trajectory
   ConvertToTrajectory(path);

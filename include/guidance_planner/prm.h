@@ -54,11 +54,11 @@ namespace GuidancePlanner
      * @param goal Goal positions organized with the furthest away goal at the end of the vector
      */
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
-                  const Eigen::Vector2d &velocity, const std::vector<Goal> &goals, const int previously_selected_id);
+                  const Eigen::Vector2d &velocity, const std::vector<Goal> &goals);
 
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
 
-    void TransferPathInformationAndPropagate(const std::vector<GeometricPath> paths, const std::vector<PathAssociation> &known_paths);
+    void PropagateGraph(const std::vector<GeometricPath> &paths);
 
     Eigen::Vector2d GetStart() const { return start_; };                  /** @brief Get the start position */
     Eigen::Vector2d GetStartVelocity() const { return start_velocity_; }; /** @brief Get the start velocity */
@@ -101,7 +101,7 @@ namespace GuidancePlanner
 
     // Topology propagation
     int next_segment_id_;
-    std::vector<PathAssociation> known_paths_;
+    // std::vector<PathAssociation> known_paths_;
     std::vector<Node> previous_nodes_; // Save nodes from previous iterations to enforce consistency between multiple iterations
     std::vector<bool> path_id_was_known_;
 

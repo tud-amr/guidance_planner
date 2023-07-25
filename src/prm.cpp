@@ -46,7 +46,7 @@ namespace GuidancePlanner
   }
 
   void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
-                     const Eigen::Vector2d &velocity, const std::vector<Goal> &goals, const int previously_selected_id)
+                     const Eigen::Vector2d &velocity, const std::vector<Goal> &goals)
   {
     {
       PROFILE_SCOPE("Initializing Obstacles in Environment");
@@ -56,11 +56,8 @@ namespace GuidancePlanner
       environment_.SetPosition(start);
       PRM_LOG("Static obstacles size: " << static_obstacles.size());
       environment_.LoadObstacles(obstacles, static_obstacles);
-      // if (static_obstacles.size() > 0)
-      //   environment_.LoadObstacles(obstacles, static_obstacles);
-      // else
-      //   environment_.LoadObstacles(obstacles, static_obstacles);
     }
+
     /* Start */
     start_ = start;
     orientation_ = orientation;
@@ -70,15 +67,6 @@ namespace GuidancePlanner
     environment_.ProjectToFreeSpace(start_point, 0.1);
     start_(0) = start_point.Pos()(0);
     start_(1) = start_point.Pos()(1);
-
-    /*for (auto &obstacle : obstacles)
-    {
-      if ((obstacle.positions_[0] - start_).norm() < obstacle.radius_)
-      {
-        start_ =
-            obstacle.positions_[0] + (start - obstacle.positions_[0]).normalized() * (obstacle.radius_ + 0.05); // Positions [0] is their next position?
-      }
-    }*/
 
     /* Goal */
     // Add goals that are collision free
@@ -99,7 +87,6 @@ namespace GuidancePlanner
         {
           goals_.emplace_back(goal_copy, goal.cost);
         }
-
         goal_i++;
       }
     }
@@ -122,7 +109,7 @@ namespace GuidancePlanner
     min_y_ = min_y - config_->sample_margin_ / 2.;
 
     /* Other data */
-    previously_selected_id_ = previously_selected_id;
+    // previously_selected_id_ = previously_selected_id;
   }
 
   Graph &PRM::Update()
@@ -141,7 +128,7 @@ namespace GuidancePlanner
 
     all_samples_.clear();
 
-    next_segment_id_ = -1;
+    // next_segment_id_ = -1;
 
     RosTools::TriggeredTimer prm_timer(config_->timeout_ / 1000.);
     prm_timer.start();
@@ -244,10 +231,10 @@ namespace GuidancePlanner
           previous_nodes_[i].point_ = sample; // Update the previous node's position if necessary (for construction later)
 
         samples[i] = sample;
-
-        if (config_->visualize_all_samples_)
-          all_samples_[i] = sample;
       }
+
+      if (config_->visualize_all_samples_)
+        all_samples_[i] = sample;
     }
   }
 
@@ -396,7 +383,7 @@ namespace GuidancePlanner
       AddNewConnector(new_node, guards);
   }
 
-  void PRM::TransferPathInformationAndPropagate(const std::vector<GeometricPath> paths, const std::vector<PathAssociation> &known_paths)
+  void PRM::PropagateGraph(const std::vector<GeometricPath> &paths)
   {
     previous_nodes_.clear();
     for (auto &node : graph_->nodes_)
@@ -404,37 +391,31 @@ namespace GuidancePlanner
       if (node.replaced_ || node.id_ < 0) // Do not consider replaced nodes or the start/goal
         continue;
 
-      int path_association_for_this_node = -1;
+      const GeometricPath *node_path = nullptr; // To which path does this node belong
+
+      // int path_association_for_this_node = -1;
       if (node.type_ == NodeType::CONNECTOR) // For all connectors
       {
         // Find the related path and save it in the node and on the stack
-        for (auto &path_association : known_paths)
+        // for (auto &path_association : known_paths)
+        // {
+        for (size_t p = 0; p < paths.size(); p++)
         {
-          if (path_association.ContainsSegment(node.segment_association_id_))
+          if (paths[p].ContainsNode(node))
           {
-            node.belongs_to_path_ = path_association.id_;
-            path_association_for_this_node = path_association.id_;
+            node_path = &(paths[p]);
             break;
           }
         }
+        // if (path_association.ContainsSegment(node.segment_association_id_))
+        // {
+        //   node.belongs_to_path_ = path_association.id_;
+        //   path_association_for_this_node = path_association.id_;
+        //   break;
+        // }
+        // }
       }
-
-      // Propagate all the non-replaced nodes
-      if (path_association_for_this_node == -1) // If they do not belong to a path we cannot resample
-      {
-        PropagateNode(node); // (no path argument)
-      }
-      else
-      {
-        for (auto &path : paths) // Otherwise find the path
-        {
-          if (path.association_.id_ == path_association_for_this_node)
-          {
-            PropagateNode(node, &path); // And propagate with resampling
-            break;
-          }
-        }
-      }
+      PropagateNode(node, node_path);
     }
   }
 
@@ -484,7 +465,7 @@ namespace GuidancePlanner
           // Create a node to replace the old
           // Node replacement_node(/*config_->n_samples_ + previous_nodes_.size()*/, new_sample, NodeType::CONNECTOR);
           Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR);
-          replacement_node.SetSegmentAssociation(propagated_node.segment_association_id_);
+          // replacement_node.SetSegmentAssociation(propagated_node.segment_association_id_);
           replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
 
           // Remove the previous node and add the replacement
@@ -501,7 +482,7 @@ namespace GuidancePlanner
   }
 
   /** @brief Because previous segments may occupy some of the IDs, we want the next free ID when called */
-  int PRM::GetNextAvailableSegmentID()
+  /*int PRM::GetNextAvailableSegmentID()
   {
     next_segment_id_++;
 
@@ -521,110 +502,17 @@ namespace GuidancePlanner
     }
 
     return next_segment_id_;
-  }
+  }*/
 
   SpaceTimePoint PRM::SampleNewPoint()
   {
-    // bool simple_sampling = true;
-    // SpaceTimePoint new_sample(0., 0., 0);
-    SpaceTimePoint new_sample = (this->*sampling_function_)();
-
-    // if (simple_sampling) // Deprecated
-    // {
-    // Uniform[0, 10][-5, 5]
-
-    // else
-    // {
-    //   double start_velocity = start_velocity_.norm(); // Get the forward speed in the non-rotated frame
-
-    //   // Sample a time index
-    //   int random_k = random_generator_.Int(Config::N - 2) + 1; // 1 - (N-1)
-
-    //   // Radial sampling based on vehicle limits
-    //   // Goal: similar amount of samples per "k", following roughly the actuation limits of the vehicle
-    //   // Some settings for the sampler
-    //   double view_angle = config_->view_angle_;
-    //   double max_velocity = config_->max_velocity_;
-    //   double max_acceleration = config_->max_acceleration_;
-
-    //   double maximum_radius = RosTools::dist(start_, goals_.back().pos);
-
-    //   // Find the maximum distance where a node can spawn for the randomly sampled k
-    //   double min_vel = start_velocity;
-    //   double max_vel = start_velocity;
-    //   double max_dist = 0., min_dist = 0.;
-    //   for (int i = 0; i < random_k; i++)
-    //   {
-    //     max_vel = std::min(max_vel + max_acceleration * Config::DT,
-    //                        max_velocity); // Either maximum acceleration or maximum velocity
-    //     max_dist = std::min(max_dist + max_vel * Config::DT,
-    //                         maximum_radius); // The distance we can travel increases with the maximum velocity
-
-    //     // Account for maximum possible braking
-    //     min_vel = std::max(min_vel - max_acceleration * Config::DT, 0.);
-    //     min_dist = min_dist + min_vel * Config::DT;
-    //   }
-
-    //   // Sample u1 such that it spreads quadratically
-    //   bool sample_in_quadratic = false;
-    //   double u1, u2;
-    //   while (!sample_in_quadratic)
-    //   {
-    //     u1 = random_generator_.Double();
-    //     u2 = random_generator_.Double();
-    //     if (u2 < u1 * u1) // Rejection sample quadratic distribution
-    //       sample_in_quadratic = true;
-    //   }
-
-    //   double random_r = min_dist + u1 * (max_dist - min_dist); // Sample a random radius smaller than the velocity
-    //   double random_angle = random_generator_.Double() * view_angle - view_angle / 2.;
-
-    //   // Construct the sample
-    //   new_sample = SpaceTimePoint(random_r * std::cos(random_angle), random_r * std::sin(random_angle), random_k);
-
-    //   // Check if the sample is acceptable in terms of rotational velocity
-    //   double max_w = 1.0;
-    //   double cur_psi = 0., cur_x = 0., cur_y = 0.;
-    //   double cur_vel = start_velocity;
-    //   for (int k = 0; k < random_k; k++)
-    //   {
-    //     cur_x += cur_vel * std::cos(cur_psi) * Config::DT; // Position
-    //     cur_y += cur_vel * std::sin(cur_psi) * Config::DT;
-    //     cur_psi += max_w * Config::DT;            // Orientation
-    //     cur_vel -= max_acceleration * Config::DT; // Velocity (under maximum braking)
-
-    //     cur_vel = std::max(0., cur_vel);
-
-    //     if (std::abs(cur_psi) > M_PI_2) // Stop when we rotated 90 degrees
-    //       break;
-    //   }
-
-    //   // If our sample is outside of this rotational velocity area - recursively try again
-    //   if ((new_sample(0) < cur_x && new_sample(1) > cur_y) || (new_sample(0) < cur_x && new_sample(1) < -cur_y))
-    //     return SampleNewPoint(); // Recursively try again
-
-    // Collapse the range of y values to -max_spread_y, max_spread_y to prevent the view range from becoming excessively
-    // large (disabled) double max_spread_y = 5.0; double new_y; if (new_sample(1) > 0)
-    //     new_y = new_sample(1) - std::floor(new_sample(1) / max_spread_y) * max_spread_y; // (modulo)
-    // else
-    //     new_y = new_sample(1) - std::ceil(new_sample(1) / max_spread_y) * max_spread_y; // (modulo)
-
-    // new_sample.SetPos(Eigen::Vector2d(new_sample(0), new_y));
-
-    // Translate and rotate to match the real data
-    // }
-
-    /** Translate and rotate to match the real data */
-    // Eigen::MatrixXd R = RosTools::rotationMatrixFromHeading(-orientation_);
-    // new_sample.SetPos(start_ + /*R * */ new_sample.Pos());
-
-    return new_sample;
+    return (this->*sampling_function_)();
   }
 
   SpaceTimePoint PRM::SampleUniformly3D()
   {
-    // s
-    return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_, min_y_ + random_generator_.Double() * range_y_,
+    return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
+                          min_y_ + random_generator_.Double() * range_y_,
                           random_generator_.Int(Config::N - 2) + 1);
   }
 
@@ -658,7 +546,7 @@ namespace GuidancePlanner
     new_node_ptr->neighbours_.push_back(visible_guards[1]);
 
     // If the new node has no association, load the association of the neighbour
-    if (new_node_ptr->segment_association_id_ == -1)
+    /*if (new_node_ptr->segment_association_id_ == -1)
     {
 
       new_node_ptr->SetSegmentAssociation(neighbour->segment_association_id_);
@@ -679,7 +567,7 @@ namespace GuidancePlanner
           break;
         }
       }
-    }
+    }*/
 
     // replace the neighbours of the guards with the new node
     visible_guards[0]->ReplaceNeighbour(neighbour, new_node_ptr);
@@ -695,15 +583,15 @@ namespace GuidancePlanner
     new_node_ptr->neighbours_.push_back(visible_guards[1]);
 
     // Each distinct new node is assigned a unique segment ID
-    if (new_node_ptr->segment_association_id_ == -1)
-    {
-      new_node_ptr->segment_association_id_ = GetNextAvailableSegmentID();
-      PRM_LOG("Node added with new segment association " << *new_node_ptr);
-    }
-    else
-    {
-      PRM_LOG("Previous node with segment association added " << *new_node_ptr);
-    }
+    /* if (new_node_ptr->segment_association_id_ == -1)
+     {
+       new_node_ptr->segment_association_id_ = GetNextAvailableSegmentID();
+       PRM_LOG("Node added with new segment association " << *new_node_ptr);
+     }
+     else
+     {
+       PRM_LOG("Previous node with segment association added " << *new_node_ptr);
+     }*/
 
     // Add the new node to the neighbours of the visible guards
     visible_guards[0]->neighbours_.push_back(new_node_ptr);
@@ -906,7 +794,7 @@ namespace GuidancePlanner
 
     // Forget paths
     path_id_was_known_ = std::vector<bool>(config_->n_paths_, false);
-    known_paths_.clear();
+    // known_paths_.clear();
 
     // Forget nodes
     previous_nodes_.clear();
@@ -973,9 +861,12 @@ namespace GuidancePlanner
           Eigen::Vector3d node_pose = node.point_.MapToTime();
           sphere.addPointMarker(node_pose);
 
-          segment_text.setText(std::to_string(node.segment_association_id_));
-          segment_text.setColorInt(node.segment_association_id_, 20);
-          segment_text.addPointMarker(node_pose + Eigen::Vector3d(0., 0.5, 0.5));
+          if (node.belongs_to_path_ >= 0)
+          {
+            segment_text.setText(std::to_string(node.belongs_to_path_));
+            segment_text.setColorInt(node.belongs_to_path_, 20);
+            segment_text.addPointMarker(node_pose + Eigen::Vector3d(0., 0.5, 0.5));
+          }
         }
       }
 

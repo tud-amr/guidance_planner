@@ -155,7 +155,6 @@ namespace GuidancePlanner
     {
 
     public:
-        int id_;
         double stored_cost_; // Needs to be set externally, but can then be used to easily sort splines
 
         CubicSpline3D(){};
