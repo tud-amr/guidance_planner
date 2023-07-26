@@ -32,7 +32,6 @@ namespace GuidancePlanner
 {
   GlobalGuidance::OutputTrajectory::OutputTrajectory(const GeometricPath &_path, const CubicSpline3D &_spline)
   {
-
     path = StandaloneGeometricPath(_path);
     for (auto &node : path.saved_nodes_)
     {
@@ -65,14 +64,14 @@ namespace GuidancePlanner
     static std::unique_ptr<OutputTrajectory> empty_trajectory;
 
     // Make an explicit path in the x direction
-    // StandaloneGeometricPath path({
-    //     Node(1e5, SpaceTimePoint(start(0), start(1), 0), NodeType::GUARD),
-    //     Node(1e5 + 1, SpaceTimePoint(start(0) + 10., start(1), Config::N / 2), NodeType::GUARD),
-    //     Node(1e5 + 2, SpaceTimePoint(start(0) + 20., start(1), Config::N), NodeType::GUARD),
-    // });
+    StandaloneGeometricPath path({
+        Node(1e5, SpaceTimePoint(start(0), start(1), 0), NodeType::GUARD),
+        Node(1e5 + 1, SpaceTimePoint(start(0) + 10., start(1), Config::N / 2), NodeType::GUARD),
+        Node(1e5 + 2, SpaceTimePoint(start(0) + 20., start(1), Config::N), NodeType::GUARD),
+    });
 
-    // empty_trajectory.reset(new OutputTrajectory(path, CubicSpline3D::Empty(start, config)));
-    empty_trajectory.reset(new OutputTrajectory(GeometricPath(), CubicSpline3D::Empty(start, config)));
+    empty_trajectory.reset(new OutputTrajectory(path, CubicSpline3D::Empty(start, config)));
+    // empty_trajectory.reset(new OutputTrajectory(GeometricPath(), CubicSpline3D::Empty(start, config)));
     return *empty_trajectory;
   }
 
@@ -321,14 +320,14 @@ namespace GuidancePlanner
 
       // Save the best trajectory topology class
       auto &best_output = outputs_[0];
-      selected_id_ = best_output.topology_class;
+      selected_id_ = 0;
       if (best_output.previously_selected_)
       {
-        PRM_LOG("Selected the same trajectory as last iteration with ID: " << selected_id_);
+        PRM_LOG("Selected the same trajectory as last iteration with ID: " << outputs_[selected_id_].topology_class);
       }
       else
       {
-        PRM_LOG("Selected a new trajectory with ID: " << selected_id_);
+        PRM_LOG("Selected a new trajectory with ID: " << outputs_[selected_id_].topology_class);
       }
 
       previous_outputs_.clear();
@@ -356,7 +355,6 @@ namespace GuidancePlanner
       ROS_WARN("Integration exception called");
       splines_.clear();
       paths_.clear();
-      // known_paths_.clear();
       benchmarkers_[0]->stop();
       return false;
     }
@@ -364,7 +362,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::IdentifyPreviousHomologies(std::vector<GlobalGuidance::OutputTrajectory> &outputs)
   {
-    /** @note New association: Find the output that is homologous with the previously selected trajectory */
+    /** @note Find the output that is homologous with the previously selected trajectory */
 
     // Set up the new IDs
     IDAssigner id_assigner_(config_->n_paths_);
@@ -394,7 +392,6 @@ namespace GuidancePlanner
 
             PRM_LOG("Found existing topology class (ID = " << output.topology_class << ", S = " << output.previously_selected_ << ")");
             previous_outputs_identified++;
-
             break;
           }
         }
@@ -410,103 +407,6 @@ namespace GuidancePlanner
 
   double GlobalGuidance::PathSelectionCost(const GeometricPath &path) { return 1000 * path.nodes_.back()->point_.Pos()(0) - path.Length3D(); }
 
-  /*void GlobalGuidance::AssignIDsToKnownPaths(std::vector<int> &available_ids)
-  {
-    for (auto &path : paths_)
-    {
-      ROSTOOLS_ASSERT(path.association_.AllSegmentsAssigned(),
-                      "A segment in this path was missing a segment ID"); // By construction all segments should have an ID
-      for (auto &previous_path_assocation : known_paths_)
-      {
-        if (path.association_.Matches(previous_path_assocation))
-        {
-          PRM_LOG("Path " << path << " matches the previously known path with ID: " << previous_path_assocation.id_);
-          path.association_.id_ = previous_path_assocation.id_;
-          path_id_was_known_[path.association_.id_] = true; // Ensures that this path was not randomly given the ID - but obtained it
-
-          auto iterator_at_available_id = std::find(available_ids.begin(), available_ids.end(),
-                                                    path.association_.id_); // Should be updated after erasing
-          ROSTOOLS_ASSERT(iterator_at_available_id != std::end(available_ids),
-                          "When assigning path IDs, an ID was assigned twice"); // This ID must still be available
-
-          available_ids.erase(iterator_at_available_id); // The ID is not available anymore
-          break;
-        }
-      }
-    }
-  }*/
-
-  /*void GlobalGuidance::AssignIDsToNewPaths(std::vector<int> &available_ids)
-  {
-    int assign_increment = 0;
-
-    for (auto &path : paths_)
-    {
-      // If this path has no id
-      if (!path.association_.Assigned())
-      {
-        // Assign the next id
-        path.association_.id_ = available_ids[assign_increment];
-        path_id_was_known_[path.association_.id_] = false; // This is a new path ID (no consistency bonus)
-
-        PRM_LOG("Path without associated nodes found, setting ID to " << path.association_.id_);
-
-        assign_increment++;
-      }
-    }
-  }*/
-
-  /*void GlobalGuidance::FilterPaths()
-  {
-    // Deactivated
-  }
-
-  void GlobalGuidance::OrderPaths() // Keep paths that previously were there in the same place!
-  {
-    // std::unordered_map?
-    std::vector<GeometricPath> ordered_paths;
-    ordered_paths.resize(paths_.size());
-
-    std::vector<bool> path_assigned(paths_.size(), false);
-    std::vector<bool> place_assigned(paths_.size(), false);
-
-    for (size_t i = 0; i < paths_.size(); i++)
-    {
-      auto &path = paths_[i];
-      // NOTE: paths_.size(), because if known_paths_ is larger than paths_ we cannot keep the structure anyways
-      for (size_t j = 0; j < std::min(paths_.size(), known_paths_.size()); j++)
-      {
-        auto &known_path = known_paths_[j];
-        if (path.association_.id_ == known_path.id_)
-        {
-
-          ordered_paths[j] = path;
-          path_assigned[i] = true;
-          place_assigned[j] = true;
-        }
-      }
-    }
-
-    for (size_t i = 0; i < paths_.size(); i++)
-    {
-
-      if (path_assigned[i])
-        continue;
-
-      for (size_t j = 0; j < paths_.size(); j++) // Paths size, because it may need to be larger than the known_paths
-      {
-        if (!place_assigned[j]) // Find the first free place
-        {
-          ordered_paths[j] = paths_[i];
-          place_assigned[j] = true;
-          break;
-        }
-      }
-    }
-
-    paths_ = ordered_paths;
-  }*/
-
   void GlobalGuidance::OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs)
   {
     if (outputs.size() == 0)
@@ -521,7 +421,6 @@ namespace GuidancePlanner
       // Add costs for all splines
       double heuristic = 0.;
 
-      // spline_cost += spline.WeightPathLength() * config_->selection_weight_length_;
       double goal_cost = Goal::FindGoalWithNode(*prm_.GetGoals(), output.path.path.nodes_.back()).cost;
       heuristic += goal_cost * config_->selection_weight_length_;
 
@@ -529,7 +428,7 @@ namespace GuidancePlanner
       heuristic += output.spline.WeightAcceleration() * config_->selection_weight_acceleration_;
 
       if (output.previously_selected_)
-        heuristic *= 1. / config_->selection_weight_consistency_;
+        heuristic *= 1. / config_->selection_weight_consistency_; // Prefer the previously selected output
       heuristics.push_back(heuristic);
     }
 
@@ -616,14 +515,8 @@ namespace GuidancePlanner
 
       for (size_t i_output = 0; i_output < outputs.size(); i_output++)
       {
-        // if (this->prm_.GetHomotopicCost(previous_outputs_[0].path, outputs[i_output].path) <= 0.1){
-        // if (previous_outputs_[0].topology_class == outputs[i_output].topology_class)
-        // {
         if (outputs[i_output].previously_selected_)
           srv.response.cost_guidances[i_output] *= 1. / config_->selection_weight_consistency_;
-        // }
-        // ROS_INFO_STREAM("id path: " << i_output << ", " << previous_outputs_[0].topology_class << ", " << outputs[i_output].topology_class << " Final cost: " << srv.response.cost_guidances[i_output]);
-        // ROS_INFO_STREAM(outputs[i_output].path);
       }
 
       std::iota(indices.begin(), indices.end(), 0);
@@ -676,21 +569,10 @@ namespace GuidancePlanner
         {
           PRM_LOG(paths_[i] << " and " << paths_[j] << " are homotopic equivalent paths");
 
-          // Keep the "best" path
-          if (prm_.FirstPathIsBetter(paths_[i], paths_[j]))
-          {
-            PRM_LOG("Marked the second path for removal");
-
+          if (prm_.FirstPathIsBetter(paths_[i], paths_[j])) // Keep the "best" path
             removal_marker[j] = true;
-            // paths_[i].association_.Merge(paths_[j].association_, selected_id_); // Merge associations (preferring selected IDs)
-          }
           else
-          {
-            PRM_LOG("Marked the first path for removal");
-
             removal_marker[i] = true;
-            // paths_[j].association_.Merge(paths_[i].association_, selected_id_); // Merge associations (preferring selected IDs)
-          }
         }
       }
     }
@@ -724,15 +606,13 @@ namespace GuidancePlanner
   {
     PRM_LOG("Reset()");
 
-    // Forget paths
-    // path_id_was_known_ = std::vector<bool>(config_->n_paths_, false);
-    // known_paths_.clear();
-
+    // Forget outputs
     paths_.clear();
     splines_.clear();
     outputs_.clear();
     previous_outputs_.clear();
 
+    // Forget the graph
     prm_.Reset();
 
     for (auto &obstacle : obstacles_) // Ensure that the obstacles have long enough predictions
@@ -743,39 +623,21 @@ namespace GuidancePlanner
 
       obstacle.radius_ = 0.;
     }
-
-    // selected_spline_.reset(); // Remove any previous spline references
-    selected_id_ = -1;
   }
 
   GlobalGuidance::OutputTrajectory &GlobalGuidance::GetGuidanceTrajectory(int trajectory_id)
   {
     if (trajectory_id >= (int)outputs_.size())
-      ROS_WARN("Trying to retrieve a trajectory that does not exist!");
-
-    if (outputs_.size() == 0)
     {
-      // if (trajectory_id < (int)previous_outputs_.size())
-      // {
+      // ROS_WARN("Trying to retrieve a trajectory that does not exist!");
 
-      //   if (no_message_sent_yet_)
-      //   {
-      //     ROS_WARN("Returning previous trajectory (no path was found)");
-      //     no_message_sent_yet_ = false;
-      //   }
-      //   return previous_outputs_[trajectory_id];
-      // }
-      // else
-      // {
-      if (no_message_sent_yet_)
+      if (no_message_sent_yet_ && outputs_.size() == 0)
       {
-        ROS_WARN("Returning zero trajectory (no path was found)");
+        // ROS_WARN("The guidance planner could not find a path");
         no_message_sent_yet_ = false;
       }
 
-      // return GlobalGuidance::OutputTrajectory();
       return GlobalGuidance::OutputTrajectory::Empty(start_, config_.get());
-      // }
     }
 
     return outputs_[trajectory_id]; // Return the guidance trajectory
@@ -807,12 +669,9 @@ namespace GuidancePlanner
     return this->prm_.GetHomotopicCost(outputs_[output_id].path, path); // Return the guidance trajectory
   }
 
-  int GlobalGuidance::GetUsedTrajectory() const { return selected_id_; }
-
   void GlobalGuidance::OverrideSelectedTrajectory(int topology_class)
   {
     /** @warning should only be called once */
-    // ROSTOOLS_ASSERT(output_id < (int)outputs_.size(), "Trying to select a trajectory that does not exist");
     int output_id = -1; // Find the topology class
     for (size_t i = 0; i < outputs_.size(); i++)
     {
@@ -825,10 +684,9 @@ namespace GuidancePlanner
 
     ROSTOOLS_ASSERT(output_id != -1, "Trying to select a topology class that does not exist");
 
+    previous_outputs_[selected_id_].previously_selected_ = false; // The first one was not selected
+    previous_outputs_[output_id].previously_selected_ = true;     // But the given one was
     selected_id_ = output_id;
-
-    previous_outputs_[0].previously_selected_ = false;        // The first one was not selected
-    previous_outputs_[output_id].previously_selected_ = true; // But the given one was
   }
 
   int GlobalGuidance::NumberOfGuidanceTrajectories() const { return (int)(outputs_.size()); }
@@ -848,7 +706,6 @@ namespace GuidancePlanner
   void GlobalGuidance::Visualize(bool highlight_selected, int only_path_nr)
   {
     PRM_LOG("======== Visualization ==========");
-    // Visualize the method per component
     VisualizeObstacles();
     prm_.Visualize();
     VisualizeGeometricPaths(only_path_nr);
@@ -858,61 +715,40 @@ namespace GuidancePlanner
     PRM_LOG("=================================");
   }
 
-  /*void GlobalGuidance::VisualizePath(GeometricPath &path)
+  /** @brief Helper function*/
+  void GlobalGuidance::VisualizePath(RosTools::ROSLine &line, GeometricPath &path)
   {
-    // Geometric Paths
-    RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
-    path_line.setScale(0.15, 0.15, 0.15);
-    path_line.setColorInt(path.association_.id_, config_->n_paths_, 0.75);
-
     Node *prev_node;
     bool first_node = true;
     for (auto &node : path.nodes_)
     {
       if (!first_node)
-      {
-        path_line.addLine(node->point_.MapToTime(), prev_node->point_.MapToTime());
-      }
+        line.addLine(node->point_.MapToTime(), prev_node->point_.MapToTime());
       else
-      {
         first_node = false;
-      }
 
       prev_node = node;
     }
-    ros_path_visuals_->publish();
-  }*/
+  }
 
   void GlobalGuidance::VisualizeGeometricPaths(int path_nr)
   {
-    // Geometric Paths
     RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
     path_line.setScale(0.15, 0.15, 0.15);
 
-    for (size_t i = 0; i < previous_outputs_.size(); i++)
+    // Visualize the path for each output
+    for (size_t i = 0; i < outputs_.size(); i++)
     {
-      auto &path = previous_outputs_[i].path;
+      auto &path = outputs_[i].path;
 
       if (path_nr != -1 && path_nr != (int)i)
         continue;
 
-      if (previous_outputs_[i].previously_selected_)
+      /*if (previous_outputs_[i].previously_selected_)
         path_line.setColorInt(4, 1., RosTools::Colormap::BRUNO);
-      else
-        path_line.setColorInt(previous_outputs_[i].topology_class, config_->n_paths_, 0.75);
-
-      Node *prev_node;
-      bool first_node = true;
-      for (auto &node : path.path.nodes_)
-      {
-
-        if (!first_node)
-          path_line.addLine(node->point_.MapToTime(), prev_node->point_.MapToTime());
-        else
-          first_node = false;
-
-        prev_node = node;
-      }
+      else*/
+      path_line.setColorInt(outputs_[i].topology_class, 2 * config_->n_paths_, 0.75);
+      VisualizePath(path_line, path.path);
     }
 
     ros_path_visuals_->publish();
@@ -940,13 +776,6 @@ namespace GuidancePlanner
       {
         // Transparent
         disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), RosTools::Colormap::BRUNO);
-        // -> disc.setColorInt(obstacle.id_, 0.15 * std::pow(((double)(Config::N - k)) /
-        // (double)Config::N, 2.), Colormap::BRUNO);
-
-        // Largely non-transparent
-        //   disc.setColorInt(j, obstacles_.size(),
-        //                    0.75 * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.),
-        //                    Colormap::BRUNO);
 
         disc.addPointMarker(Eigen::Vector3d(obstacle.positions_[k](0), obstacle.positions_[k](1), (float)k * Config::DT));
       }
@@ -958,24 +787,11 @@ namespace GuidancePlanner
 
   void GlobalGuidance::VisualizeTrajectories(bool highlight_selected, int path_nr)
   {
-    // Visualize the heuristic and learning lines
-    RosTools::ROSLine &heuristic_line = ros_selected_visuals_->getNewLine();
-    heuristic_line.setScale(0.25, 0.25);
-    heuristic_line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
-    RosTools::ROSLine &learning_line = ros_selected_visuals_->getNewLine();
-    learning_line.setScale(0.25, 0.25);
-    learning_line.setColorInt(3.0, 1.0, RosTools::Colormap::BRUNO);
-
     RosTools::ROSLine &line = ros_visuals_->getNewLine();
-    line.setScale(0.3, 0.3);
-
-    RosTools::ROSPointMarker trajectory_spheres = ros_visuals_->getNewPointMarker("SPHERE");
-    trajectory_spheres.setScale(0.20, 0.20, 0.20);
+    line.setScale(0.15, 0.15);
 
     RosTools::ROSTextMarker text_marker = ros_visuals_->getNewTextMarker();
     text_marker.setScale(1.0);
-
-    bool visualize_trajectory_spheres = false;
 
     for (size_t i = 0; i < outputs_.size(); i++)
     {
@@ -984,74 +800,50 @@ namespace GuidancePlanner
       if (path_nr != -1 && path_nr != (int)i)
         continue;
 
+      if (highlight_selected && previous_outputs_[i].previously_selected_)
+      {
+        line.setScale(0.3, 0.3);
+
+        if (config_->use_learning) // Blue
+        {
+          text_marker.setColorInt(3.0, 1.0, RosTools::Colormap::BRUNO);
+          line.setColorInt(3.0, 1.0, RosTools::Colormap::BRUNO);
+        }
+        else // Red
+        {
+          text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
+          line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
+        }
+      }
+      else // Color scale
+      {
+        line.setScale(0.15, 0.15);
+        line.setColorInt(outputs_[i].topology_class, 2 * config_->n_paths_, 0.75);
+      }
+
       std::vector<Eigen::Vector3d> &points = spline.GetSamples(); // Get samples on the current spline
-      bool text_added = false;
 
       if (config_->show_trajectory_indices_)
       {
-        if (outputs_[i].previously_selected_)
-        {
-          text_marker.setText("S"); // std::to_string(outputs_[i].topology_class)); // Add the spline number
-        }
-        else
-        {
-          text_marker.setText("-"); // std::to_string(outputs_[i].topology_class)); // Add the spline number
-        }
+        text_marker.setText(std::to_string(outputs_[i].topology_class)); // Add the spline number
+        text_marker.setColorInt(outputs_[i].topology_class, 2 * config_->n_paths_, 1.);
       }
-      line.setColorInt(outputs_[i].topology_class, config_->n_paths_, 0.75);
-      trajectory_spheres.setColorInt(outputs_[i].topology_class, config_->n_paths_, 1.0);
-      line.setScale(0.15, 0.15);
 
       // Draw a line for the time scaled points
       for (size_t j = 0; j < points.size(); j++)
       {
-        Eigen::Vector3d cur_vec = points[j];
+        Eigen::Vector3d &cur_vec = points[j];
 
         if (j > 0)
         {
-          Eigen::Vector3d prev_vec = points[j - 1];
-
-          if (highlight_selected && !config_->use_learning && outputs_[i].topology_class == heuristic_outputs_[0].topology_class) // highlight the selected spline
-          {
-            heuristic_line.addLine(prev_vec, cur_vec);
-
-            if (visualize_trajectory_spheres && j % 10 == 0)
-              trajectory_spheres.addPointMarker(cur_vec);
-
-            if (config_->show_trajectory_indices_)
-              text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
-          }
-          else if (highlight_selected && config_->use_learning && outputs_[i].topology_class == learning_outputs_[0].topology_class)
-          {
-            learning_line.addLine(prev_vec, cur_vec);
-
-            if (visualize_trajectory_spheres && j % 10 == 0)
-              trajectory_spheres.addPointMarker(cur_vec);
-
-            if (config_->show_trajectory_indices_)
-              text_marker.setColorInt(3.0, 1.0, RosTools::Colormap::BRUNO);
-          }
-          else
-          {
-            line.addLine(prev_vec, cur_vec);
-
-            if (visualize_trajectory_spheres && j % 10 == 0)
-              trajectory_spheres.addPointMarker(cur_vec);
-
-            if (config_->show_trajectory_indices_)
-              text_marker.setColorInt(outputs_[i].topology_class, config_->n_paths_ * 2, 1.0);
-          }
-
-          if (!text_added && (double)j / (double)points.size() > 0.5)
-          {
-            if (config_->show_trajectory_indices_)
-              text_marker.addPointMarker(cur_vec + Eigen::Vector3d(3.0, 0., 3.0));
-            text_added = true;
-          }
+          Eigen::Vector3d &prev_vec = points[j - 1];
+          line.addLine(prev_vec, cur_vec);
         }
       }
+
+      if (config_->show_trajectory_indices_)
+        text_marker.addPointMarker(points.back() + Eigen::Vector3d(0., 0., 3.0));
     }
-    ros_selected_visuals_->publish();
     ros_visuals_->publish();
   }
 

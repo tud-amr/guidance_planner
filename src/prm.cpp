@@ -107,9 +107,6 @@ namespace GuidancePlanner
     range_y_ = max_y - min_y + config_->sample_margin_;
     min_x_ = min_x - config_->sample_margin_ / 2.;
     min_y_ = min_y - config_->sample_margin_ / 2.;
-
-    /* Other data */
-    // previously_selected_id_ = previously_selected_id;
   }
 
   Graph &PRM::Update()
@@ -122,16 +119,13 @@ namespace GuidancePlanner
     done_ = false;
 
     topology_comparison_->Clear();
-
     graph_->Clear();
-    graph_->Initialize(start_, goals_);
-
     all_samples_.clear();
-
-    // next_segment_id_ = -1;
 
     RosTools::TriggeredTimer prm_timer(config_->timeout_ / 1000.);
     prm_timer.start();
+
+    graph_->Initialize(start_, goals_);
 
     // Resize, because the number of samples may have been changed
     samples_.resize(config_->n_samples_);
@@ -169,24 +163,18 @@ namespace GuidancePlanner
 
         AddSample(i, sample, visible_guards, sample_is_from_previous_iteration); // single threaded
       }
-      else if (visible_goals.size() > 1 && visible_guards.size() == 1) // In this case we connect a guard with more than
-                                                                       // one goal
+      else if (visible_goals.size() > 1 && visible_guards.size() == 1) // We connect a guard with more than one goal
       {
         PRM_LOG("New sample connects to more than one goal");
+        Node new_node = sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i])
+                                                          : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
 
-        // There could be more than one homotopy
-        Node new_node =
-            sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i]) : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
-
-        std::vector<Node *> topology_distinct_goals;
-        FindTopologyDistinctGoalConnections(new_node, visible_guards, visible_goals, topology_distinct_goals); /** @todo: resolve slow-down */
-
-        for (auto &goal : topology_distinct_goals) // Check its homotopy agains the other goals that
+        Node *goal = FindTopologyDistinctGoalConnection(new_node, visible_guards, visible_goals);
+        if (goal != nullptr)
           AddSample(i, sample, {visible_guards[0], goal}, sample_is_from_previous_iteration);
       }
 
-      // Check for a time-out
-      if (prm_timer.hasFinished())
+      if (prm_timer.hasFinished()) // Timeout
       {
         // PRM_WARN("Timeout on PRM sampling (" << config_->timeout_ << "ms)");
         break;
@@ -207,22 +195,18 @@ namespace GuidancePlanner
     for (int i = 0; i < config_->n_samples_; i++)
     {
       sample_succes[i] = true;
-      // First resample previous nodes
-      bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size();
+
+      bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size(); // First resample previous nodes
 
       // Get a new sample (either from the previous iteration, or a new one)
       SpaceTimePoint sample = sample_is_from_previous_iteration ? previous_nodes_[i].point_ : SampleNewPoint();
 
-      PRM_LOG("==== [" << i << "] New Sample ====\n"
-                       << sample);
-
-      // Check if the sample is in collision
-      if (environment_.InCollision(sample))
+      if (environment_.InCollision(sample)) // Check if the sample is in collision
       {
         PRM_LOG("Sample was in collision. Projecting to free space");
         environment_.ProjectToFreeSpace(sample, 0.1);
-        if (environment_.InCollision(sample)) // If that didn't work, then try another sample
-          sample_succes[i] = false;
+        if (environment_.InCollision(sample))
+          sample_succes[i] = false; // If that didn't work, then try another sample
       }
 
       if (sample_succes[i])
@@ -238,87 +222,27 @@ namespace GuidancePlanner
     }
   }
 
-  void PRM::FindTopologyDistinctGoalConnections(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals,
-                                                std::vector<Node *> &topology_distinct_goals)
+  Node *PRM::FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
   {
-
-    // Sort the costs by how good they are
-    std::sort(visible_goals.begin(), visible_goals.end(),
-              [&](const Node *goal_a, const Node *goal_b)
+    // Sort the costs to have the best goals initially
+    std::sort(visible_goals.begin(), visible_goals.end(), [&](const Node *goal_a, const Node *goal_b)
               { return Goal::FindGoalWithNode(goals_, goal_a).cost < Goal::FindGoalWithNode(goals_, goal_b).cost; });
 
     for (auto &goal : visible_goals)
     {
-      // Construct the path for this goal
-      GeometricPath new_path({visible_guards[0], &new_node, goal});
-
-      // Check the connection
-      // if (!ConnectionIsValid(visible_guards[0], goal, new_node.point_))
-      if (ConnectionIsValid(new_path))
-      {
-        PRM_LOG("Found a valid connection to a goal");
-        topology_distinct_goals.push_back(goal);
-        return;
-      }
+      GeometricPath new_path({visible_guards[0], &new_node, goal}); // Construct the path for this goal
+      if (ConnectionIsValid(new_path))                              // Check validity
+        return goal;
     }
 
-    /** @note Old implementation: more than one goal per sample */
-    /*for (auto &goal : visible_goals)
-    {
-
-      if (topology_distinct_goals.size() > 0) // We only accept one path per sample!
-        break;
-
-      // Construct the path for this goal
-      GeometricPath new_path({visible_guards[0], &new_node, goal});
-
-      // Check the connection
-      // if (!ConnectionIsValid(visible_guards[0], goal, new_node.point_))
-      if (!ConnectionIsValid(new_path))
-      {
-        PRM_LOG("The connection to one of the goals is not valid");
-        continue;
-      }
-
-      bool is_topologically_distinct = true;
-
-      for (auto &other_goal : topology_distinct_goals) // Check its homotopy agains the distinct paths so far
-      {
-        // Check if our new_path is homotopically equivalent to all topology distinct goals that we know
-        GeometricPath other_path({visible_guards[0], &new_node, other_goal});
-
-        // This speeds up comparison: Checking which path is better is very cheap, so do that first
-        if (FirstPathIsBetter(other_path, new_path))
-        {
-          PRM_LOG("The new path is better");
-
-          if (AreHomotopicEquivalent(new_path, other_path))
-          {
-            PRM_LOG("Found a homotopic equivalent path to another goal");
-            is_topologically_distinct = false;
-
-            other_goal = goal; // Use this goal for the topology
-
-            break;
-          }
-        }
-      }
-
-      if (is_topologically_distinct)
-      {
-        PRM_LOG("Found a path to the goal with a distinct homotopy");
-
-        topology_distinct_goals.push_back(goal);
-      }
-    }*/
+    return nullptr;
   }
 
   void PRM::AddSample(int i, SpaceTimePoint &sample, const std::vector<Node *> guards, bool sample_is_from_previous_iteration)
   {
     PRM_LOG("Guards: " << *guards[0] << " and " << *guards[1]);
 
-    // // Check if the proposed connection is valid
-    if (!ConnectionIsValid(guards[0], guards[1], sample))
+    if (!ConnectionIsValid(guards[0], guards[1], sample)) // Check if the proposed connection is valid
     {
       PRM_LOG("Sampled connector is not a valid connector");
       return;
@@ -326,29 +250,18 @@ namespace GuidancePlanner
     else
       PRM_LOG("Connector is valid");
 
-    Node new_node =
-        sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i]) : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
+    Node new_node = sample_is_from_previous_iteration
+                        ? Node(graph_->GetNodeID(), previous_nodes_[i])
+                        : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
     new_node.type_ = NodeType::CONNECTOR;
 
-    // Get other nodes that connect to these two guards
     std::vector<Node *> shared_neighbours;
     shared_neighbours = graph_->GetSharedNeighbours(guards); // Get all nodes with the same neighbours. The goal guards count as one.
     PRM_LOG("Found " << shared_neighbours.size() << " shared neighbours");
 
     GeometricPath new_path, other_path;
     if (shared_neighbours.size() > 0)
-    {
       new_path = GeometricPath({guards[0], &new_node, guards[1]});
-
-      // // Check if the proposed connection is valid
-      // if (!ConnectionIsValid(new_path))
-      // {
-      //   PRM_LOG("Sampled connector is not a valid connector");
-      //   return;
-      // }
-      // else
-      //   PRM_LOG("Connector is valid");
-    }
 
     bool path_is_distinct = true;
     for (auto &neighbour : shared_neighbours)
@@ -361,7 +274,6 @@ namespace GuidancePlanner
         PRM_LOG("Segment of the new connector is homotopically equivalent to that of " << *neighbour);
         path_is_distinct = false;
 
-        // If they are and the new sample has a shorter path
         if (FirstPathIsBetter(new_path, other_path, config_->min_path_improvement_))
         {
           PRM_LOG("Replacing existing node " << *neighbour << "with faster node " << new_node
@@ -378,7 +290,6 @@ namespace GuidancePlanner
       }
     }
 
-    // If the path has no equivalent other paths
     if (path_is_distinct)
       AddNewConnector(new_node, guards);
   }
@@ -392,13 +303,8 @@ namespace GuidancePlanner
         continue;
 
       const GeometricPath *node_path = nullptr; // To which path does this node belong
-
-      // int path_association_for_this_node = -1;
-      if (node.type_ == NodeType::CONNECTOR) // For all connectors
+      if (node.type_ == NodeType::CONNECTOR)    // For all connectors
       {
-        // Find the related path and save it in the node and on the stack
-        // for (auto &path_association : known_paths)
-        // {
         for (size_t p = 0; p < paths.size(); p++)
         {
           if (paths[p].ContainsNode(node))
@@ -407,22 +313,15 @@ namespace GuidancePlanner
             break;
           }
         }
-        // if (path_association.ContainsSegment(node.segment_association_id_))
-        // {
-        //   node.belongs_to_path_ = path_association.id_;
-        //   path_association_for_this_node = path_association.id_;
-        //   break;
-        // }
-        // }
       }
+
       PropagateNode(node, node_path);
     }
   }
 
   void PRM::PropagateNode(const Node &node, const GeometricPath *path)
   {
-    // Copy the given node to save it (note: by value, because the graph will be reset)
-    previous_nodes_.push_back(node);
+    previous_nodes_.push_back(node); // Copy the given node to save it (by value, because the graph will be reset)
     auto &propagated_node = previous_nodes_.back();
 
     // Then, we would like to propagate this node on its path so that it remains on the path at the same point in time
@@ -432,7 +331,7 @@ namespace GuidancePlanner
       propagated_node.point_.Time() = node.point_.Time() - (Config::CONTROL_DT / Config::DT); // Drop by however much discrete steps we
                                                                                               // are moving in one control iteration
 
-      // if (propagated_node.point_.Pos()(0) < start_(0)) // Do not propagate nodes behind the
+      // if (propagated_node.point_.Pos()(0) < start_(0))
       // {
       // previous_nodes_.pop_back();
       // return;
@@ -444,33 +343,30 @@ namespace GuidancePlanner
         if (propagated_node.type_ == NodeType::CONNECTOR && path != nullptr) // Resample connectors
         {
           // Find the first node in the path that is not our current node
-          bool found_first_node = false;
-          int first_node_id = 1; // Skip the start
-          for (; first_node_id < (int)path->nodes_.size(); first_node_id++)
-          {
-            if (path->nodes_[first_node_id]->id_ != node.id_)
-            {
-              found_first_node = true;
-              break;
-            }
-          }
-          ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
-
+          // bool found_first_node = false;
+          // int first_node_id = 1; // Skip the start
+          // for (; first_node_id < (int)path->nodes_.size(); first_node_id++)
+          // {
+          //   if (path->nodes_[first_node_id]->id_ != node.id_)
+          //   {
+          //     found_first_node = true;
+          //     break;
+          //   }
+          // }
+          // ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
+          int first_node_id = 2; // Cannot be the start, cannot be the first connector
           auto &next_node = path->nodes_[first_node_id];
 
-          // Sample a new point at its time index (0.5(T2 + T1) / (T_end - T_start)) \in [0, 1]
-          SpaceTimePoint new_sample = (*path)((0.5 * (next_node->point_.Time() + node.point_.Time())) /
-                                              (path->EndTimeIndex() - path->StartTimeIndex())); // Sample halfway up to the next node
+          // Sample halfway up to the next node (0.5(T2 + T1) / (T_end - T_start)) \in [0, 1]
+          propagated_node.point_ = (*path)((0.5 * (next_node->point_.Time() + node.point_.Time())) /
+                                           (path->EndTimeIndex() - path->StartTimeIndex()));
 
-          // Create a node to replace the old
-          // Node replacement_node(/*config_->n_samples_ + previous_nodes_.size()*/, new_sample, NodeType::CONNECTOR);
-          Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR);
-          // replacement_node.SetSegmentAssociation(propagated_node.segment_association_id_);
-          replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
+          // Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR); // Replace the node
+          // replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
 
-          // Remove the previous node and add the replacement
-          previous_nodes_.pop_back();
-          previous_nodes_.push_back(replacement_node);
+          // // Remove the previous node and add the replacement
+          // previous_nodes_.pop_back();
+          // previous_nodes_.push_back(replacement_node);
         }
         else
         {
@@ -481,34 +377,7 @@ namespace GuidancePlanner
     }
   }
 
-  /** @brief Because previous segments may occupy some of the IDs, we want the next free ID when called */
-  /*int PRM::GetNextAvailableSegmentID()
-  {
-    next_segment_id_++;
-
-    bool segment_id_is_free = false;
-    while (!segment_id_is_free) // Check if the planned ID is already taken by any of the existing nodes
-    {
-      segment_id_is_free = true;
-      for (auto &node : previous_nodes_)
-      {
-        if (node.segment_association_id_ == next_segment_id_)
-        {
-          next_segment_id_++;
-          segment_id_is_free = false;
-          break;
-        }
-      }
-    }
-
-    return next_segment_id_;
-  }*/
-
-  SpaceTimePoint PRM::SampleNewPoint()
-  {
-    return (this->*sampling_function_)();
-  }
-
+  SpaceTimePoint PRM::SampleNewPoint() { return (this->*sampling_function_)(); }
   SpaceTimePoint PRM::SampleUniformly3D()
   {
     return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
@@ -522,7 +391,6 @@ namespace GuidancePlanner
     {
       if (node.type_ == NodeType::GUARD || node.type_ == NodeType::GOAL)
       {
-        // If this guard marks a goal
         if (environment_.IsVisible(sample, node.point_))
         {
           if (node.type_ == NodeType::GUARD)
@@ -545,30 +413,6 @@ namespace GuidancePlanner
     new_node_ptr->neighbours_.push_back(visible_guards[0]);
     new_node_ptr->neighbours_.push_back(visible_guards[1]);
 
-    // If the new node has no association, load the association of the neighbour
-    /*if (new_node_ptr->segment_association_id_ == -1)
-    {
-
-      new_node_ptr->SetSegmentAssociation(neighbour->segment_association_id_);
-    }
-    else if (neighbour->segment_association_id_ != -1 && new_node_ptr->segment_association_id_ != -1) // If both nodes have an association
-    {
-      PRM_LOG("Segments " << new_node_ptr->segment_association_id_ << " and " << neighbour->segment_association_id_ << " merged");
-
-      // If they both have an association, then we need to pick one. We should prefer the previously selected ID
-      for (auto &previous_path_association : known_paths_) // Find the previously selected path association
-      {
-        if (previous_path_association.id_ == previously_selected_id_) // WRONG
-        {
-          // Keep the neighbours one if it was selected, otherwise keep our own
-          if (previous_path_association.ContainsSegment(neighbour->segment_association_id_))
-            new_node_ptr->SetSegmentAssociation(neighbour->segment_association_id_);
-
-          break;
-        }
-      }
-    }*/
-
     // replace the neighbours of the guards with the new node
     visible_guards[0]->ReplaceNeighbour(neighbour, new_node_ptr);
     visible_guards[1]->ReplaceNeighbour(neighbour, new_node_ptr);
@@ -581,17 +425,6 @@ namespace GuidancePlanner
     // Set its neighbours
     new_node_ptr->neighbours_.push_back(visible_guards[0]);
     new_node_ptr->neighbours_.push_back(visible_guards[1]);
-
-    // Each distinct new node is assigned a unique segment ID
-    /* if (new_node_ptr->segment_association_id_ == -1)
-     {
-       new_node_ptr->segment_association_id_ = GetNextAvailableSegmentID();
-       PRM_LOG("Node added with new segment association " << *new_node_ptr);
-     }
-     else
-     {
-       PRM_LOG("Previous node with segment association added " << *new_node_ptr);
-     }*/
 
     // Add the new node to the neighbours of the visible guards
     visible_guards[0]->neighbours_.push_back(new_node_ptr);
@@ -622,7 +455,6 @@ namespace GuidancePlanner
   double PRM::GetHomotopicCost(const GeometricPath &a, const GeometricPath &b)
   {
     // debug_benchmarker_->start();
-
     double homology_cost = reinterpret_cast<Homology *>(topology_comparison_.get())->GetCost(a, b, environment_);
     // debug_benchmarker_->stop();
 
@@ -632,7 +464,6 @@ namespace GuidancePlanner
   std::vector<bool> PRM::PassesRight(const GeometricPath &path)
   {
     // debug_benchmarker_->start();
-
     std::vector<bool> h = topology_comparison_->LeftPassingVector(path, environment_);
     // debug_benchmarker_->stop();
 
@@ -643,9 +474,7 @@ namespace GuidancePlanner
   bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePoint &second_point)
   {
     // This subfunction checks the connection between any two points
-
     // Connections must move forward in the "x" direction
-
     bool forward_connection = (!config_->enable_forward_filter_) || (Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
                                                                      Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos()); //.Pos()(0) > first_point.Pos()(0);
     if (!forward_connection)
@@ -662,7 +491,6 @@ namespace GuidancePlanner
     if (!vel_satisfies_limits)
     {
       PRM_LOG("Connection does not satisfy velocity limits");
-
       return false;
     }
 
@@ -715,8 +543,7 @@ namespace GuidancePlanner
     // ACCELERATIONS
     if (config_->enable_acceleration_filter_)
     {
-      // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the
-      // limits
+      // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the limits
       SpaceTimePoint first_point = start_node->point_;
       SpaceTimePoint second_point = new_point;
       SpaceTimePoint third_point = end_node->point_;
@@ -768,7 +595,6 @@ namespace GuidancePlanner
 
   bool PRM::FirstPathIsBetter(const GeometricPath &first_path, const GeometricPath &second_path, double min_improvement)
   {
-    // Prefer goals
     double goal_1_cost, goal_2_cost;
     if (first_path.nodes_.back()->type_ == NodeType::GOAL && second_path.nodes_.back()->type_ == NodeType::GOAL)
     {
@@ -778,9 +604,8 @@ namespace GuidancePlanner
 
       if (goal_1_cost != goal_2_cost)
         return goal_1_cost < goal_2_cost; // Is the goal better?
-      else
-        return first_path.RelativeSmoothness() < second_path.RelativeSmoothness(); // Is it smoother
     }
+
     return first_path.RelativeSmoothness() < second_path.RelativeSmoothness();
   }
 
@@ -792,12 +617,7 @@ namespace GuidancePlanner
     config_->seed_ += 1; // Keep the randomizer consistent for every experiment
     random_generator_ = RosTools::RandomGenerator(config_->seed_);
 
-    // Forget paths
-    path_id_was_known_ = std::vector<bool>(config_->n_paths_, false);
-    // known_paths_.clear();
-
-    // Forget nodes
-    previous_nodes_.clear();
+    previous_nodes_.clear(); // Forget nodes
   }
 
   void PRM::Visualize()

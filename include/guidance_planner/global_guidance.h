@@ -113,10 +113,10 @@ namespace GuidancePlanner
     std::vector<bool> PassesRight(int output_id, const Eigen::Vector2d &goal);
 
     /** @brief Get the ID of the used trajectory */
-    int GetUsedTrajectory() const;
+    int GetUsedTopologyClass() const { return previous_outputs_[selected_id_].topology_class; }
+    OutputTrajectory &GetUsedTrajectory() { return previous_outputs_[selected_id_]; }
 
     /** @brief Set the ID of the used trajectory */
-    // void SetUsedTrajectory(int spline_id);
     void OverrideSelectedTrajectory(int output_id);
 
     /** @brief Checks if there were any paths found */
@@ -137,7 +137,7 @@ namespace GuidancePlanner
     void Visualize(bool highlight_selected = true, int only_path_nr = -1);
 
     /** @brief Visualize geometric path */
-    // void VisualizePath(GeometricPath &path);
+    void VisualizePath(RosTools::ROSLine &line, GeometricPath &path);
 
     /** @brief Export data for external analysis */
     void ExportData(RosTools::DataSaver &data_saver);
@@ -146,6 +146,23 @@ namespace GuidancePlanner
 
     Eigen::Vector2d GetStart() const { return prm_.GetStart(); };                 /** @brief Get the start position */
     Eigen::Vector2d GetStartVelocity() const { return prm_.GetStartVelocity(); }; /** @brief Get the start velocity */
+
+  private:
+    /** @brief Identify paths that are homotopy equivalent by checking each pair */
+    void RemoveHomotopicEquivalentPaths();
+    void IdentifyPreviousHomologies(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
+
+    void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs); /** @brief Order splines if the splines are used */
+    void OrderOutputByLearning(std::vector<OutputTrajectory> &outputs);  /** @brief Order splines using learning */
+
+    double PathSelectionCost(const GeometricPath &path);
+
+    /** Visualization functions */
+    void VisualizeGeometricPaths(int path_nr = -1);
+    void VisualizeTrajectories(bool highlight_selected = true, int path_nr = -1);
+    void VisualizeSplinePoints();
+    void VisualizeObstacles();
+    void VisualizeDebug();
 
   private:
     ros::NodeHandle nh_;
@@ -169,14 +186,9 @@ namespace GuidancePlanner
     // Outputs
     std::vector<OutputTrajectory> heuristic_outputs_, learning_outputs_;
     std::vector<OutputTrajectory> outputs_, previous_outputs_;
+    int selected_id_ = -1;
 
     std::vector<int> sorted_indices_;
-
-    // Topology propagation
-    int next_segment_id_;
-    // std::vector<PathAssociation> known_paths_;
-    std::vector<bool> path_id_was_known_;
-    int selected_id_;
 
     // Real-time data
     std::vector<Obstacle> obstacles_;
@@ -194,32 +206,6 @@ namespace GuidancePlanner
     // Debugging variables
     bool no_message_sent_yet_;
     std::vector<std::unique_ptr<RosTools::Benchmarker>> benchmarkers_;
-
-    /** @brief Check for all the paths if there are any unfollowable paths and remove them if necessary */
-    // void FilterPaths();
-    // void OrderPaths();
-
-    void IdentifyPreviousHomologies(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
-
-    /** @brief Order splines if the splines are used */
-    void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs);
-    /** @brief Order splines using learning */
-    void OrderOutputByLearning(std::vector<OutputTrajectory> &outputs);
-
-    /** @brief Identify paths that are homotopy equivalent by checking each pair */
-    void RemoveHomotopicEquivalentPaths();
-
-    double PathSelectionCost(const GeometricPath &path);
-
-    // void AssignIDsToKnownPaths(std::vector<int> &available_ids);
-    // void AssignIDsToNewPaths(std::vector<int> &available_ids);
-
-    /** Visualization functions */
-    void VisualizeGeometricPaths(int path_nr = -1);
-    void VisualizeTrajectories(bool highlight_selected = true, int path_nr = -1);
-    void VisualizeSplinePoints();
-    void VisualizeObstacles();
-    void VisualizeDebug();
   };
 }; // namespace Homotopy
 
