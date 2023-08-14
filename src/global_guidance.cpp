@@ -35,7 +35,7 @@ namespace GuidancePlanner
     path = StandaloneGeometricPath(_path);
     for (auto &node : path.saved_nodes_)
     {
-      if (node.type_ == NodeType::CONNECTOR)
+      if (node.type_ == NodeType::CONNECTOR && node.id_ < 1e4)
         node.id_ += 1e4;
     }
 
@@ -50,7 +50,7 @@ namespace GuidancePlanner
     path = StandaloneGeometricPath(other.path);
     for (auto &node : path.saved_nodes_)
     {
-      if (node.type_ == NodeType::CONNECTOR)
+      if (node.type_ == NodeType::CONNECTOR && node.id_ < 1e4)
         node.id_ += 1e4;
     }
 
@@ -202,6 +202,9 @@ namespace GuidancePlanner
       PRM_LOG("GlobalGuidance::Update")
       benchmarkers_[0]->start();
 
+      paths_.clear();
+      splines_.clear();
+
       outputs_.clear();
       learning_outputs_.clear();
       heuristic_outputs_.clear();
@@ -213,14 +216,14 @@ namespace GuidancePlanner
       for (auto &obstacle : obstacles_) // Dynamic obstacles
         ROSTOOLS_ASSERT((int)obstacle.positions_.size() >= Config::N + 1, "Obstacles should have their predictions populated from 0-N");
 
-      PRM_LOG("======== PRM ==========");
+      PRM_LOG("======== Visibility-PRM ==========");
 
       prm_.LoadData(obstacles_, static_obstacles_, start_, orientation_, start_velocity_, goals_);
       benchmarkers_[1]->start();
       Graph &graph = prm_.Update(); // Construct a graph using visibility PRM
       benchmarkers_[1]->stop();
 
-      PRM_LOG("======== Path Search ==========");
+      PRM_LOG("======== Depth First Path Search ==========");
       {
         PROFILE_SCOPE("Path Search");
         benchmarkers_[2]->start();
@@ -238,21 +241,11 @@ namespace GuidancePlanner
         }
 
         // Join all paths
-        paths_.clear();
         for (auto &cur_path : cur_paths)
         {
           for (auto &path : cur_path)
             paths_.emplace_back(path);
         }
-
-        RemoveHomotopicEquivalentPaths(); // Remove paths in duplicate topologies
-
-        /* Select the best paths*/
-        std::sort(paths_.begin(), paths_.end(),
-                  [&](const GeometricPath &a, const GeometricPath &b)
-                  { return PathSelectionCost(a) > PathSelectionCost(b); });
-
-        paths_.resize(std::min((int)paths_.size(), config_->n_paths_)); // Keep the best num_paths paths
 
         // If there are no paths - WARN
         if (paths_.size() == 0 && config_->n_paths_ != 0)
@@ -261,32 +254,43 @@ namespace GuidancePlanner
         benchmarkers_[2]->stop();
       }
 
-      // Print all paths
-      PRM_LOG("Paths:");
-      for (auto &path : paths_)
-        PRM_LOG("\t" << path << "\b");
+      PRM_LOG("======== Filter And Select ==========");
+      {
+        PROFILE_SCOPE("Path Filtering");
 
-      /** Transfer the path association information to the nodes in it AND propagate the nodes to the next iteration */
-      prm_.PropagateGraph(paths_);
+        /* Sort the paths on performance */
+        std::sort(paths_.begin(), paths_.end(),
+                  [&](const GeometricPath &a, const GeometricPath &b)
+                  { return PathSelectionCost(a) < PathSelectionCost(b); });
 
-      /** @note: new version: Check against the previously selected trajectory */
+        // Retrieve n_paths_ topology distinct paths from the sorted paths_
+        KeepTopologyDistinctPaths(paths_);
+
+        // Print all paths
+        PRM_LOG("Paths:");
+        for (auto &path : paths_)
+          PRM_LOG("\t" << path << "\b");
+
+        /** Propagate nodes in the graph to the next iteration */
+        prm_.PropagateGraph(paths_);
+      }
+
+      if (paths_.size() == 0) // Stop here if no paths were found
+      {
+        benchmarkers_[0]->stop();
+
+        // There are no outputs
+        outputs_.clear();
+        previous_outputs_.clear();
+        selected_id_ = -1;
+
+        return false;
+      }
 
       // For each path fit a spline
       PRM_LOG("======== Cubic Splines ==========");
       {
         PROFILE_SCOPE("Cubic Splines");
-        splines_.clear();
-
-        if (paths_.size() == 0) // Skip splines if no paths were found, so that we can still use the previous splines
-        {
-          benchmarkers_[0]->stop();
-
-          outputs_.clear();
-          previous_outputs_.clear();
-          selected_id_ = -1;
-
-          return false;
-        }
 
         for (auto &path : paths_)
         {
@@ -296,57 +300,60 @@ namespace GuidancePlanner
         }
       }
 
-      PRM_LOG("=========================");
-
-      PRM_LOG("======== Association ==========");
+      PRM_LOG("======== Identify ==========");
       {
-        PROFILE_SCOPE("Association");
+        PROFILE_SCOPE("Identify");
         outputs_.clear();
         for (size_t i = 0; i < paths_.size(); i++)
           outputs_.emplace_back(paths_[i], splines_[i]);
 
         IdentifyPreviousHomologies(outputs_); // Find out which of the previous homology classes were preserved
       }
-      heuristic_outputs_ = outputs_;
-      learning_outputs_ = outputs_;
 
-      // ORDER OUTPUTS!
-      if (!config_->use_learning)
-        OrderOutputByHeuristic(heuristic_outputs_);
-      else
-        OrderOutputByLearning(learning_outputs_);
+      PRM_LOG("======== Output Selection ==========");
+      {
+        heuristic_outputs_ = outputs_;
+        learning_outputs_ = outputs_;
 
-      outputs_ = config_->use_learning ? learning_outputs_ : heuristic_outputs_;
+        // Order the outputs based on some decision making procedure
+        if (!config_->use_learning)
+          OrderOutputByHeuristic(heuristic_outputs_);
+        else
+          OrderOutputByLearning(learning_outputs_);
 
-      // Save the best trajectory topology class
-      auto &best_output = outputs_[0];
-      selected_id_ = 0;
-      if (best_output.previously_selected_)
-      {
-        PRM_LOG("Selected the same trajectory as last iteration with ID: " << outputs_[selected_id_].topology_class);
-      }
-      else
-      {
-        PRM_LOG("Selected a new trajectory with ID: " << outputs_[selected_id_].topology_class);
-      }
+        outputs_ = config_->use_learning ? learning_outputs_ : heuristic_outputs_;
 
-      previous_outputs_.clear();
-      if (config_->track_selected_homology_only_) // Cheaper and should be used when using the selected output of the guidance planner
-      {
-        previous_outputs_.emplace_back(outputs_[0]);
-        previous_outputs_[0].previously_selected_ = true;
-      }
-      else
-      {
-        for (size_t o = 0; o < outputs_.size(); o++)
+        // By default the output is now the first element of outputs_
+        auto &best_output = outputs_[0];
+        selected_id_ = 0;
+        if (best_output.previously_selected_)
         {
-          previous_outputs_.emplace_back(outputs_[o]);
-          previous_outputs_.back().previously_selected_ = false; // None were selected
+          PRM_LOG("Selected the same trajectory as last iteration with ID: " << outputs_[selected_id_].topology_class);
         }
-        previous_outputs_[0].previously_selected_ = true; // The first output was selected internally
+        else
+        {
+          PRM_LOG("Selected a new trajectory with ID: " << outputs_[selected_id_].topology_class);
+        }
+
+        previous_outputs_.clear();
+        if (config_->track_selected_homology_only_) // Cheaper and should be used when using the first output always
+        {
+          previous_outputs_.emplace_back(outputs_[0]);
+          previous_outputs_[0].previously_selected_ = true;
+        }
+        else
+        {
+          for (size_t o = 0; o < outputs_.size(); o++)
+          {
+            previous_outputs_.emplace_back(outputs_[o]);
+            previous_outputs_.back().previously_selected_ = false; // None were selected
+          }
+          previous_outputs_[0].previously_selected_ = true; // The first output was selected internally
+        }
       }
+
       benchmarkers_[0]->stop();
-      PRM_LOG("Done");
+      PRM_LOG("=========== Done ============");
 
       return true; /* Succesful running */
     }
@@ -405,7 +412,11 @@ namespace GuidancePlanner
     }
   }
 
-  double GlobalGuidance::PathSelectionCost(const GeometricPath &path) { return 1000 * path.nodes_.back()->point_.Pos()(0) - path.Length3D(); }
+  double GlobalGuidance::PathSelectionCost(const GeometricPath &path)
+  {
+    return 1000. * Goal::FindGoalWithNode(*prm_.GetGoals(), path.nodes_.back()).cost - path.Length3D();
+    // return 1000 * path.nodes_.back()->point_.Pos()(0) - path.Length3D();
+  }
 
   void GlobalGuidance::OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs)
   {
@@ -537,69 +548,35 @@ namespace GuidancePlanner
     }
   }
 
-  void GlobalGuidance::RemoveHomotopicEquivalentPaths()
+  void GlobalGuidance::KeepTopologyDistinctPaths(std::vector<GeometricPath> &paths)
   {
     PROFILE_FUNCTION();
-    // 1) Track in how many paths each connector is present so that we may remove connectors that are not in any path in
-    // the end
-    std::map<Node *, int> connector_count;
-    for (auto &path : paths_)
-    {
-      for (auto &node : path.nodes_)
-        connector_count[node]++;
-    }
 
-    // Check each pair of paths and remove homotopic equivalent paths from the list (keeping the "best" path)
-    std::vector<bool> removal_marker(paths_.size(), false);
-    for (size_t i = 0; i < paths_.size(); i++)
-    {
-      if (removal_marker[i]) // If this one was removed already - skip
-        continue;
+    if (paths.size() == 0)
+      return;
 
-      for (size_t j = 0; j < paths_.size(); j++) // For all other paths
+    std::vector<GeometricPath> topology_distinct_paths; // Construct a new list with topology distinct paths
+    topology_distinct_paths.emplace_back(paths.front());
+
+    for (size_t i = 1; (i < paths.size()) && ((int)topology_distinct_paths.size() < config_->n_paths_); i++) // Up until n_paths_ are ready
+    {
+      auto &candidate_path = paths[i];
+
+      bool distinct = true;
+      for (auto &path : topology_distinct_paths)
       {
-        if (i == j || removal_marker[j]) // If this one is removed or is the same as the other - skip
-          continue;
-
-        if (removal_marker[i]) // break from the "j" loop as path i will be replaced by another
+        if (prm_.AreHomotopicEquivalent(path, candidate_path))
+        {
+          distinct = false;
           break;
-
-        // If these two paths are homotopic equivalent (can also be checked by verifying that the associations are the same)
-        if (prm_.AreHomotopicEquivalent(paths_[i], paths_[j]))
-        {
-          PRM_LOG(paths_[i] << " and " << paths_[j] << " are homotopic equivalent paths");
-
-          if (prm_.FirstPathIsBetter(paths_[i], paths_[j])) // Keep the "best" path
-            removal_marker[j] = true;
-          else
-            removal_marker[i] = true;
         }
       }
+
+      if (distinct)
+        topology_distinct_paths.emplace_back(paths[i]); // Add a path if it is distinct from the topologies that we know
     }
 
-    // Remove marked elements from the paths vector
-    for (int i = (int)paths_.size() - 1; i >= 0; i--)
-    {
-      if (removal_marker[i])
-      {
-        for (auto &node : paths_[i].nodes_)
-        {
-          if (node->type_ == NodeType::CONNECTOR) // Mark all connector nodes in the paths as "removed"
-          {
-            connector_count[node]--;
-
-            if (connector_count[node] == 0)
-            {
-              node->replaced_ = true;
-              PRM_LOG("Erasing Node " << node->id_);
-            }
-          }
-        }
-
-        PRM_LOG("Erasing " << paths_[i]); // If the node was removed prior to this, then the log may be empty
-        paths_.erase(paths_.begin() + i);
-      }
-    }
+    paths = topology_distinct_paths;
   }
 
   void GlobalGuidance::Reset()
@@ -629,7 +606,7 @@ namespace GuidancePlanner
   {
     if (trajectory_id >= (int)outputs_.size())
     {
-      // ROS_WARN("Trying to retrieve a trajectory that does not exist!");
+      ROS_WARN("Trying to retrieve a trajectory that does not exist!");
 
       if (no_message_sent_yet_ && outputs_.size() == 0)
       {
@@ -669,24 +646,32 @@ namespace GuidancePlanner
     return this->prm_.GetHomotopicCost(outputs_[output_id].path, path); // Return the guidance trajectory
   }
 
-  void GlobalGuidance::OverrideSelectedTrajectory(int topology_class)
+  void GlobalGuidance::OverrideSelectedTrajectory(int topology_class, bool set_none)
   {
-    /** @warning should only be called once */
-    int output_id = -1; // Find the topology class
-    for (size_t i = 0; i < outputs_.size(); i++)
+    if (selected_id_ != -1)
+      previous_outputs_[selected_id_].previously_selected_ = false; // Undo the last selection
+
+    if (!set_none)
     {
-      if (outputs_[i].topology_class == topology_class)
+      int output_id = -1; // Find the topology class
+      for (size_t i = 0; i < outputs_.size(); i++)
       {
-        output_id = i;
-        break;
+        if (outputs_[i].topology_class == topology_class)
+        {
+          output_id = i;
+          break;
+        }
       }
+
+      ROSTOOLS_ASSERT(output_id != -1, "Trying to select a topology class that does not exist");
+
+      previous_outputs_[output_id].previously_selected_ = true; // But the given one was
+      selected_id_ = output_id;
     }
-
-    ROSTOOLS_ASSERT(output_id != -1, "Trying to select a topology class that does not exist");
-
-    previous_outputs_[selected_id_].previously_selected_ = false; // The first one was not selected
-    previous_outputs_[output_id].previously_selected_ = true;     // But the given one was
-    selected_id_ = output_id;
+    else
+    {
+      selected_id_ = -1;
+    }
   }
 
   int GlobalGuidance::NumberOfGuidanceTrajectories() const { return (int)(outputs_.size()); }

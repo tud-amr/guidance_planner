@@ -117,7 +117,7 @@ namespace GuidancePlanner
     OutputTrajectory &GetUsedTrajectory() { return previous_outputs_[selected_id_]; }
 
     /** @brief Set the ID of the used trajectory */
-    void OverrideSelectedTrajectory(int output_id);
+    void OverrideSelectedTrajectory(int output_id, bool set_none = false);
 
     /** @brief Checks if there were any paths found */
     bool Succeeded() { return (NumberOfGuidanceTrajectories() > 0); };
@@ -149,7 +149,7 @@ namespace GuidancePlanner
 
   private:
     /** @brief Identify paths that are homotopy equivalent by checking each pair */
-    void RemoveHomotopicEquivalentPaths();
+    void KeepTopologyDistinctPaths(std::vector<GeometricPath>& paths);
     void IdentifyPreviousHomologies(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
 
     void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs); /** @brief Order splines if the splines are used */
