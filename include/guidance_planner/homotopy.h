@@ -119,8 +119,8 @@ namespace GuidancePlanner
 
     NodeType type_; // Guard / Connector
 
-    int segment_association_id_; // The identification of the path this node belongs to
-    bool replaced_;              // True if another node replaced this node
+    // int segment_association_id_ = -1; // The identification of the path this node belongs to
+    bool replaced_; // True if another node replaced this node
 
     int belongs_to_path_ = -1; /** @note Set a posteriori for visualization */
 
@@ -130,13 +130,13 @@ namespace GuidancePlanner
     {
       type_ = node_type;
       replaced_ = false;
-      segment_association_id_ = -1;
+      // segment_association_id_ = -1;
     }
 
     Node(int id, const Node &other) : id_(id), point_(other.point_)
     {
       type_ = other.type_;
-      segment_association_id_ = other.segment_association_id_;
+      // segment_association_id_ = other.segment_association_id_;
 
       replaced_ = false;
       // belongs_to_path_ = other.belongs_to_path_;
@@ -163,7 +163,7 @@ namespace GuidancePlanner
       return false;
     }
 
-    void SetSegmentAssociation(const int segment_id) { segment_association_id_ = segment_id; }
+    // void SetSegmentAssociation(const int segment_id) { segment_association_id_ = segment_id; }
 
     double DistanceTo(const Node &other) { return ((Eigen::Vector3d)(other.point_ - this->point_)).norm(); }
 
@@ -179,7 +179,7 @@ namespace GuidancePlanner
         return stream;
 
       if (node.type_ == NodeType::CONNECTOR)
-        stream << "C" << node.id_ << " (" << node.segment_association_id_ << ") ";
+        stream << "C" << node.id_; /* << " (" << node.segment_association_id_ << ") ";*/
       else if (node.type_ == NodeType::GOAL)
         stream << "GOAL" << node.id_;
       else
@@ -329,10 +329,11 @@ namespace GuidancePlanner
           // Any connector that was not replaced
           if (!node.replaced_)
           {
-            if (node.segment_association_id_ >= 0)
-              sphere.setColorInt(node.segment_association_id_, config_->n_paths_);
-            else
-              sphere.setColor(0.2, 0.2, 0.2, 1.0);
+            // Node coloring (disabled)
+            // if (node.belongs_to_path_ >= 0)
+            //   sphere.setColorInt(node.belongs_to_path_, config_->n_paths_);
+            // else
+            sphere.setColor(0.2, 0.2, 0.2, 1.0);
 
             Eigen::Vector3d node_pose = node.point_.MapToTime();
             sphere.addPointMarker(node_pose);

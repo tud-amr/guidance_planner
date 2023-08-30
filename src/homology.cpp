@@ -41,7 +41,7 @@ namespace GuidancePlanner
   /** @brief: https://link.springer.com/article/10.1007/s10514-012-9304-1 */
   bool Homology::AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all)
   {
-    bool result = true;
+    bool equivalent = true;
     // Retrieve cached h values over the obstacles (i.e., a vector)
     std::vector<double> &cached_a = cached_values_[a]; // Note: will create the cache if it does not exist
     std::vector<double> &cached_b = cached_values_[b]; // Note: will create the cache if it does not exist
@@ -84,12 +84,12 @@ namespace GuidancePlanner
         if (!compute_all)
           return false;
         else
-          result = false;
+          equivalent = false;
       }
       // If is zero, keep checking the other obstacles
     }
 
-    return result; // If none of them are distinct, then the two paths are homology equivalent!
+    return equivalent; // If none of them are distinct, then the two paths are homology equivalent!
   }
 
   /** @brief: https://link.springer.com/article/10.1007/s10514-012-9304-1 */

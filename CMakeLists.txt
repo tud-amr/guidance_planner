@@ -66,6 +66,7 @@ add_library(guidance_planner
     src/homology.cpp
     src/third_party/spline.cpp
     src/cubic_spline.cpp
+    src/learning_guidance.cpp
 )
 add_dependencies(guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(guidance_planner

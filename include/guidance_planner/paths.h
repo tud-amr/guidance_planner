@@ -14,7 +14,7 @@ namespace GuidancePlanner
   };
 
   /** @brief Defines the path association and how to merge it */
-  struct PathAssociation
+  /*struct PathAssociation
   {
     int id_;
     std::vector<int> segments_;
@@ -32,83 +32,81 @@ namespace GuidancePlanner
       id_ = -1;
     }
 
-    /** @brief Merge this path association with another and determine the new IDs */
-    /** @todo what about the segments */
-    void Merge(const PathAssociation &other, int selected_id)
+  void Merge(const PathAssociation &other, int selected_id)
+  {
+    if (other.Assigned()) // If the other association is assigned
     {
-      if (other.Assigned()) // If the other association is assigned
+      if (!Assigned()) // If this ID is unassigned
       {
-        if (!Assigned()) // If this ID is unassigned
+        id_ = other.id_; // Copy the assigned ID
+      }
+      else // Otherwise some paths must have merged in the environment
+      {
+        std::cout << "Detected a merger of paths " << id_ << " and " << other.id_ << std::endl;
+        if (id_ == selected_id || other.id_ == selected_id) // If the selected ID is one of the paths, use that
+          id_ = selected_id;
+        else
+          id_ = std::min(id_, other.id_); // Otherwise pick the lowest
+      }
+    }
+  }
+
+  bool Matches(const PathAssociation &other)
+  {
+    for (auto &segment : segments_)
+    {
+      bool found_segment = false;
+      for (auto &other_segment : other.segments_)
+      {
+        if (segment == other_segment)
         {
-          id_ = other.id_; // Copy the assigned ID
-        }
-        else // Otherwise some paths must have merged in the environment
-        {
-          std::cout << "Detected a merger of paths " << id_ << " and " << other.id_ << std::endl;
-          if (id_ == selected_id || other.id_ == selected_id) // If the selected ID is one of the paths, use that
-            id_ = selected_id;
-          else
-            id_ = std::min(id_, other.id_); // Otherwise pick the lowest
+          found_segment = true;
+          break;
         }
       }
+
+      if (!found_segment)
+        return false;
     }
 
-    /** @brief Check if this path association matches another */
-    bool Matches(const PathAssociation &other)
+    return true;
+  }
+
+  bool ContainsSegment(const int segment_id) const
+  {
+    for (auto &segment : segments_)
     {
-      for (auto &segment : segments_)
-      {
-        bool found_segment = false;
-        for (auto &other_segment : other.segments_)
-        {
-          if (segment == other_segment)
-          {
-            found_segment = true;
-            break;
-          }
-        }
-
-        if (!found_segment)
-          return false;
-      }
-
-      return true;
+      if (segment_id == segment)
+        return true;
     }
 
-    /** @brief Check if this path contains the given segment */
-    bool ContainsSegment(const int segment_id) const
+    return false;
+  }
+
+  bool AllSegmentsAssigned()
+  {
+    for (auto &segment : segments_)
     {
-      for (auto &segment : segments_)
-      {
-        if (segment_id == segment)
-          return true;
-      }
-
-      return false;
+      if (segment == -1)
+        return false;
     }
 
-    bool AllSegmentsAssigned()
-    {
-      for (auto &segment : segments_)
-      {
-        if (segment == -1)
-          return false;
-      }
+    return true;
+  }
 
-      return true;
-    }
-
-    bool Assigned() const { return id_ != -1; };
-  };
+  bool Assigned() const { return id_ != -1; };
+};
+*/
 
   /** @brief A collection of nodes that constitute a path */
   struct GeometricPath
   {
-    PathAssociation association_;
+    // PathAssociation association_;
     std::vector<Node *> nodes_; // The nodes of this path organized by k
 
-    GeometricPath() = default;
-
+    GeometricPath()
+    {
+    }
     /** @brief Convert a vector of nodes to a path directly */
     GeometricPath(const std::vector<Node *> &nodes)
     {
@@ -119,7 +117,7 @@ namespace GuidancePlanner
       std::sort(nodes_.begin(), nodes_.end(), [](const Node *a, const Node *b)
                 { return a->point_.Time() < b->point_.Time(); });
 
-      association_ = PathAssociation(nodes);
+      // association_ = PathAssociation(nodes);
 
       ComputeDistanceVector();
     }
@@ -145,7 +143,7 @@ namespace GuidancePlanner
                                            nodes_[segment_idx + 1]->point_);
     }
 
-    void SetPathID(const int id) { association_.id_ = id; }
+    // void SetPathID(const int id) { association_.id_ = id; }
 
     /** @brief Returns the path length in 2D*/
     double Length2D() const
@@ -223,6 +221,16 @@ namespace GuidancePlanner
       return result;
     }
 
+    bool ContainsNode(const Node &node) const
+    {
+      for (auto &path_node : nodes_)
+      {
+        if (path_node->id_ == node.id_)
+          return true;
+      }
+      return false;
+    }
+
     friend std::ostream &operator<<(std::ostream &stream, const GeometricPath &path)
     {
       stream << "Path: [";
@@ -263,6 +271,80 @@ namespace GuidancePlanner
     }
   };
 
+  struct StandaloneGeometricPath
+  {
+    GeometricPath path;
+    std::list<Node> saved_nodes_;
+
+    StandaloneGeometricPath()
+    {
+    }
+
+    StandaloneGeometricPath(const std::list<Node> &nodes)
+    {
+      saved_nodes_ = nodes;
+
+      std::vector<Node *> node_ptrs;
+      for (auto &node : saved_nodes_)
+        node_ptrs.push_back(&node);
+
+      path = GeometricPath(node_ptrs);
+    }
+
+    StandaloneGeometricPath(const GeometricPath &other)
+    {
+      saved_nodes_.clear();
+      for (auto &node : other.nodes_)
+        saved_nodes_.emplace_back(*node);
+
+      path = GeometricPath(other.nodes_);
+    }
+
+    // To cast to a GeometricPath
+    operator GeometricPath &()
+    {
+      std::vector<Node *> node_ptrs;
+      for (auto &node : saved_nodes_)
+        node_ptrs.push_back(&node);
+
+      path = GeometricPath(node_ptrs);
+
+      return path;
+    }
+  };
+
+  class IDAssigner
+  {
+  public:
+    IDAssigner(int num_objects)
+    {
+      IDs_.resize(num_objects * 2, true);
+    };
+
+  public:
+    int GetID()
+    {
+      for (size_t i = 0; i < IDs_.size(); i++)
+      {
+        if (IDs_[i])
+        {
+          IDs_[i] = false;
+          return i;
+        }
+      }
+
+      return -1;
+    }
+
+    void MarkIDAsUsed(int ID)
+    {
+
+      IDs_[ID] = false;
+    }
+
+  private:
+    std::vector<bool> IDs_;
+  };
 };
 
 /** Overwrite hash functionality for paths! **/

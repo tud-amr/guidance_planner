@@ -46,6 +46,7 @@ namespace GuidancePlanner
     int n_samples_;
     double timeout_;
     bool assume_constant_velocity_;
+    bool track_selected_homology_only_;
     int n_paths_;
     int path_after_samples_;
     double min_path_improvement_;
