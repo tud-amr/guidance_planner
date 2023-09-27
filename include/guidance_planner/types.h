@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef __GUIDANCE_TYPES_H__
+#define __GUIDANCE_TYPES_H__
 
 #include <ros_tools/helpers.h>
 
@@ -25,6 +25,55 @@
 
 namespace GuidancePlanner
 {
+
+    struct ColorManager
+    {
+
+        std::vector<bool> color_idxs;
+
+        ColorManager(int size)
+        {
+            Reset(size);
+        }
+
+        void Reset(int size) { color_idxs = std::vector<bool>(size, false); }
+
+        void ReleaseColor(int idx)
+        {
+            color_idxs[idx] = false;
+        }
+
+        /**
+         * @brief Try to claim a color (return false if already claimed)
+         *
+         * @param idx Index of color
+         * @return true If color is available
+         * @return false If color is claimed
+         */
+        bool ClaimColor(int idx)
+        {
+            if (color_idxs[idx])
+                return false;
+
+            color_idxs[idx] = true;
+            return true;
+        }
+
+        int GetColor()
+        {
+            for (size_t i = 0; i < color_idxs.size(); i++)
+            {
+                if (!color_idxs[i])
+                {
+                    color_idxs[i] = true;
+                    return i;
+                }
+            }
+
+            throw std::runtime_error("No colors available (too many trajectories!)");
+        }
+    };
+
 // To distinguish custom from regular optimization loops.
 #define EXIT_CODE_NOT_OPTIMIZED_YET -999
 
@@ -360,4 +409,4 @@ namespace GuidancePlanner
     };
 
 };
-#endif // __TYPES_H__
+#endif // __GUIDANCE_TYPES_H__

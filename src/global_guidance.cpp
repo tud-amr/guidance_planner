@@ -43,6 +43,7 @@ namespace GuidancePlanner
 
     topology_class = -1;
     previously_selected_ = false;
+    color_ = -1;
   }
 
   GlobalGuidance::OutputTrajectory::OutputTrajectory(const GlobalGuidance::OutputTrajectory &other)
@@ -57,6 +58,7 @@ namespace GuidancePlanner
     spline = other.spline;
     topology_class = other.topology_class;
     previously_selected_ = other.previously_selected_;
+    color_ = other.color_;
   }
 
   GlobalGuidance::OutputTrajectory &GlobalGuidance::OutputTrajectory::Empty(const Eigen::Vector2d &start, Config *config)
@@ -111,6 +113,7 @@ namespace GuidancePlanner
     benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Path Search", false, 0)));
 
     start_velocity_ = Eigen::Vector2d(0., 0.);
+    color_manager_.reset(new ColorManager(config_->n_paths_));
 
     Reset();
     gsl_set_error_handler(&IntegrationExceptionHandler);
@@ -292,8 +295,9 @@ namespace GuidancePlanner
       {
         PROFILE_SCOPE("Cubic Splines");
 
-        for (auto &path : paths_)
+        for (size_t i = 0; i < paths_.size(); i++)
         {
+          auto &path = paths_[i];
           splines_.emplace_back(path, config_.get(), start_velocity_); // Fit Cubic-Splines for each path
           if (config_->optimize_splines_)
             splines_.back().Optimize(obstacles_);
@@ -307,6 +311,7 @@ namespace GuidancePlanner
         for (size_t i = 0; i < paths_.size(); i++)
           outputs_.emplace_back(paths_[i], splines_[i]);
 
+        color_manager_->Reset(config_->n_paths_);
         IdentifyPreviousHomologies(outputs_); // Find out which of the previous homology classes were preserved
       }
 
@@ -316,12 +321,12 @@ namespace GuidancePlanner
         learning_outputs_ = outputs_;
 
         // Order the outputs based on some decision making procedure
-        if (!config_->use_learning)
-          OrderOutputByHeuristic(heuristic_outputs_);
-        else
-          OrderOutputByLearning(learning_outputs_);
+        // if (!config_->use_learning)
+        //   OrderOutputByHeuristic(heuristic_outputs_);
+        // else
+        //   OrderOutputByLearning(learning_outputs_);
 
-        outputs_ = config_->use_learning ? learning_outputs_ : heuristic_outputs_;
+        // outputs_ = config_->use_learning ? learning_outputs_ : heuristic_outputs_;
 
         // By default the output is now the first element of outputs_
         auto &best_output = outputs_[0];
@@ -395,7 +400,14 @@ namespace GuidancePlanner
               output.previously_selected_ = false;
 
             output.is_new_topology_ = false;
+
             output.topology_class = previous_output.topology_class; // Copy the topology class
+
+            bool color_available = color_manager_->ClaimColor(previous_output.color_);
+            if (color_available) // It can happen that a previous homotopy (w.r.t old obstacles) results in more than one new homotopy
+              output.color_ = previous_output.color_;
+            else
+              output.color_ = color_manager_->GetColor();
 
             PRM_LOG("Found existing topology class (ID = " << output.topology_class << ", S = " << output.previously_selected_ << ")");
             previous_outputs_identified++;
@@ -409,6 +421,12 @@ namespace GuidancePlanner
         output.topology_class = id_assigner_.GetID();
         PRM_LOG("Found a new topology class (ID = " << output.topology_class << ")");
       }
+    }
+
+    for (auto &output : outputs)
+    {
+      if (output.is_new_topology_)
+        output.color_ = color_manager_->GetColor();
     }
   }
 
@@ -453,7 +471,7 @@ namespace GuidancePlanner
     // Apply the sorting to the splines vector
     std::vector<OutputTrajectory> ordered_outputs;
     for (size_t i = 0; i < outputs.size(); i++)
-      ordered_outputs.push_back(outputs[indices[i]]);
+      ordered_outputs.emplace_back(outputs[indices[i]]);
     outputs = ordered_outputs;
   }
 
@@ -720,7 +738,6 @@ namespace GuidancePlanner
   {
     RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
     path_line.setScale(0.15, 0.15, 0.15);
-
     // Visualize the path for each output
     for (size_t i = 0; i < outputs_.size(); i++)
     {
@@ -732,7 +749,8 @@ namespace GuidancePlanner
       /*if (previous_outputs_[i].previously_selected_)
         path_line.setColorInt(4, 1., RosTools::Colormap::BRUNO);
       else*/
-      path_line.setColorInt(outputs_[i].topology_class, 2 * config_->n_paths_, 0.75);
+      path_line.setColorInt(outputs_[i].color_, config_->n_paths_, 0.75);
+
       VisualizePath(path_line, path.path);
     }
 
@@ -803,7 +821,7 @@ namespace GuidancePlanner
       else // Color scale
       {
         line.setScale(0.15, 0.15);
-        line.setColorInt(outputs_[i].topology_class, 2 * config_->n_paths_, 0.75);
+        line.setColorInt(outputs_[i].color_, config_->n_paths_, 0.75);
       }
 
       std::vector<Eigen::Vector3d> &points = spline.GetSamples(); // Get samples on the current spline
@@ -811,7 +829,7 @@ namespace GuidancePlanner
       if (config_->show_trajectory_indices_)
       {
         text_marker.setText(std::to_string(outputs_[i].topology_class)); // Add the spline number
-        text_marker.setColorInt(outputs_[i].topology_class, 2 * config_->n_paths_, 1.);
+        text_marker.setColorInt(outputs_[i].color_, config_->n_paths_, 1.);
       }
 
       // Draw a line for the time scaled points

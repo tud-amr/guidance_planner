@@ -3,6 +3,7 @@
 
 #include <guidance_planner/prm.h>
 #include <guidance_planner/graph_search.h>
+#include <guidance_planner/types.h>
 
 #include <guidance_planner/learning_guidance.h>
 #include <guidance_planner/learning_types.h>
@@ -79,6 +80,7 @@ namespace GuidancePlanner
     {
     public:
       int topology_class;
+      int color_;
       bool previously_selected_;
       bool is_new_topology_;
 
@@ -149,7 +151,7 @@ namespace GuidancePlanner
 
   private:
     /** @brief Identify paths that are homotopy equivalent by checking each pair */
-    void KeepTopologyDistinctPaths(std::vector<GeometricPath>& paths);
+    void KeepTopologyDistinctPaths(std::vector<GeometricPath> &paths);
     void IdentifyPreviousHomologies(std::vector<GlobalGuidance::OutputTrajectory> &outputs);
 
     void OrderOutputByHeuristic(std::vector<OutputTrajectory> &outputs); /** @brief Order splines if the splines are used */
@@ -189,6 +191,7 @@ namespace GuidancePlanner
     int selected_id_ = -1;
 
     std::vector<int> sorted_indices_;
+    std::unique_ptr<ColorManager> color_manager_;
 
     // Real-time data
     std::vector<Obstacle> obstacles_;

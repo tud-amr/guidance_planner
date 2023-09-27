@@ -635,14 +635,14 @@ namespace GuidancePlanner
   {
     // NODES IN THE GRAPH - COLORED BY PATH / TYPE
     RosTools::ROSPointMarker &sphere = ros_graph_visuals_->getNewPointMarker("SPHERE");
-    sphere.setScale(0.3, 0.3, 0.3);
+    sphere.setScale(0.1, 0.1, 0.1);
 
     RosTools::ROSPointMarker &goal_start_sphere = ros_goal_start_visuals_->getNewPointMarker("SPHERE");
-    goal_start_sphere.setScale(0.15, 0.15, 0.15);
+    goal_start_sphere.setScale(0.1, 0.1, 0.1);
 
     RosTools::ROSLine &edge = ros_graph_visuals_->getNewLine();
-    edge.setScale(0.1, 0.1);
-    edge.setColor(0., 0., 0., 1.0);
+    edge.setScale(0.05, 0.05);
+    edge.setColor(0., 0., 0., 1.);
 
     RosTools::ROSTextMarker &segment_text = ros_segment_visuals_->getNewTextMarker();
     segment_text.setScale(1.0);
