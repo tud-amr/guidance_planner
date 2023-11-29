@@ -36,6 +36,10 @@ namespace GuidancePlanner
     {
       topology_comparison_.reset(new UVD());
     }
+    else if (config_->topology_comparison_function_ == "None")
+    {
+      topology_comparison_.reset(new NoTopologyComparison());
+    }
     else
     {
       topology_comparison_.reset(new Homology(nh, config_->assume_constant_velocity_));
@@ -107,6 +111,11 @@ namespace GuidancePlanner
     range_y_ = max_y - min_y + config_->sample_margin_;
     min_x_ = min_x - config_->sample_margin_ / 2.;
     min_y_ = min_y - config_->sample_margin_ / 2.;
+
+    if (std::abs(range_x_) < 1e-3 && config_->sample_margin_ == 0.)
+      ROS_WARN("The x range of sampling is zero (goal and start on a line) please use config_->sample_margin_ > 0.");
+    if (std::abs(range_y_) < 1e-3 && config_->sample_margin_ == 0.)
+      ROS_WARN("The y range of sampling is zero please use config_->sample_margin_ > 0.");
   }
 
   Graph &PRM::Update()

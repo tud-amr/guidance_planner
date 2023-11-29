@@ -18,6 +18,13 @@ namespace GuidancePlanner
     virtual void Visualize(Environment &environment){};
     virtual void Clear(){};
   };
+
+  /** @brief To disable topology comparison, you can use this topology comparison instead */
+  class NoTopologyComparison : public TopologyComparison
+  {
+    // There are no equivalences
+    bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override { return false; }
+  };
 }; // namespace Homotopy
 
 #endif // __TOPOLOGY_COMPARISON_H__

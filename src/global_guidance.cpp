@@ -144,24 +144,26 @@ namespace GuidancePlanner
     int grid_vert = config_->vertical_goals_;
 
     ROSTOOLS_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
-    ROSTOOLS_ASSERT(grid_long >= 3, "There should be at least three longitudinal goals (start, end, past end)");
+
+    // ROSTOOLS_ASSERT(grid_long >= 3, "There should be at least three longitudinal goals (start, end, past end)");
     int vert_start = std::floor((double)grid_vert / 2.);
 
     double s_start = spline_start;
     double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
-    double s_step = (s_best - s_start) / ((double)grid_long - 2.); // -1 for starting at 0
+
+    double s_step = grid_long > 2 ? (s_best - s_start) / ((double)grid_long - 2.) : s_best - s_start; // -1 for starting at 0
     ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
     double width = road_width_left + road_width_right;
     double offset = -road_width_left + width / 2.;
-    double v_step = width / ((double)(grid_vert - 1));
+    double v_step = grid_vert > 1 ? width / ((double)(grid_vert - 1)) : 0.;
 
     goals_.clear();
     // goal_costs_.clear(); // Better goals have a lower score
     for (int i = 0; i < grid_long; i++)
     {
       // Compute the distance at which our goal is longitudinally
-      double s = s_start + (double)i * s_step;
+      double s = grid_long > 1 ? s_start + (double)i * s_step : s_best;
 
       // Compute its cost (integer * 2), minimum at desired velocity
       double long_cost = std::abs((grid_long - 2) - i) * 2.;
@@ -573,6 +575,8 @@ namespace GuidancePlanner
     if (paths.size() == 0)
       return;
 
+    /** @note paths are sorted, so that the first occurence in the list is the best path and all equivalent further paths can be removed in favor of the first */
+
     std::vector<GeometricPath> topology_distinct_paths; // Construct a new list with topology distinct paths
     topology_distinct_paths.emplace_back(paths.front());
 
@@ -581,7 +585,7 @@ namespace GuidancePlanner
       auto &candidate_path = paths[i];
 
       bool distinct = true;
-      for (auto &path : topology_distinct_paths)
+      for (auto &path : topology_distinct_paths) // If any of the paths in the list is equivalent with this one, it is not distinct
       {
         if (prm_.AreHomotopicEquivalent(path, candidate_path))
         {
@@ -694,7 +698,7 @@ namespace GuidancePlanner
 
   int GlobalGuidance::NumberOfGuidanceTrajectories() const { return (int)(outputs_.size()); }
 
-  int GlobalGuidance::GetIdSamePath(const GeometricPath &path)
+  int GlobalGuidance::GetIdSamePath(const GeometricPath &path) // Not used!
   {
     for (size_t return_id = 0; return_id < this->paths_.size(); return_id++)
     {
