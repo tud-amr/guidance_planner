@@ -111,5 +111,5 @@ namespace GuidancePlanner
     Homology *homology_class;
   };
 
-};     // namespace Homotopy
+} // namespace Homotopy
 #endif // __HOMOLOGY_H__

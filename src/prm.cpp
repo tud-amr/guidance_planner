@@ -131,6 +131,7 @@ namespace GuidancePlanner
     graph_->Clear();
     all_samples_.clear();
 
+    std::cout << config_->timeout_ / 1000. << std::endl;
     RosTools::TriggeredTimer prm_timer(config_->timeout_ / 1000.);
     prm_timer.start();
 
@@ -141,7 +142,7 @@ namespace GuidancePlanner
     sample_succes_.resize(config_->n_samples_);
 
     SampleNewPoints(samples_, sample_succes_); // Draw random samples
-
+    std::cout << prm_timer.currentDuration() << std::endl;
     PRM_LOG("New candidate nodes ready. Inserting them into the Visibility-PRM graph");
 
     // Then add them to the graph
@@ -149,6 +150,12 @@ namespace GuidancePlanner
     {
       if (!sample_succes_[i])
         continue;
+
+      if (prm_timer.hasFinished()) // Timeout
+      {
+        // PRM_WARN("Timeout on PRM sampling (" << config_->timeout_ << "ms)");
+        break;
+      }
 
       bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size();
       SpaceTimePoint sample = samples_[i];
@@ -181,12 +188,6 @@ namespace GuidancePlanner
         Node *goal = FindTopologyDistinctGoalConnection(new_node, visible_guards, visible_goals);
         if (goal != nullptr)
           AddSample(i, sample, {visible_guards[0], goal}, sample_is_from_previous_iteration);
-      }
-
-      if (prm_timer.hasFinished()) // Timeout
-      {
-        // PRM_WARN("Timeout on PRM sampling (" << config_->timeout_ << "ms)");
-        break;
       }
     }
 

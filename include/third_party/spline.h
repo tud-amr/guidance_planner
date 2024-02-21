@@ -26,8 +26,6 @@
 #ifndef TK_SPLINE_H
 #define TK_SPLINE_H
 
-#include <iostream>
-
 #include <cstdio>
 #include <cassert>
 #include <vector>
@@ -109,23 +107,23 @@ namespace tk
 		double operator()(double x) const;
 		double deriv(int order, double x) const;
 
-		void RemoveStart()
-		{
-			// Remove the first element of all computed / input vectors
-			m_a.erase(m_a.begin());
-			m_b.erase(m_b.begin());
-			m_c.erase(m_c.begin());
-			m_d.erase(m_d.begin());
+		// void removeStart()
+		// {
+		// 	// Remove the first element of all computed / input vectors
+		// 	m_a.erase(m_a.begin());
+		// 	m_b.erase(m_b.begin());
+		// 	m_c.erase(m_c.begin());
+		// 	m_d.erase(m_d.begin());
 
-			m_x.erase(m_x.begin());
-			m_y.erase(m_y.begin());
+		// 	m_x.erase(m_x.begin());
+		// 	m_y.erase(m_y.begin());
 
-			m_x_.erase(m_x_.begin());
-			m_y_.erase(m_y_.begin());
-		}
+		// 	m_x_.erase(m_x_.begin());
+		// 	m_y_.erase(m_y_.begin());
+		// }
 
 		/** @brief Add interface for retrieving a, b, c, d */
-		void GetParameters(int index, double &a, double &b, double &c, double &d)
+		void getParameters(int index, double &a, double &b, double &c, double &d) const
 		{
 			assert(index <= (int)m_a.size() - 1);
 			a = m_a[index];
@@ -134,38 +132,36 @@ namespace tk
 			d = m_d[index];
 		}
 
-		double GetSplineStart(int index)
+		double getSplineStart(int index)
 		{
 			assert(index >= 0);					 // N - 1 segments
 			assert(index < (int)m_x.size() - 1); // N - 1 segments
 			return m_x[index];
-			// return index > 0 ? m_x[index - 1] : m_x[0];
 		}
-		double GetSplineEnd(int index)
+		double getSplineEnd(int index)
 		{
 			assert(index >= 0);					 // N - 1 segments
 			assert(index < (int)m_x.size() - 1); // N - 1 segments
 			return m_x[index + 1];
-			// return index < m_x.size() - 1 ? m_x[index] : m_x.back(); // Should be one higher?
 		}
 
-		void Print()
-		{
-			std::cout << "=== tkspline ===\n";
-			std::cout << "Segments (m_a size) = " << m_a.size() << std::endl;
-			std::cout << "Points (m_x size) = " << m_x.size() << std::endl;
-			std::cout << "Points:\n";
-			for (size_t i = 0; i < m_x.size(); i++)
-			{
-				std::cout << "(" << m_x[i] << ", " << m_y[i] << ")\n";
-			}
-			std::cout << "\nSplines:\n";
-			for (size_t i = 0; i < m_a.size(); i++)
-			{
-				std::cout << "a = " << m_a[i] << ",\tb = " << m_b[i] << ",\tc = " << m_c[i] << ",\td = " << m_d[i] << std::endl;
-			}
-			std::cout << "================\n";
-		}
+		// void Print()
+		// {
+		// 	std::cout << "=== tkspline ===\n";
+		// 	std::cout << "Segments (m_a size) = " << m_a.size() << std::endl;
+		// 	std::cout << "Points (m_x size) = " << m_x.size() << std::endl;
+		// 	std::cout << "Points:\n";
+		// 	for (size_t i = 0; i < m_x.size(); i++)
+		// 	{
+		// 		std::cout << "(" << m_x[i] << ", " << m_y[i] << ")\n";
+		// 	}
+		// 	std::cout << "\nSplines:\n";
+		// 	for (size_t i = 0; i < m_a.size(); i++)
+		// 	{
+		// 		std::cout << "a = " << m_a[i] << ",\tb = " << m_b[i] << ",\tc = " << m_c[i] << ",\td = " << m_d[i] << std::endl;
+		// 	}
+		// 	std::cout << "================\n";
+		// }
 	};
 
 } // namespace tk

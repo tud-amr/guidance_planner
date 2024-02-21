@@ -136,6 +136,8 @@ namespace GuidancePlanner
 
   std::vector<bool> Homology::LeftPassingVector(const GeometricPath &path, Environment &environment)
   {
+    std::cout << "LEFT PASSING\n"
+              << std::endl;
     auto &obstacles = environment.GetDynamicObstacles();
     std::vector<double> results_h(obstacles.size());
     std::vector<bool> results(obstacles.size());
@@ -149,8 +151,7 @@ namespace GuidancePlanner
     always_left_nodes.emplace_back(*(path.nodes_[0])); // Start in the same point
     // Go down
     always_left_nodes.emplace_back(1, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
-    
-    
+
     // Go back
     // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
     // Go left = move towards the negative y
@@ -158,22 +159,22 @@ namespace GuidancePlanner
     // // Go up
     // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
     // // Go front
-    // always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);    
+    // always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
     // // Go to the goal position in y, remaining above and in front of it
-    // always_left_nodes.emplace_back(6, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);    
+    // always_left_nodes.emplace_back(6, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
     // // Go to the goal position in (x, y), remaining just above it
     // always_left_nodes.emplace_back(7, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
     // Go left = move towards the negative y
-    always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE); 
+    always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
     // Go up
     always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
     // Go to the goal position in (x)
-    always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0),path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);   
+    always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
     // Go to the goal position in (x, y), remaining just above it
-    always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);   
-    // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE); 
+    always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
+    // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
     // always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
-    // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);   
+    // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
     // Connect to the given path
     always_left_nodes.emplace_back(*(path.nodes_.back()));
 
@@ -206,7 +207,7 @@ namespace GuidancePlanner
     Eigen::Vector3d dr = p->end - p->start;
 
     return p->homology_class->ObstacleHValue(r, dr);
-  };
+  }
 
   double Homology::ObstacleHValue(const Eigen::Vector3d &r, const Eigen::Vector3d &dr)
   {
@@ -388,4 +389,4 @@ namespace GuidancePlanner
       return true;
     }
   }
-}; // namespace Homotopy
+} // namespace Homotopy

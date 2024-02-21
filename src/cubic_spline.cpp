@@ -315,21 +315,16 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
   control_points_.GetX(x_points); // Get the vector of x including padding
   control_points_.GetY(y_points); // Get the vector of y including padding
 
+  x_ = tk::spline();
+  y_ = tk::spline();
+
   // Set the velocity as a boundary condition of the spline
-  // x_.set_boundary(tk::spline::bd_type::first_deriv, previous_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-  // y_.set_boundary(tk::spline::bd_type::first_deriv, previous_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
   x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
   y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
 
   control_points_.GetT(t_padded_); // Get the vector of times including padding
-
   x_.set_points(t_padded_, x_points);
   y_.set_points(t_padded_, y_points);
-
-  // Remove the added previous point, since it is not part of our new trajectory (but was necessary for the boundary conditions)
-  // x_.RemoveStart();
-  // y_.RemoveStart();
-  // t_padded_.erase(t_padded_.begin());
 
   trajectory_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(x_, y_));
 

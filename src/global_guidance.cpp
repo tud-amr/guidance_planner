@@ -80,7 +80,7 @@ namespace GuidancePlanner
   GlobalGuidance::~GlobalGuidance()
   {
     /** @todo Fix profiler */
-    //  RosTools::Instrumentor::Get().EndSession();
+    RosTools::Instrumentor::Get().EndSession();
   }
 
   GlobalGuidance::GlobalGuidance()
@@ -88,7 +88,7 @@ namespace GuidancePlanner
     PRM_LOG("Initializing Global Guidance");
 
     // Initialize profiling
-    // RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
+    RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
 
     config_.reset(new Config());
     prm_.Init(nh_, config_.get());
@@ -123,7 +123,8 @@ namespace GuidancePlanner
   {
     obstacles_ = obstacles;
     static_obstacles_ = static_obstacles;
-    learning_guidance_.LoadObstacles(obstacles, static_obstacles);
+    if (config_->use_learning)
+      learning_guidance_.LoadObstacles(obstacles, static_obstacles);
   }
 
   void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width)
@@ -196,7 +197,8 @@ namespace GuidancePlanner
     orientation_ = orientation;
     start_velocity_ = Eigen::Vector2d(velocity * std::cos(orientation), velocity * std::sin(orientation));
 
-    learning_guidance_.SetStart(start, orientation, velocity);
+    if (config_->use_learning)
+      learning_guidance_.SetStart(start, orientation, velocity);
   }
 
   bool GlobalGuidance::Update()

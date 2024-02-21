@@ -25,6 +25,6 @@ namespace GuidancePlanner
     // There are no equivalences
     bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override { return false; }
   };
-}; // namespace Homotopy
+} // namespace Homotopy
 
 #endif // __TOPOLOGY_COMPARISON_H__

@@ -20,8 +20,8 @@ namespace GuidancePlanner
     retrieveParameter(nh, "prm/N", Config::N);
     Config::DT = T_ / (double)Config::N;
 
-    retrieveParameter(nh, "clock_frequency", Config::CONTROL_DT); // NOTE: from LMPCC
-    Config::CONTROL_DT = 1. / Config::CONTROL_DT;                 // dt = 1 / Hz
+    retrieveParameter(nh, "clock_frequency", Config::CONTROL_DT, 20.); // NOTE: from LMPCC
+    Config::CONTROL_DT = 1. / Config::CONTROL_DT;                      // dt = 1 / Hz
 
     retrieveParameter(nh, "prm/seed", seed_);
     retrieveParameter(nh, "prm/n_samples", n_samples_);

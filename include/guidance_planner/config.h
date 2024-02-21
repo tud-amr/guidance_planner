@@ -140,6 +140,6 @@ namespace GuidancePlanner
       }
     }
   };
-};
+}
 
 #endif

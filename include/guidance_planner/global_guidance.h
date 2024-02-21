@@ -210,6 +210,6 @@ namespace GuidancePlanner
     bool no_message_sent_yet_;
     std::vector<std::unique_ptr<RosTools::Benchmarker>> benchmarkers_;
   };
-}; // namespace Homotopy
+} // namespace Homotopy
 
 #endif // __GLOBAL_GUIDANCE_H__

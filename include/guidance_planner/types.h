@@ -408,5 +408,5 @@ namespace GuidancePlanner
         ros::Publisher text_publisher_;
     };
 
-};
+}
 #endif // __GUIDANCE_TYPES_H__

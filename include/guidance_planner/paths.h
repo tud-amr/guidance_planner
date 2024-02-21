@@ -345,7 +345,7 @@ namespace GuidancePlanner
   private:
     std::vector<bool> IDs_;
   };
-};
+}
 
 /** Overwrite hash functionality for paths! **/
 namespace std

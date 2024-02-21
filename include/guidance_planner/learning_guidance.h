@@ -44,5 +44,5 @@ namespace GuidancePlanner
 
         std::vector<Obstacle> obstacles_;
     };
-};
+}
 #endif // __LEARNING_GUIDANCE_H__

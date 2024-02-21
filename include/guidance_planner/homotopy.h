@@ -79,6 +79,11 @@ namespace GuidancePlanner
     SpaceTimePoint(const Eigen::Vector3d &other) { vec = other; }
 
     SpaceTimePoint(const SpaceTimePoint &other) { *this = other; }
+    SpaceTimePoint &operator=(const SpaceTimePoint &other)
+    {
+      this->vec = other.vec;
+      return *this;
+    }
 
     SpaceTimePoint(double x, double y, double k) { vec = Eigen::Vector3d(x, y, k); }
 
@@ -372,6 +377,6 @@ namespace GuidancePlanner
     int current_id_ = 0;
   };
 
-}; // namespace Homotopy
+} // namespace Homotopy
 
 #endif // __HOMOTOPY_H__

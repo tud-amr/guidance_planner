@@ -18,7 +18,7 @@
 namespace RosTools
 {
   struct Halfspace;
-};
+}
 
 namespace GuidancePlanner
 {
@@ -129,5 +129,5 @@ namespace GuidancePlanner
     ObstacleGrid grid_;
   };
 
-};     // namespace Homotopy
+} // namespace Homotopy
 #endif // __ENVIRONMENT_H__

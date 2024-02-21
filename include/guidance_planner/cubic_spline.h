@@ -234,5 +234,5 @@ namespace GuidancePlanner
         void ComputeAccelerationWeights();
     };
 
-};
+}
 #endif // __CUBIC_SPLINE_H__
