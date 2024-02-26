@@ -38,7 +38,7 @@ namespace GuidancePlanner
 
   public:
     virtual void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
-    virtual void SetPosition(const Eigen::Vector2d &pos){};
+    virtual void SetPosition(const Eigen::Vector2d &pos) { (void)pos; };
 
     /** @brief Check if a point is in collision */
     virtual bool InCollision(const SpaceTimePoint &point, double with_margin = 0.);
