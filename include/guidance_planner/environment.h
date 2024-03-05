@@ -15,16 +15,13 @@
 
 #include <Eigen/Dense>
 
-namespace RosTools
-{
-  struct Halfspace;
-}
-
 namespace GuidancePlanner
 {
   class Node;
   struct SpaceTimePoint;
   struct Obstacle;
+  struct Halfspace;
+
   /**
    * @brief This class should make it easier to define different collision checks or state spaces
    *
@@ -37,7 +34,7 @@ namespace GuidancePlanner
     virtual void Init();
 
   public:
-    virtual void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
+    virtual void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<Halfspace> &static_obstacles);
     virtual void SetPosition(const Eigen::Vector2d &pos) { (void)pos; };
 
     /** @brief Check if a point is in collision */
@@ -58,7 +55,7 @@ namespace GuidancePlanner
 
   protected:
     std::vector<Obstacle> dynamic_obstacles_;
-    std::vector<RosTools::Halfspace> static_obstacles_;
+    std::vector<Halfspace> static_obstacles_;
 
     /** @brief Various implementations of visibility checks */
     virtual bool IsVisibleRayCast(const SpaceTimePoint &point_one, const SpaceTimePoint &point_two); // Fast for constant velocity prediction
@@ -71,7 +68,7 @@ namespace GuidancePlanner
     virtual void Init() override;
     virtual void SetPosition(const Eigen::Vector2d &pos) override { grid_.SetOrigin(pos); };
     virtual void LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles,
-                               const std::vector<RosTools::Halfspace> &static_obstacles) override;
+                               const std::vector<Halfspace> &static_obstacles) override;
 
     virtual bool InCollision(const SpaceTimePoint &point, double with_margin = 0.) override;
 

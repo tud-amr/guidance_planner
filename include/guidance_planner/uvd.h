@@ -11,6 +11,7 @@ namespace GuidancePlanner
   {
     virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override
     {
+      (void)compute_all;
       /** @note Space-time 3D UVD */
       // Instead of a time index, we have a path index to sample over [0-1]. Each sample is a point in 3D space-time
       Eigen::VectorXd path_indices = Eigen::VectorXd::LinSpaced(20, 0., 1.); /** @todo samples as configuration parameter */

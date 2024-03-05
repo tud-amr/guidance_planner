@@ -78,8 +78,6 @@ namespace GuidancePlanner
     double selection_weight_length_, selection_weight_velocity_, selection_weight_acceleration_;
 
     // Spline selection weights
-    // double selection_weight_length_, selection_weight_velocity_;
-    // double selection_weight_longitudinal_acceleration_, selection_weight_lateral_acceleration_;
     double selection_weight_consistency_;
 
     double visuals_transparency_;

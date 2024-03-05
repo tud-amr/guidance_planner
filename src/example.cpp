@@ -1,8 +1,7 @@
 #include <ros/ros.h>
 #include <string>
 #include <stdexcept>
-#include "guidance_planner/global_guidance.h"
-#include "guidance_planner/types.h"
+#include <guidance_planner/global_guidance.h>
 
 // Reading from file
 #include <20_ts/read_scenario.h>
@@ -62,7 +61,6 @@ void FileObstacles(GlobalGuidance &guidance, std::vector<GuidancePlanner::Obstac
     int num_files = 80;
     obstacles.clear();
 
-    int i = 0;
     if (count % 10 == 0)
     {
         file_id++;
@@ -90,7 +88,7 @@ int main(int argc, char **argv)
         std::vector<Obstacle> obstacles;
 
         /** @brief Static obstacles: Ax <= b */
-        std::vector<RosTools::Halfspace> static_obstacles;
+        std::vector<Halfspace> static_obstacles;
         static_obstacles.resize(2);
         static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
         static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
@@ -110,15 +108,10 @@ int main(int argc, char **argv)
         // Construct a spline in x, y
         if (obstacle_source != "File")
         {
-            std::vector<double> xx, yy, ss;
+            std::vector<double> xx, yy;
             xx = {0., 2., 4., 6., 8., 10.};
             yy = {0., 0., 0., 0., 0., 0.};
-            ss = {0., 2., 4., 6., 8., 10.};
-            tk::spline x_spline, y_spline;
-            x_spline.set_points(ss, xx);
-            y_spline.set_points(ss, yy);
-            std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> reference_path;
-            reference_path.reset(new RosTools::CubicSpline2D<tk::spline>(x_spline, y_spline));
+            std::unique_ptr<RosTools::Spline2D> reference_path = std::make_unique<RosTools::Spline2D>(xx, yy);
 
             double distance_on_spline = 0.;
             guidance.LoadReferencePath(distance_on_spline, reference_path);
@@ -157,13 +150,13 @@ int main(int argc, char **argv)
                 CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(0).spline;
                 ROS_INFO("[Best Trajectory]");
 
-                RosTools::CubicSpline2D<tk::spline> guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
+                RosTools::Spline2D guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
                 for (double t = 0; t < Config::N * Config::DT; t += 4 * Config::DT)
                 {
-                    Eigen::Vector2d pos = guidance_trajectory.GetPoint(t);
+                    Eigen::Vector2d pos = guidance_trajectory.getPoint(t);
                     ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
                 }
-                RosTools::CubicSpline2D<tk::spline> guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
+                RosTools::Spline2D guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
 
                 /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
                 // int used_trajectory_id = guidance.GetUsedTrajectory()

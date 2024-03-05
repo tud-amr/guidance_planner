@@ -16,7 +16,7 @@
 
 #include <gsl/gsl_integration.h>
 
-#include <functional>
+// #include <functional>
 #include <vector>
 #include <unordered_map>
 
@@ -97,8 +97,6 @@ namespace GuidancePlanner
     bool assume_constant_velocity_;
     bool obstacle_points_ready_ = false;
     std::vector<std::vector<Eigen::Vector3d>> obstacle_points_; // For efficiency (4 x num_obstacles)
-
-    std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
     /** Parameters for obstacle integration */
     std::vector<Eigen::Vector3d> obstacle_segments_;

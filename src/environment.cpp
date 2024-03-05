@@ -1,10 +1,8 @@
 #include "guidance_planner/environment.h"
 
-#include <guidance_planner/homotopy.h>
 #include <guidance_planner/types.h>
-#include <ros_tools/types.h>
 
-#include <ros_tools/helpers.h>
+#include <ros_tools/math.h>
 
 namespace GuidancePlanner
 {
@@ -18,7 +16,7 @@ namespace GuidancePlanner
     for (auto &obstacle : dynamic_obstacles_)
     {
       // Round the time index to the nearest integer
-      if (RosTools::dist(obstacle.positions_[std::round(point.Time())], point.Pos()) < obstacle.radius_ + with_margin) // Note that the obstacle positions at k = 0 is the initial state
+      if (RosTools::distance(obstacle.positions_[std::round(point.Time())], point.Pos()) < obstacle.radius_ + with_margin) // Note that the obstacle positions at k = 0 is the initial state
         return true;
     }
 
@@ -36,7 +34,7 @@ namespace GuidancePlanner
     return false;
   }
 
-  void Environment::LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles)
+  void Environment::LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<Halfspace> &static_obstacles)
   {
 
     dynamic_obstacles_ = dynamic_obstacles;
@@ -313,7 +311,7 @@ namespace GuidancePlanner
 
     for (auto &obstacle : cur_grid_obstacles)
     {
-      if (RosTools::dist(obstacle.position, point.Pos()) <
+      if (RosTools::distance(obstacle.position, point.Pos()) <
           obstacle.radius + with_margin) // Note that the obstacle positions at k = 0 is the initial state
         return true;
     }
@@ -327,7 +325,7 @@ namespace GuidancePlanner
     return false;
   }
 
-  void GriddedEnvironment::LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<RosTools::Halfspace> &static_obstacles)
+  void GriddedEnvironment::LoadObstacles(const std::vector<Obstacle> &dynamic_obstacles, const std::vector<Halfspace> &static_obstacles)
   {
     Environment::LoadObstacles(dynamic_obstacles, static_obstacles);
 
@@ -345,4 +343,4 @@ namespace GuidancePlanner
     }
   }
 
-}; // namespace Homotopy
+} // namespace Homotopy

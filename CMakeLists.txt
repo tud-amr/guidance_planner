@@ -9,21 +9,15 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
 endif()
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-deprecated-declarations")
 find_package(OpenMP)
 
 if(OPENMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-  message(WARNING "Compiling with OPENMP")
 else()
   message(WARNING "Compiling without OPENMP")
 endif()
-
-# ADD GSL FOR HOMOTOPY
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(gsl REQUIRED gsl)
 
 # General requirements
 set(DEPENDENCIES
@@ -31,35 +25,35 @@ set(DEPENDENCIES
   std_msgs
   ros_tools
   dynamic_reconfigure
-  genmsg
+
+  # genmsg
 )
 
-# # Find catkin macros and libraries
-# # if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-# # is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   ${DEPENDENCIES}
 )
+
+# ADD GSL FOR HOMOTOPY
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(gsl REQUIRED gsl)
 
 find_package(Eigen3 REQUIRED)
 add_definitions(${EIGEN_DEFINITIONS})
 
 generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
 
-add_message_files(FILES TrajectoryMSG.msg ObstacleMSG.msg RightAvoidanceMSG.msg)
-add_service_files(FILES guidances.srv guidances_Hcost.srv select_guidance.srv)
-generate_messages(DEPENDENCIES std_msgs)
-
+# add_message_files(FILES TrajectoryMSG.msg ObstacleMSG.msg RightAvoidanceMSG.msg)
+# add_service_files(FILES guidances.srv guidances_Hcost.srv select_guidance.srv)
+# generate_messages(DEPENDENCIES std_msgs)
 catkin_package(
   CATKIN_DEPENDS ${DEPENDENCIES}
-  INCLUDE_DIRS include include/${PROJECT_NAME}
+  INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
 )
 
 include_directories(
   include
   debug
-  ${EIGEN_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -67,29 +61,32 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/global_guidance.cpp
   src/prm.cpp
+  src/graph.cpp
+  src/paths.cpp
+  src/types.cpp
   src/environment.cpp
   src/graph_search.cpp
   src/config.cpp
   src/homology.cpp
-  src/third_party/spline.cpp
   src/cubic_spline.cpp
-  src/learning_guidance.cpp
+
+  # src/learning_guidance.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
-  ${gsl_LIBRARIES}
   ${catkin_LIBRARIES}
+  ${gsl_LIBRARIES}
 )
 
 # Example
 # add_executable(example
 # src/example.cpp
 # )
+# add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # target_link_libraries(example
-# guidance_planner
+# ${PROJECT_NAME}
 # ${catkin_LIBRARIES}
 # )
-# add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # # Guidance Server
 # add_executable(guidance_server
@@ -104,7 +101,7 @@ target_link_libraries(${PROJECT_NAME}
 # ############
 # # Install ##
 # ############
-install(TARGETS guidance_planner
+install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}

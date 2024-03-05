@@ -1,8 +1,5 @@
 #include <fstream>
-#include <iostream>
 #include <vector>
-
-#include <ros_tools/types.h>
 
 struct PointsList
 {
@@ -17,8 +14,8 @@ void ReadFile(const std::string &file_name, GuidancePlanner::GlobalGuidance &gui
     std::ifstream input("/home/r2c1/ros/sandbox_ws/src/guidance_planner/debug/20_ts/" + file_name, std::ifstream::binary);
     if (!input)
     {
-        std::cout << "file could not be read\n"
-                  << std::endl;
+        // std::cout << "file could not be read\n"
+        //   << std::endl;
         return;
     }
 
@@ -62,7 +59,7 @@ void ReadFile(const std::string &file_name, GuidancePlanner::GlobalGuidance &gui
     }
 
     /** @brief Static obstacles: Ax <= b */
-    std::vector<RosTools::Halfspace> static_obstacles;
+    std::vector<GuidancePlanner::Halfspace> static_obstacles;
     guidance.LoadObstacles(obstacles, static_obstacles);
 
     // x

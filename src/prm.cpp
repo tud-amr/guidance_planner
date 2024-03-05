@@ -1,7 +1,9 @@
 #include "guidance_planner/prm.h"
 
+#include <guidance_planner/graph.h>
+
 #include <ros_tools/profiling.h>
-#include <ros_tools/data_saver.h>
+#include <ros_tools/math.h>
 
 namespace GuidancePlanner
 {
@@ -13,13 +15,6 @@ namespace GuidancePlanner
   void PRM::Init(ros::NodeHandle &nh, Config *config)
   {
     config_ = config;
-
-    ros_sample_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/all_samples", "map", 500));
-    ros_graph_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/graph", "map", 200));
-    ros_goal_start_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "guidance_planner/start_and_goals", "map", 50));
-    ros_segment_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/segment_ids", "map", 200));
-
-    debug_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "lmpcc/homotopy/debug", "map", 200));
 
     graph_.reset(new Graph(config));
     environment_.Init();
@@ -49,7 +44,7 @@ namespace GuidancePlanner
     done_ = false;
   }
 
-  void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
+  void PRM::LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                      const Eigen::Vector2d &velocity, const std::vector<Goal> &goals)
   {
     {
@@ -123,7 +118,7 @@ namespace GuidancePlanner
     PROFILE_SCOPE("PRM::Update");
     PRM_LOG("PRM::Update")
 
-    debug_visuals_->publish(false);
+    // debug_visuals_->publish(false);
 
     done_ = false;
 
@@ -131,7 +126,7 @@ namespace GuidancePlanner
     graph_->Clear();
     all_samples_.clear();
 
-    RosTools::TriggeredTimer prm_timer(config_->timeout_ / 1000.);
+    RosTools::Timer prm_timer(config_->timeout_ / 1000.);
     prm_timer.start();
 
     graph_->Initialize(start_, goals_);
@@ -492,7 +487,7 @@ namespace GuidancePlanner
     }
 
     // Connections have a limited velocity
-    double dist = RosTools::dist(first_point.Pos(), second_point.Pos());
+    double dist = RosTools::distance(first_point.Pos(), second_point.Pos());
     double vel = dist / ((double)std::abs(first_point.Time() - second_point.Time()) * Config::DT); // The average velocity of this connection
     bool vel_satisfies_limits = vel < config_->max_velocity_;
 
@@ -633,7 +628,7 @@ namespace GuidancePlanner
     VisualizeGraph();
     VisualizeAllSamples();
 
-    debug_visuals_->publish(true);
+    // debug_visuals_->publish(true);
 
     if (config_->visualize_homology_)
       topology_comparison_->Visualize(environment_);
@@ -642,17 +637,20 @@ namespace GuidancePlanner
   void PRM::VisualizeGraph()
   {
     // NODES IN THE GRAPH - COLORED BY PATH / TYPE
-    RosTools::ROSPointMarker &sphere = ros_graph_visuals_->getNewPointMarker("SPHERE");
+    auto &graph_visuals = VISUALS.getPublisher("graph");
+    auto &sphere = graph_visuals.getNewPointMarker("SPHERE");
     sphere.setScale(0.1, 0.1, 0.1);
 
-    RosTools::ROSPointMarker &goal_start_sphere = ros_goal_start_visuals_->getNewPointMarker("SPHERE");
-    goal_start_sphere.setScale(0.1, 0.1, 0.1);
-
-    RosTools::ROSLine &edge = ros_graph_visuals_->getNewLine();
+    auto &edge = graph_visuals.getNewLine();
     edge.setScale(0.05, 0.05);
     edge.setColor(0., 0., 0., 1.);
 
-    RosTools::ROSTextMarker &segment_text = ros_segment_visuals_->getNewTextMarker();
+    auto &start_goal_visuals = VISUALS.getPublisher("start_and_goals");
+    auto &goal_start_sphere = start_goal_visuals.getNewPointMarker("SPHERE");
+    goal_start_sphere.setScale(0.1, 0.1, 0.1);
+
+    auto &segments_visuals = VISUALS.getPublisher("segments");
+    auto &segment_text = segments_visuals.getNewTextMarker();
     segment_text.setScale(1.0);
 
     int num_guards = 0;
@@ -707,9 +705,10 @@ namespace GuidancePlanner
         }
       }
     }
-    ros_graph_visuals_->publish();
-    ros_goal_start_visuals_->publish();
-    ros_segment_visuals_->publish();
+
+    graph_visuals.publish();
+    start_goal_visuals.publish();
+    segments_visuals.publish();
   }
 
   void PRM::VisualizeAllSamples()
@@ -717,7 +716,8 @@ namespace GuidancePlanner
     // IF ENABLED, ALL PRM SAMPLES
     if (config_->visualize_all_samples_)
     {
-      RosTools::ROSPointMarker &samples = ros_sample_visuals_->getNewPointMarker("SPHERE");
+      auto &sample_visuals = VISUALS.getPublisher("samples");
+      auto &samples = sample_visuals.getNewPointMarker("SPHERE");
       samples.setScale(.15, .15, .15);
       samples.setColorInt(0);
 
@@ -726,8 +726,7 @@ namespace GuidancePlanner
         if (sample_succes_[s])
           samples.addPointMarker(all_samples_[s].MapToTime());
       }
+      sample_visuals.publish();
     }
-
-    ros_sample_visuals_->publish();
   }
 } // namespace Homotopy

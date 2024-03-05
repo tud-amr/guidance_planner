@@ -1,7 +1,6 @@
 #include "guidance_planner/homology.h"
 
-#include <ros_tools/ros_visuals.h>
-#include <ros_tools/types.h>
+#include <ros_tools/visuals.h>
 
 #include <guidance_planner/environment.h>
 
@@ -10,7 +9,6 @@ namespace GuidancePlanner
   Homology::Homology(ros::NodeHandle &nh, bool assume_constant_velocity)
       : assume_constant_velocity_(assume_constant_velocity)
   {
-    debug_visuals_.reset(new RosTools::ROSMarkerPublisher(nh, "guidance_planner/homology", "map", 500));
     // Initialize workspace, parameters, functions
     // For multithreading!
     gsl_ws_.resize(8);
@@ -24,7 +22,6 @@ namespace GuidancePlanner
       gsl_f_[i].function = &Homology::GSLHValue;
       gsl_f_[i].params = &gsl_params_[i];
     }
-    // gsl_params_.reset(new GSLParams()); // Is a pointer because the parameters and homology class depend on each other
 
     fraction_ = 1. / ((double)Config::N);
   }
@@ -335,7 +332,8 @@ namespace GuidancePlanner
 
   void Homology::Visualize(Environment &environment)
   {
-    RosTools::ROSLine &line = debug_visuals_->getNewLine();
+    auto &debug_visuals = VISUALS.getPublisher("homology");
+    auto &line = debug_visuals.getNewLine();
     line.setScale(0.05);
 
     const auto &obstacles = environment.GetDynamicObstacles();
@@ -367,7 +365,7 @@ namespace GuidancePlanner
       // line.addBrokenLine(obstacle_p4_, obstacle_p1_, 1.);
     }
 
-    debug_visuals_->publish();
+    debug_visuals.publish();
   }
 
   bool operator==(const GeometricPath &a, const GeometricPath &b)

@@ -13,11 +13,12 @@
 
 using namespace GuidancePlanner;
 
-void IntegrationExceptionHandler (const char *reason, const char *file, int line, int err){
-    gsl_stream_printf ("ERROR", file, line, reason);
-    fflush (stdout);
-    fprintf (stderr, "Customized GSL error handler invoked.\n");
-    fflush (stderr);
+void IntegrationExceptionHandler(const char *reason, const char *file, int line, int err)
+{
+    gsl_stream_printf("ERROR", file, line, reason);
+    fflush(stdout);
+    fprintf(stderr, "Customized GSL error handler invoked.\n");
+    fflush(stderr);
 
     // abort ();
     throw IntegrationException();
@@ -42,7 +43,8 @@ public:
 
     bool guidances_callback(guidance_planner::guidances::Request &req, guidance_planner::guidances::Response &res)
     {
-        try{
+        try
+        {
             guidance.Reset();
             guidance.SetStart(Eigen::Vector2d(req.x, req.y), req.oriantation, req.v); // Position, yaw angle, velocity magnitude
             std::vector<Goal> goals;
@@ -59,18 +61,23 @@ public:
                 int last_no_nan = -1;
                 for (size_t j = 0; j < req.obstacles[i].pos_x.size(); j++)
                 {
-                    if (!isnan(req.obstacles[i].pos_x[j]) && !isnan(req.obstacles[i].pos_y[j])){
+                    if (!isnan(req.obstacles[i].pos_x[j]) && !isnan(req.obstacles[i].pos_y[j]))
+                    {
                         obs_pos.emplace_back(req.obstacles[i].pos_x[j], req.obstacles[i].pos_y[j]);
                         last_no_nan = j;
                     }
-                    else{
-                        if (last_no_nan == -1){
+                    else
+                    {
+                        if (last_no_nan == -1)
+                        {
                             j++;
-                            while (isnan(req.obstacles[i].pos_x[j]) || isnan(req.obstacles[i].pos_y[j])){
+                            while (isnan(req.obstacles[i].pos_x[j]) || isnan(req.obstacles[i].pos_y[j]))
+                            {
                                 j++;
                             }
                             last_no_nan = j;
-                            for (size_t aux_j = 0; aux_j < j; aux_j++){
+                            for (size_t aux_j = 0; aux_j < j; aux_j++)
+                            {
                                 obs_pos.emplace_back(req.obstacles[i].pos_x[last_no_nan], req.obstacles[i].pos_y[last_no_nan]);
                             }
                         }
@@ -79,7 +86,7 @@ public:
                 }
                 obstacles_vec.push_back(GuidancePlanner::Obstacle(req.obstacles[i].id, obs_pos, req.obstacles[i].radius));
             }
-            std::vector<RosTools::Halfspace> static_obstacles;
+            std::vector<Halfspace> static_obstacles;
             for (size_t i = 0; i < req.static_x.size(); i++)
             {
                 static_obstacles.emplace_back(Eigen::Vector2d(req.static_x[i], req.static_y[i]), req.static_n[i]);
@@ -113,7 +120,8 @@ public:
                     // ROS_INFO_STREAM("H-cost: " << res.costs.back());
                     guidance_planner::RightAvoidanceMSG h_signature_msg;
                     std::vector<bool> right = guidance.PassesRight(i, Eigen::Vector2d(req.goals_x[0], req.goals_y[0]));
-                    for(int i_obs = 0; i_obs < (int)right.size(); i_obs++){
+                    for (int i_obs = 0; i_obs < (int)right.size(); i_obs++)
+                    {
                         h_signature_msg.right_avoidance.push_back((double)right[i_obs]);
                     }
                     res.h_signature.emplace_back(h_signature_msg);
@@ -134,16 +142,18 @@ public:
             }
             return true;
         }
-        catch (IntegrationException& ie){
+        catch (IntegrationException &ie)
+        {
             res.success = false;
             ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
             return true;
         }
     }
-    
+
     bool guidances_Hcost_callback(guidance_planner::guidances_Hcost::Request &req, guidance_planner::guidances_Hcost::Response &res)
     {
-        try{
+        try
+        {
             guidance.Reset();
             guidance.SetStart(Eigen::Vector2d(req.x, req.y), req.oriantation, req.v); // Position, yaw angle, velocity magnitude
             std::vector<Goal> goals;
@@ -160,18 +170,23 @@ public:
                 int last_no_nan = -1;
                 for (size_t j = 0; j < req.obstacles[i].pos_x.size(); j++)
                 {
-                    if (!isnan(req.obstacles[i].pos_x[j]) && !isnan(req.obstacles[i].pos_y[j])){
+                    if (!isnan(req.obstacles[i].pos_x[j]) && !isnan(req.obstacles[i].pos_y[j]))
+                    {
                         obs_pos.emplace_back(req.obstacles[i].pos_x[j], req.obstacles[i].pos_y[j]);
                         last_no_nan = j;
                     }
-                    else{
-                        if (last_no_nan == -1){
+                    else
+                    {
+                        if (last_no_nan == -1)
+                        {
                             j++;
-                            while (isnan(req.obstacles[i].pos_x[j]) || isnan(req.obstacles[i].pos_y[j])){
+                            while (isnan(req.obstacles[i].pos_x[j]) || isnan(req.obstacles[i].pos_y[j]))
+                            {
                                 j++;
                             }
                             last_no_nan = j;
-                            for (size_t aux_j = 0; aux_j < j; aux_j++){
+                            for (size_t aux_j = 0; aux_j < j; aux_j++)
+                            {
                                 obs_pos.emplace_back(req.obstacles[i].pos_x[last_no_nan], req.obstacles[i].pos_y[last_no_nan]);
                             }
                         }
@@ -180,7 +195,7 @@ public:
                 }
                 obstacles_vec.push_back(GuidancePlanner::Obstacle(req.obstacles[i].id, obs_pos, req.obstacles[i].radius));
             }
-            std::vector<RosTools::Halfspace> static_obstacles;
+            std::vector<Halfspace> static_obstacles;
             for (size_t i = 0; i < req.static_x.size(); i++)
             {
                 static_obstacles.emplace_back(Eigen::Vector2d(req.static_x[i], req.static_y[i]), req.static_n[i]);
@@ -222,7 +237,8 @@ public:
                     ROS_INFO_STREAM("H-cost: " << res.costs.back());
                     guidance_planner::RightAvoidanceMSG h_signature_msg;
                     std::vector<bool> right = guidance.PassesRight(i, Eigen::Vector2d(req.goals_x[0], req.goals_y[0]));
-                    for(int i_obs = 0; i_obs < (int)right.size(); i_obs++){
+                    for (int i_obs = 0; i_obs < (int)right.size(); i_obs++)
+                    {
                         h_signature_msg.right_avoidance.push_back((double)right[i_obs]);
                     }
                     res.h_signature.emplace_back(h_signature_msg);
@@ -243,7 +259,8 @@ public:
             }
             return true;
         }
-        catch (IntegrationException& ie){
+        catch (IntegrationException &ie)
+        {
             res.success = false;
             ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
             return true;

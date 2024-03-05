@@ -3,30 +3,13 @@
 #include <guidance_planner/config.h>
 #include <guidance_planner/cubic_spline.h>
 #include <guidance_planner/paths.h>
+#include <guidance_planner/graph.h>
+#include <guidance_planner/utils.h>
 
 #include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
 
-#include <guidance_planner/ObstacleMSG.h>
-#include <guidance_planner/TrajectoryMSG.h>
-#include <guidance_planner/select_guidance.h>
-#include <guidance_planner/RightAvoidanceMSG.h>
-
-#include <third_party/spline.h>
-
 #include <ros_tools/profiling.h>
 #include <ros_tools/data_saver.h>
-#include <ros_tools/helpers.h>
-#include <ros_tools/ros_visuals.h>
-
-void IntegrationExceptionHandler(const char *reason, const char *file, int line, int err)
-{
-  gsl_stream_printf("ERROR", file, line, reason);
-  fflush(stdout);
-  fprintf(stderr, "Customized GSL error handler invoked.\n");
-  fflush(stderr);
-
-  throw IntegrationException();
-}
 
 namespace GuidancePlanner
 {
@@ -88,29 +71,16 @@ namespace GuidancePlanner
     PRM_LOG("Initializing Global Guidance");
 
     // Initialize profiling
-    RosTools::Instrumentor::Get().BeginSession("Guidance Planner");
+    RosTools::Instrumentor::Get().BeginSession("guidance_planner");
 
     config_.reset(new Config());
     prm_.Init(nh_, config_.get());
-    learning_guidance_.Init(nh_);
+    // learning_guidance_.Init(nh_);
 
     first_reconfigure_callback_ = true;
     ros::NodeHandle nh_guidance("guidance_planner");
     reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlanner::GuidancePlannerConfig>(reconfig_mutex_, nh_guidance));
     reconfigure_server_->setCallback(boost::bind(&GlobalGuidance::ReconfigureCallback, this, _1, _2));
-
-    /* Initialize visuals */
-    ros_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_trajectories", "map", 500));
-    ros_bspline_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/spline_points", "map", 300));
-    ros_selected_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/selected_guidance", "map", 200));
-    ros_guidance_path_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/guidance_path", "map", 200));
-    ros_obstacle_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/obstacles_3d", "map", 675));
-    ros_path_visuals_.reset(new RosTools::ROSMarkerPublisher(nh_, "lmpcc/homotopy/geometric_paths", "map", 200));
-
-    /* Initialize benchmarkers for debugging purposes */
-    benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Guidance Planner", false, 0)));
-    benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Visibility-PRM", false, 0)));
-    benchmarkers_.push_back(std::unique_ptr<RosTools::Benchmarker>(new RosTools::Benchmarker("Path Search", false, 0)));
 
     start_velocity_ = Eigen::Vector2d(0., 0.);
     color_manager_.reset(new ColorManager(config_->n_paths_));
@@ -119,20 +89,20 @@ namespace GuidancePlanner
     gsl_set_error_handler(&IntegrationExceptionHandler);
   }
 
-  void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles)
+  void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles)
   {
     obstacles_ = obstacles;
     static_obstacles_ = static_obstacles;
-    if (config_->use_learning)
-      learning_guidance_.LoadObstacles(obstacles, static_obstacles);
+    // if (config_->use_learning)
+    //   learning_guidance_.LoadObstacles(obstacles, static_obstacles);
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width)
+  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width)
   {
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path,
+  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path,
                                          double road_width_left, double road_width_right)
   {
     PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
@@ -170,8 +140,8 @@ namespace GuidancePlanner
       double long_cost = std::abs((grid_long - 2) - i) * 2.;
 
       // Compute the normal vector to the reference path
-      Eigen::Vector2d line_point = reference_path->GetPoint(s);
-      Eigen::Vector2d normal = reference_path->GetVelocity(s).normalized();
+      Eigen::Vector2d line_point = reference_path->getPoint(s);
+      Eigen::Vector2d normal = reference_path->getVelocity(s).normalized();
       normal = Eigen::Vector2d(-normal(1), normal(0));
 
       // Place goals orthogonally to the path
@@ -197,8 +167,8 @@ namespace GuidancePlanner
     orientation_ = orientation;
     start_velocity_ = Eigen::Vector2d(velocity * std::cos(orientation), velocity * std::sin(orientation));
 
-    if (config_->use_learning)
-      learning_guidance_.SetStart(start, orientation, velocity);
+    // if (config_->use_learning)
+    //   learning_guidance_.SetStart(start, orientation, velocity);
   }
 
   bool GlobalGuidance::Update()
@@ -207,7 +177,10 @@ namespace GuidancePlanner
     {
       PROFILE_SCOPE("GlobalGuidance::Update");
       PRM_LOG("GlobalGuidance::Update")
-      benchmarkers_[0]->start();
+      auto &guidance_benchmarker = BENCHMARKERS.getBenchmarker("Guidance Planner");
+      auto &prm_benchmarker = BENCHMARKERS.getBenchmarker("PRM");
+
+      guidance_benchmarker.start();
 
       paths_.clear();
       splines_.clear();
@@ -225,15 +198,14 @@ namespace GuidancePlanner
 
       PRM_LOG("======== Visibility-PRM ==========");
 
+      prm_benchmarker.start();
       prm_.LoadData(obstacles_, static_obstacles_, start_, orientation_, start_velocity_, goals_);
-      benchmarkers_[1]->start();
       Graph &graph = prm_.Update(); // Construct a graph using visibility PRM
-      benchmarkers_[1]->stop();
+      prm_benchmarker.stop();
 
       PRM_LOG("======== Depth First Path Search ==========");
       {
         PROFILE_SCOPE("Path Search");
-        benchmarkers_[2]->start();
 
         std::vector<std::vector<GeometricPath>> cur_paths; // Collect each set of paths (per goal) here MAKE PREALLOCATED!
         cur_paths.resize(graph.goal_nodes_.size());
@@ -257,8 +229,6 @@ namespace GuidancePlanner
         // If there are no paths - WARN
         if (paths_.size() == 0 && config_->n_paths_ != 0)
           PRM_WARN("Guidance failed to find a path from the robot position to the goal (using last path)");
-
-        benchmarkers_[2]->stop();
       }
 
       PRM_LOG("======== Filter And Select ==========");
@@ -284,7 +254,7 @@ namespace GuidancePlanner
 
       if (paths_.size() == 0) // Stop here if no paths were found
       {
-        benchmarkers_[0]->stop();
+        guidance_benchmarker.stop();
 
         // There are no outputs
         outputs_.clear();
@@ -361,7 +331,7 @@ namespace GuidancePlanner
         }
       }
 
-      benchmarkers_[0]->stop();
+      guidance_benchmarker.stop();
       PRM_LOG("=========== Done ============");
 
       return true; /* Succesful running */
@@ -371,7 +341,7 @@ namespace GuidancePlanner
       ROS_WARN("Integration exception called");
       splines_.clear();
       paths_.clear();
-      benchmarkers_[0]->stop();
+      BENCHMARKERS.getBenchmarker("Guidance Planner").stop();
       return false;
     }
   }
@@ -481,93 +451,93 @@ namespace GuidancePlanner
 
   void GlobalGuidance::OrderOutputByLearning(std::vector<OutputTrajectory> &outputs)
   {
-    if (outputs.size() <= 1)
-      return;
+    // if (outputs.size() <= 1)
+    //   return;
 
-    PRM_LOG("OrderOutputByLearning");
+    // PRM_LOG("OrderOutputByLearning");
 
-    guidance_planner::select_guidance srv;
-    for (size_t i = 0; i < outputs.size(); i++)
-    {
-      guidance_planner::RightAvoidanceMSG h_signature_msg;
-      GuidancePlanner::Goal main_goal = *std::min_element(goals_.begin(), goals_.end(),
-                                                          [&](const GuidancePlanner::Goal &a, const GuidancePlanner::Goal &b)
-                                                          { return a.cost < b.cost; });
-      if (goals_.front().cost <= main_goal.cost)
-        main_goal = goals_.front();
+    // guidance_planner::select_guidance srv;
+    // for (size_t i = 0; i < outputs.size(); i++)
+    // {
+    //   guidance_planner::RightAvoidanceMSG h_signature_msg;
+    //   GuidancePlanner::Goal main_goal = *std::min_element(goals_.begin(), goals_.end(),
+    //                                                       [&](const GuidancePlanner::Goal &a, const GuidancePlanner::Goal &b)
+    //                                                       { return a.cost < b.cost; });
+    //   if (goals_.front().cost <= main_goal.cost)
+    //     main_goal = goals_.front();
 
-      std::vector<bool> right = PassesRight(i, main_goal.pos);
-      for (size_t i_obs = 0; i_obs < right.size(); i_obs++)
-        h_signature_msg.right_avoidance.push_back((double)right[i_obs]);
+    //   std::vector<bool> right = PassesRight(i, main_goal.pos);
+    //   for (size_t i_obs = 0; i_obs < right.size(); i_obs++)
+    //     h_signature_msg.right_avoidance.push_back((double)right[i_obs]);
 
-      srv.request.h_signatures.push_back(h_signature_msg);
-    }
+    //   srv.request.h_signatures.push_back(h_signature_msg);
+    // }
 
-    // The trained timestep is 0.4
-    auto &poses_list = learning_guidance_.GetPosesList();
-    double full_diff = (poses_list.back().timestamp - poses_list.front().timestamp).toSec();
-    double time_diff = full_diff - (std::fmod(full_diff, 0.4));
-    for (size_t i_poses = 0; i_poses < poses_list.size(); i_poses++)
-    {
-      if ((poses_list.back().timestamp - poses_list[i_poses].timestamp).toSec() <= time_diff)
-      {
-        srv.request.robot_trajectory.x.push_back(poses_list[i_poses].position.x());
-        srv.request.robot_trajectory.y.push_back(poses_list[i_poses].position.y());
-        // ROS_INFO_STREAM("time diff: " << time_diff << " -> " << (poses_list.back().timestamp - poses_list[i_poses].timestamp).toSec());
-        time_diff -= 0.4;
-      }
-    }
+    // // The trained timestep is 0.4
+    // auto &poses_list = learning_guidance_.GetPosesList();
+    // double full_diff = (poses_list.back().timestamp - poses_list.front().timestamp).toSec();
+    // double time_diff = full_diff - (std::fmod(full_diff, 0.4));
+    // for (size_t i_poses = 0; i_poses < poses_list.size(); i_poses++)
+    // {
+    //   if ((poses_list.back().timestamp - poses_list[i_poses].timestamp).toSec() <= time_diff)
+    //   {
+    //     srv.request.robot_trajectory.x.push_back(poses_list[i_poses].position.x());
+    //     srv.request.robot_trajectory.y.push_back(poses_list[i_poses].position.y());
+    //     // ROS_INFO_STREAM("time diff: " << time_diff << " -> " << (poses_list.back().timestamp - poses_list[i_poses].timestamp).toSec());
+    //     time_diff -= 0.4;
+    //   }
+    // }
 
-    for (auto &obs_saved : learning_guidance_.GetPreviousObstacles())
-    {
-      guidance_planner::ObstacleMSG obs_aux;
-      obs_aux.id = obs_saved.id_;
-      obs_aux.radius = obs_saved.radius_;
-      full_diff = (obs_saved.positions_.back().timestamp - obs_saved.positions_.front().timestamp).toSec();
-      time_diff = full_diff - (std::fmod(full_diff, 0.4));
+    // for (auto &obs_saved : learning_guidance_.GetPreviousObstacles())
+    // {
+    //   guidance_planner::ObstacleMSG obs_aux;
+    //   obs_aux.id = obs_saved.id_;
+    //   obs_aux.radius = obs_saved.radius_;
+    //   full_diff = (obs_saved.positions_.back().timestamp - obs_saved.positions_.front().timestamp).toSec();
+    //   time_diff = full_diff - (std::fmod(full_diff, 0.4));
 
-      for (size_t i_poses = 0; i_poses < obs_saved.positions_.size(); i_poses++)
-      {
+    //   for (size_t i_poses = 0; i_poses < obs_saved.positions_.size(); i_poses++)
+    //   {
 
-        if ((obs_saved.positions_.back().timestamp - obs_saved.positions_[i_poses].timestamp).toSec() <= time_diff)
-        {
-          obs_aux.pos_x.push_back(obs_saved.positions_[i_poses].position.x());
-          obs_aux.pos_y.push_back(obs_saved.positions_[i_poses].position.y());
-          time_diff -= 0.4;
-        }
-      }
+    //     if ((obs_saved.positions_.back().timestamp - obs_saved.positions_[i_poses].timestamp).toSec() <= time_diff)
+    //     {
+    //       obs_aux.pos_x.push_back(obs_saved.positions_[i_poses].position.x());
+    //       obs_aux.pos_y.push_back(obs_saved.positions_[i_poses].position.y());
+    //       time_diff -= 0.4;
+    //     }
+    //   }
 
-      srv.request.previous_obstacles.push_back(obs_aux);
-    }
+    //   srv.request.previous_obstacles.push_back(obs_aux);
+    // }
 
-    if (learning_guidance_.CallServer(srv))
-    {
-      // Sort splines by the heuristic
-      std::vector<int> indices(splines_.size());
-      // ROS_INFO_STREAM(previous_outputs_[0].path);
+    // if (learning_guidance_.CallServer(srv))
+    // {
+    //   // Sort splines by the heuristic
+    //   std::vector<int> indices(splines_.size());
+    //   // ROS_INFO_STREAM(previous_outputs_[0].path);
 
-      for (size_t i_output = 0; i_output < outputs.size(); i_output++)
-      {
-        if (outputs[i_output].previously_selected_)
-          srv.response.cost_guidances[i_output] *= 1. / config_->selection_weight_consistency_;
-      }
+    //   for (size_t i_output = 0; i_output < outputs.size(); i_output++)
+    //   {
+    //     if (outputs[i_output].previously_selected_)
+    //       srv.response.cost_guidances[i_output] *= 1. / config_->selection_weight_consistency_;
+    //   }
 
-      std::iota(indices.begin(), indices.end(), 0);
-      std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
-                { return srv.response.cost_guidances[a] < srv.response.cost_guidances[b]; });
-      sorted_indices_ = indices;
+    //   std::iota(indices.begin(), indices.end(), 0);
+    //   std::sort(indices.begin(), indices.end(), [&](const int a, const int b)
+    //             { return srv.response.cost_guidances[a] < srv.response.cost_guidances[b]; });
+    //   sorted_indices_ = indices;
 
-      // Apply the sorting to the splines vector
-      std::vector<OutputTrajectory> ordered_outputs;
-      for (size_t i = 0; i < outputs.size(); i++)
-        ordered_outputs.push_back(outputs[indices[i]]);
-      outputs = ordered_outputs;
-    }
-    else
-    {
-      ROS_ERROR_ONCE("Failed to call service select_guidance");
-      OrderOutputByHeuristic(outputs);
-    }
+    //   // Apply the sorting to the splines vector
+    //   std::vector<OutputTrajectory> ordered_outputs;
+    //   for (size_t i = 0; i < outputs.size(); i++)
+    //     ordered_outputs.push_back(outputs[indices[i]]);
+    //   outputs = ordered_outputs;
+    // }
+    // else
+    // {
+    //   ROS_ERROR_ONCE("Failed to call service select_guidance");
+    //   OrderOutputByHeuristic(outputs);
+    // }
   }
 
   void GlobalGuidance::KeepTopologyDistinctPaths(std::vector<GeometricPath> &paths)
@@ -742,8 +712,11 @@ namespace GuidancePlanner
 
   void GlobalGuidance::VisualizeGeometricPaths(int path_nr)
   {
-    RosTools::ROSLine &path_line = ros_path_visuals_->getNewLine();
+    auto &path_visuals = VISUALS.getPublisher("geometric_paths");
+
+    RosTools::ROSLine &path_line = path_visuals.getNewLine();
     path_line.setScale(0.15, 0.15, 0.15);
+
     // Visualize the path for each output
     for (size_t i = 0; i < outputs_.size(); i++)
     {
@@ -760,21 +733,20 @@ namespace GuidancePlanner
       VisualizePath(path_line, path.path);
     }
 
-    ros_path_visuals_->publish();
+    path_visuals.publish();
   }
 
   void GlobalGuidance::VisualizeSplinePoints()
   {
     // CONTROL POINTS OF CUBIC SPLINES
     for (auto &spline : splines_)
-      spline.Visualize(ros_bspline_visuals_.get());
-
-    ros_bspline_visuals_->publish();
+      spline.Visualize();
   }
 
   void GlobalGuidance::VisualizeObstacles()
   {
-    RosTools::ROSPointMarker &disc = ros_obstacle_visuals_->getNewPointMarker("CYLINDER");
+    auto &obstacle_visuals = VISUALS.getPublisher("obstacles_3d");
+    auto &disc = obstacle_visuals.getNewPointMarker("CYLINDER");
 
     // Visualize the obstacles
     int j = 0;
@@ -791,15 +763,17 @@ namespace GuidancePlanner
 
       j++;
     }
-    ros_obstacle_visuals_->publish();
+    obstacle_visuals.publish();
   }
 
   void GlobalGuidance::VisualizeTrajectories(bool highlight_selected, int path_nr)
   {
-    RosTools::ROSLine &line = ros_visuals_->getNewLine();
+    auto &trajectory_visuals = VISUALS.getPublisher("trajectories");
+
+    RosTools::ROSLine &line = trajectory_visuals.getNewLine();
     line.setScale(0.15, 0.15);
 
-    RosTools::ROSTextMarker text_marker = ros_visuals_->getNewTextMarker();
+    RosTools::ROSTextMarker text_marker = trajectory_visuals.getNewTextMarker();
     text_marker.setScale(1.0);
 
     for (size_t i = 0; i < outputs_.size(); i++)
@@ -853,15 +827,16 @@ namespace GuidancePlanner
       if (config_->show_trajectory_indices_)
         text_marker.addPointMarker(points.back() + Eigen::Vector3d(0., 0., 3.0));
     }
-    ros_visuals_->publish();
+    trajectory_visuals.publish();
   }
 
   void GlobalGuidance::VisualizeDebug()
   {
     if (splines_.size() != 0)
     {
+      auto &spline_visuals = VISUALS.getPublisher("spline");
       // VISUALIZE THE USED PART OF THE SPLINE //
-      RosTools::ROSLine &guidance_path = ros_guidance_path_visuals_->getNewLine();
+      RosTools::ROSLine &guidance_path = spline_visuals.getNewLine();
 
       if (splines_.size() > 0)
       {
@@ -871,25 +846,24 @@ namespace GuidancePlanner
         double step = 0.1;
         int offset = 0; // The first segment is indexed as such
 
-        RosTools::CubicSpline2D<tk::spline> &selected_spline = splines_[0].GetPath();
+        RosTools::Spline2D &selected_spline = splines_[0].GetPath();
 
         // Go through all used segments and plot them
-        for (int i = offset; i < std::min(offset + n_segments, selected_spline.NumberOfSegments()); i++)
+        for (int i = offset; i < std::min(offset + n_segments, selected_spline.numSegments()); i++)
         {
-          double start_segment = selected_spline.GetSplineStart(i);
-          double end_segment = selected_spline.GetSplineEnd(i);
+          double start_segment = selected_spline.getSegmentStart(i);
+          double end_segment = selected_spline.getSegmentStart(i + 1);
 
           guidance_path.setColorInt(i, 10, 0.7);
 
           for (double t = start_segment + step; t <= end_segment; t += step)
           {
-            guidance_path.addLine(RosTools::AsVector3d(selected_spline.GetPoint(t), 0.1), RosTools::AsVector3d(selected_spline.GetPoint(t - step), 0.1));
+            guidance_path.addLine(selected_spline.getPoint(t), selected_spline.getPoint(t - step), 0.1);
           }
         }
       }
+      spline_visuals.publish();
     }
-
-    ros_guidance_path_visuals_->publish();
   }
 
   void GlobalGuidance::ExportData(RosTools::DataSaver &data_saver) // Export data for analysis
@@ -918,6 +892,11 @@ namespace GuidancePlanner
     config_->n_samples_ = config.n_samples;
     config_->visualize_all_samples_ = config.visualize_samples;
     config_->use_learning = config.use_learning;
+  }
+
+  double GlobalGuidance::GetLastRuntime()
+  {
+    return BENCHMARKERS.getBenchmarker("Guidance Planner").getLast();
   }
 
 } // namespace GuidancePlanner

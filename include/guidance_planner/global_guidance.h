@@ -5,32 +5,16 @@
 #include <guidance_planner/graph_search.h>
 #include <guidance_planner/types.h>
 
-#include <guidance_planner/learning_guidance.h>
-#include <guidance_planner/learning_types.h>
+// #include <guidance_planner/learning_guidance.h>
+// #include <guidance_planner/learning_types.h>
 
 #include <dynamic_reconfigure/server.h>
 
 namespace RosTools
 {
   class DataSaver;
-  class ROSMarkerPublisher;
+  class ROSLine;
 }
-
-namespace tk
-{
-  class spline;
-}
-
-#include "gsl/gsl_errno.h"
-
-class IntegrationException : public std::exception
-{
-public:
-  char *what()
-  {
-    return (char *)"GSL integration Exception";
-  }
-};
 
 namespace GuidancePlanner
 {
@@ -58,9 +42,9 @@ namespace GuidancePlanner
     void SetStart(const Eigen::Vector2d &start, const double orientation, const double velocity);
 
     /** @brief Load the obstacles to be used in the PRM, each obstacle needs to have at least the current position and N future predicted positions */
-    void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
-    void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width = 4.);
-    void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::CubicSpline2D<tk::spline>> &reference_path, double road_width_left, double road_width_right);
+    void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles);
+    void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width = 4.);
+    void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width_left, double road_width_right);
     void SetGoals(const std::vector<Goal> &goals);
 
     /** @brief Additional configuration */
@@ -127,7 +111,7 @@ namespace GuidancePlanner
     // --- Other internal functionality --- //
 
     /** @brief For tracking computation times */
-    double GetLastRuntime() { return benchmarkers_[0]->getLast(); };
+    double GetLastRuntime();
 
     /** @brief Add some of the settings to the rqt_reconfigure window */
     void ReconfigureCallback(GuidancePlannerConfig &config, uint32_t level);
@@ -173,13 +157,9 @@ namespace GuidancePlanner
     boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerConfig>> reconfigure_server_;
     boost::recursive_mutex reconfig_mutex_;
 
-    // Classes for visualization
-    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_visuals_, ros_bspline_visuals_, ros_guidance_path_visuals_, ros_selected_visuals_, ros_obstacle_visuals_;
-    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_path_visuals_;
-
     PRM prm_;
     GraphSearch graph_search_;
-    LearningGuidance learning_guidance_;
+    // LearningGuidance learning_guidance_; /** @note Learning disabled */
 
     // Join in a structure
     std::vector<GeometricPath> paths_;   // Found using path search
@@ -195,7 +175,7 @@ namespace GuidancePlanner
 
     // Real-time data
     std::vector<Obstacle> obstacles_;
-    std::vector<RosTools::Halfspace> static_obstacles_;
+    std::vector<Halfspace> static_obstacles_;
 
     Eigen::Vector2d start_;
     bool goals_set_ = false;
@@ -208,7 +188,6 @@ namespace GuidancePlanner
 
     // Debugging variables
     bool no_message_sent_yet_;
-    std::vector<std::unique_ptr<RosTools::Benchmarker>> benchmarkers_;
   };
 } // namespace Homotopy
 

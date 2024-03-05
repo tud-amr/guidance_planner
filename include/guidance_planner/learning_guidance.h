@@ -5,10 +5,12 @@
  * @brief Types for saving history information of obstacles and the robot
  *
  */
-#include <guidance_planner/homotopy.h>
+#include <guidance_planner/graph.h>
 #include <guidance_planner/learning_types.h>
 
 #include <guidance_planner/select_guidance.h>
+
+#include <guidance_planner/types.h>
 
 #include <ros/ros.h>
 #include <Eigen/Dense>
@@ -30,7 +32,7 @@ namespace GuidancePlanner
 
     public:
         void SetStart(const Eigen::Vector2d &start, const double orientation, const double velocity);
-        void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles);
+        void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles);
 
         bool CallServer(guidance_planner::select_guidance &srv);
 

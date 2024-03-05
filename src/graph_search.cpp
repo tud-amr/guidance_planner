@@ -1,6 +1,6 @@
 #include "guidance_planner/graph_search.h"
 
-#include <guidance_planner/homotopy.h>
+#include <guidance_planner/graph.h>
 #include <guidance_planner/paths.h>
 
 using namespace GuidancePlanner;

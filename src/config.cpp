@@ -79,4 +79,4 @@ namespace GuidancePlanner
 
     retrieveParameter(nh, "prm/test_node/continuous_replanning", debug_continuous_replanning_);
   }
-};
+}

@@ -13,9 +13,14 @@ namespace GuidancePlanner
 
   public:
     virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) = 0;
-    virtual std::vector<bool> LeftPassingVector(const GeometricPath &path, Environment &environment) { return std::vector<bool>({}); };
+    virtual std::vector<bool> LeftPassingVector(const GeometricPath &path, Environment &environment)
+    {
+      (void)path;
+      (void)environment;
+      return std::vector<bool>({});
+    };
 
-    virtual void Visualize(Environment &environment){};
+    virtual void Visualize(Environment &environment) { (void)environment; };
     virtual void Clear(){};
   };
 
@@ -23,7 +28,14 @@ namespace GuidancePlanner
   class NoTopologyComparison : public TopologyComparison
   {
     // There are no equivalences
-    bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override { return false; }
+    bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override
+    {
+      (void)a;
+      (void)b;
+      (void)environment;
+      (void)compute_all;
+      return false;
+    }
   };
 } // namespace Homotopy
 

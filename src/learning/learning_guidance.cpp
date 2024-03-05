@@ -1,14 +1,12 @@
 #include <guidance_planner/learning_guidance.h>
 
-#include <ros_tools/types.h>
-
 #include <guidance_planner/ObstacleMSG.h>
 #include <guidance_planner/TrajectoryMSG.h>
 #include <guidance_planner/RightAvoidanceMSG.h>
 
 namespace GuidancePlanner
 {
-    LearningGuidance::LearningGuidance(){};
+    LearningGuidance::LearningGuidance() {}
 
     void LearningGuidance::Init(ros::NodeHandle &nh)
     {
@@ -42,7 +40,7 @@ namespace GuidancePlanner
         }
     }
 
-    void LearningGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles)
+    void LearningGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles)
     {
         obstacles_ = obstacles; // Local copy
 
@@ -119,4 +117,4 @@ namespace GuidancePlanner
                   });
     }
 
-};
+}

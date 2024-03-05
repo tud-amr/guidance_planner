@@ -16,11 +16,12 @@
 #include <guidance_planner/graph_search.h>
 #include <guidance_planner/config.h>
 #include <guidance_planner/paths.h>
+#include <guidance_planner/types.h>
 
 #include <guidance_planner/homology.h>
 #include <guidance_planner/uvd.h>
 
-#include <ros_tools/ros_visuals.h>
+#include <ros_tools/random_generator.h>
 
 namespace RosTools
 {
@@ -58,7 +59,7 @@ namespace GuidancePlanner
      * @param velocity The start velocity
      * @param goal Goal positions organized with the furthest away goal at the end of the vector
      */
-    void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<RosTools::Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
+    void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals);
 
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
@@ -126,10 +127,6 @@ namespace GuidancePlanner
     bool done_;
 
     Config *config_;
-
-    // Classes for visualization
-    std::unique_ptr<RosTools::ROSMarkerPublisher> ros_sample_visuals_, ros_graph_visuals_, ros_goal_start_visuals_, ros_segment_visuals_;
-    std::unique_ptr<RosTools::ROSMarkerPublisher> debug_visuals_;
 
     std::unique_ptr<Graph> graph_;                            // PRM Graph
     std::unique_ptr<TopologyComparison> topology_comparison_; // H-invariant or UVD comparison

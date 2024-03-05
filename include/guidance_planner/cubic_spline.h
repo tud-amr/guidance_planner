@@ -1,13 +1,11 @@
 #ifndef __CUBIC_SPLINE_H__
 #define __CUBIC_SPLINE_H__
 
-#include <ros_tools/ros_visuals.h>
-#include <ros_tools/types.h>
-
-#include <third_party/spline.h>
+#include <ros_tools/spline.h>
 
 #include <vector>
 #include <Eigen/Dense>
+#include <memory>
 
 namespace GuidancePlanner
 {
@@ -144,11 +142,6 @@ namespace GuidancePlanner
         {
             end = Eigen::Vector2d(end_(0), end_(1));
         }
-
-        void PrintLast()
-        {
-            std::cout << "(" << points_(0, cur_col - 1) << ", " << points_(1, cur_col - 1) << "), t = " << t_points_.back() << std::endl;
-        }
     };
 
     class CubicSpline3D
@@ -173,10 +166,10 @@ namespace GuidancePlanner
         void Optimize(const std::vector<Obstacle> &obstacles);
 
         /** @brief Convert this B-Spline to a cubic spline (tk::spline) to be used as reference path */
-        RosTools::CubicSpline2D<tk::spline> &GetPath();
+        RosTools::Spline2D &GetPath();
 
         /** @brief Convert this spline to be parameterized in discrete time (i.e., its third dimension) */
-        RosTools::CubicSpline2D<tk::spline> &GetTrajectory() const;
+        RosTools::Spline2D &GetTrajectory() const;
 
         /** WEIGHTING Functions (map B-Spline to scalars) */
         /** @brief Return the path length of this spline */
@@ -191,7 +184,7 @@ namespace GuidancePlanner
 
         std::vector<Eigen::Vector3d> &GetSamples();
 
-        void Visualize(RosTools::ROSMarkerPublisher *ros_visuals);
+        void Visualize();
 
     private:
         // Spline in 3D
@@ -216,10 +209,12 @@ namespace GuidancePlanner
         std::vector<Eigen::Vector3d> sampled_points_;
 
         // bool spline_computed_;
-        std::shared_ptr<RosTools::CubicSpline2D<tk::spline>> path_spline_;
-        std::shared_ptr<RosTools::CubicSpline2D<tk::spline>> trajectory_spline_;
+        std::shared_ptr<RosTools::Spline2D> path_spline_;
+        std::shared_ptr<RosTools::Spline2D> trajectory_spline_;
 
         bool acceleration_weights_computed_;
+
+        void defineSplineFromControlpoints();
 
         /** @brief Compute a 2D path: d -> (x, y), i.e., parameterized in distance */
         void ComputePath();

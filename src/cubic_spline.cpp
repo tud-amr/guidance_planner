@@ -1,9 +1,11 @@
 #include "guidance_planner/cubic_spline.h"
 
 #include <guidance_planner/config.h>
-#include <guidance_planner/types.h>
-#include <guidance_planner/homotopy.h>
 #include <guidance_planner/paths.h>
+#include <guidance_planner/types.h>
+
+#include <ros_tools/visuals.h>
+#include <ros_tools/math.h>
 
 using namespace GuidancePlanner;
 
@@ -16,33 +18,33 @@ CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Ei
   acceleration_weights_computed_ = false;
   acceleration_weight_ = 0.;
 
-  std::vector<double> x_points, y_points;
-  control_points_.GetX(x_points); // Get the vector of x including padding
-  control_points_.GetY(y_points); // Get the vector of y including padding
-
-  // Set the velocity as a boundary condition of the spline
-  // x_.set_boundary(tk::spline::bd_type::first_deriv, previous_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-  // y_.set_boundary(tk::spline::bd_type::first_deriv, previous_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-  x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-  y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-
-  control_points_.GetT(t_padded_); // Get the vector of times including padding
-
-  x_.set_points(t_padded_, x_points);
-  y_.set_points(t_padded_, y_points);
-
-  // Remove the added previous point, since it is not part of our new trajectory (but was necessary for the boundary conditions)
-  // x_.RemoveStart();
-  // y_.RemoveStart();
-  // t_padded_.erase(t_padded_.begin());
-
-  trajectory_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(x_, y_));
+  defineSplineFromControlpoints();
 
   // DebugPrintControlPoints();
 
   ComputePath();
 
   PRM_LOG("CubicSpline created");
+}
+
+void CubicSpline3D::defineSplineFromControlpoints()
+{
+  std::vector<double> x_points, y_points;
+  control_points_.GetX(x_points); // Get the vector of x including padding
+  control_points_.GetY(y_points); // Get the vector of y including padding
+
+  // Set the velocity as a boundary condition of the spline
+  x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0),
+                  tk::spline::bd_type::second_deriv, 0.);
+  y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1),
+                  tk::spline::bd_type::second_deriv, 0.);
+
+  control_points_.GetT(t_padded_); // Get the vector of times including padding
+
+  x_.set_points(t_padded_, x_points);
+  y_.set_points(t_padded_, y_points);
+
+  trajectory_spline_ = std::make_shared<RosTools::Spline2D>(x_, y_, t_padded_);
 }
 
 void CubicSpline3D::ConvertToTrajectory(const GeometricPath &path)
@@ -244,7 +246,7 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
         Eigen::Vector2d control_pos = control_points_.GetPoint(i);
 
         // Compute the distance to the obstacle
-        double dist = RosTools::dist(obstacle_pos, control_pos);
+        double dist = RosTools::distance(obstacle_pos, control_pos);
 
         // Only add constraints for obstacles that are close
         if (dist > obstacle.radius_ * 1.5)
@@ -309,24 +311,8 @@ void CubicSpline3D::Optimize(const std::vector<Obstacle> &obstacles)
     }
   }
 
-  // POST-PROCESSING OF THE OPTIMIZED SPLINE //
   // Now that we have control points of the spline, construct it
-  std::vector<double> x_points, y_points;
-  control_points_.GetX(x_points); // Get the vector of x including padding
-  control_points_.GetY(y_points); // Get the vector of y including padding
-
-  x_ = tk::spline();
-  y_ = tk::spline();
-
-  // Set the velocity as a boundary condition of the spline
-  x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-  y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-
-  control_points_.GetT(t_padded_); // Get the vector of times including padding
-  x_.set_points(t_padded_, x_points);
-  y_.set_points(t_padded_, y_points);
-
-  trajectory_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(x_, y_));
+  defineSplineFromControlpoints();
 
   // DebugPrintControlPoints();
 
@@ -508,42 +494,42 @@ void CubicSpline3D::ComputePath()
   cubic_spline_x.set_points(d_points, x_.m_y_); // Create new splines with the old x/y, but over the computed distances
   cubic_spline_y.set_points(d_points, y_.m_y_);
 
-  path_spline_.reset(new RosTools::CubicSpline2D<tk::spline>(cubic_spline_x, cubic_spline_y));
+  path_spline_ = std::make_shared<RosTools::Spline2D>(cubic_spline_x, cubic_spline_y, d_points);
 
   PRM_LOG("Path Spline Computed");
 }
 
-RosTools::CubicSpline2D<tk::spline> &CubicSpline3D::GetPath() { return *path_spline_; }
+RosTools::Spline2D &CubicSpline3D::GetPath() { return *path_spline_; }
 
-RosTools::CubicSpline2D<tk::spline> &CubicSpline3D::GetTrajectory() const { return *trajectory_spline_; }
+RosTools::Spline2D &CubicSpline3D::GetTrajectory() const { return *trajectory_spline_; }
 
 std::vector<Eigen::Vector3d> &CubicSpline3D::GetSamples()
 {
 
   sampled_points_.clear();
 
-  Eigen::VectorXd sampled_t = Eigen::VectorXd::LinSpaced(100, 0., trajectory_spline_->GetSplineLength());
+  Eigen::VectorXd sampled_t = Eigen::VectorXd::LinSpaced(100, 0., trajectory_spline_->length());
 
   for (int i = 0; i < sampled_t.size(); i++)
   {
     double t = sampled_t(i);
-    Eigen::Vector2d cur_point = trajectory_spline_->GetPoint(t);
+    Eigen::Vector2d cur_point = trajectory_spline_->getPoint(t);
     sampled_points_.emplace_back(cur_point(0), cur_point(1), t);
   }
   return sampled_points_;
 }
 
-double CubicSpline3D::WeightPathLength() { return path_spline_->GetSplineLength(); }
+double CubicSpline3D::WeightPathLength() { return path_spline_->length(); }
 
 double CubicSpline3D::WeightVelocity()
 {
   double result = 0.;
 
-  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->GetSplineLength());
+  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->length());
 
   for (int i = 0; i < t_sampled.rows(); i++)
   {
-    double cur_velocity = trajectory_spline_->GetVelocity(t_sampled[i]).norm();
+    double cur_velocity = trajectory_spline_->getVelocity(t_sampled[i]).norm();
 
     result += (Config::reference_velocity_ - cur_velocity) *
               (Config::reference_velocity_ - cur_velocity); // Quadratic error w.r.t. the reference
@@ -567,24 +553,24 @@ void CubicSpline3D::ComputeAccelerationWeights()
 
   acceleration_weight_ = 0.;
 
-  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->GetSplineLength());
+  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->length());
 
   for (int i = 0; i < t_sampled.rows(); i++)
-    acceleration_weight_ += trajectory_spline_->GetAcceleration(t_sampled[i]).norm() * std::pow(0.95, i);
+    acceleration_weight_ += trajectory_spline_->getAcceleration(t_sampled[i]).norm() * std::pow(0.95, i);
 
   acceleration_weight_ /= (double)t_sampled.rows();
 
   acceleration_weights_computed_ = true;
 }
 
-void CubicSpline3D::Visualize(RosTools::ROSMarkerPublisher *ros_visuals)
+void CubicSpline3D::Visualize()
 {
-
-  RosTools::ROSPointMarker &cube = ros_visuals->getNewPointMarker("CUBE");
+  auto &visuals = VISUALS.getPublisher("spline");
+  auto &cube = visuals.getNewPointMarker("CUBE");
   cube.setScale(0.15, 0.15, 0.15);
   cube.setColor(0., 0., 0.);
 
-  RosTools::ROSLine &line = ros_visuals->getNewLine();
+  auto &line = visuals.getNewLine();
   line.setScale(0.25, 0.25, 0.25);
   line.setColor(1., 0., 0.);
 
@@ -623,6 +609,8 @@ void CubicSpline3D::Visualize(RosTools::ROSMarkerPublisher *ros_visuals)
     cube.addPointMarker(
         Eigen::Vector3d(control_points_.GetPaddedPoint(i)(0), control_points_.GetPaddedPoint(i)(1), control_points_.GetPaddedTime(i)));
   }
+
+  visuals.publish();
 }
 
 void ControlPoints::AddPoint(const SpaceTimePoint &point)
