@@ -6,10 +6,10 @@
 #include <guidance_planner/graph.h>
 #include <guidance_planner/utils.h>
 
-#include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
-
 #include <ros_tools/profiling.h>
 #include <ros_tools/data_saver.h>
+
+#include <omp.h>
 
 namespace GuidancePlanner
 {
@@ -66,7 +66,7 @@ namespace GuidancePlanner
     RosTools::Instrumentor::Get().EndSession();
   }
 
-  GlobalGuidance::GlobalGuidance()
+  GlobalGuidance::GlobalGuidance() // std::shared_ptr<Config> config)
   {
     PRM_LOG("Initializing Global Guidance");
 
@@ -74,13 +74,10 @@ namespace GuidancePlanner
     RosTools::Instrumentor::Get().BeginSession("guidance_planner");
 
     config_.reset(new Config());
-    prm_.Init(nh_, config_.get());
+    prm_.Init(config_.get());
     // learning_guidance_.Init(nh_);
 
-    first_reconfigure_callback_ = true;
-    ros::NodeHandle nh_guidance("guidance_planner");
-    reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlanner::GuidancePlannerConfig>(reconfig_mutex_, nh_guidance));
-    reconfigure_server_->setCallback(boost::bind(&GlobalGuidance::ReconfigureCallback, this, _1, _2));
+    reconfigure_ = std::make_unique<Reconfigure>();
 
     start_velocity_ = Eigen::Vector2d(0., 0.);
     color_manager_.reset(new ColorManager(config_->n_paths_));
@@ -338,7 +335,7 @@ namespace GuidancePlanner
     }
     catch (IntegrationException &ie)
     {
-      ROS_WARN("Integration exception called");
+      LOG_WARN("Integration exception called");
       splines_.clear();
       paths_.clear();
       BENCHMARKERS.getBenchmarker("Guidance Planner").stop();
@@ -600,7 +597,7 @@ namespace GuidancePlanner
   {
     if (trajectory_id >= (int)outputs_.size())
     {
-      ROS_WARN("Trying to retrieve a trajectory that does not exist!");
+      LOG_WARN("Trying to retrieve a trajectory that does not exist!");
 
       if (no_message_sent_yet_ && outputs_.size() == 0)
       {
@@ -618,7 +615,7 @@ namespace GuidancePlanner
   {
     if (output_id >= (int)outputs_.size())
     {
-      ROS_WARN("Trying to get the cost of a trajectory that does not exist!");
+      LOG_WARN("Trying to get the cost of a trajectory that does not exist!");
       std::vector<bool> empty;
       return empty;
     }
@@ -633,7 +630,7 @@ namespace GuidancePlanner
   {
     if (output_id >= (int)outputs_.size())
     {
-      ROS_WARN("Trying to get the cost of a path that does not exist!");
+      LOG_WARN("Trying to get the cost of a path that does not exist!");
       return -1;
     }
 
@@ -869,29 +866,6 @@ namespace GuidancePlanner
   void GlobalGuidance::ExportData(RosTools::DataSaver &data_saver) // Export data for analysis
   {
     data_saver.AddData("n_paths", paths_.size());
-  }
-
-  // Mainly for debugging purposes (not in the namespace, to use lmpcc stuff)
-  void GlobalGuidance::ReconfigureCallback(GuidancePlannerConfig &config, uint32_t level)
-  {
-    if (first_reconfigure_callback_) // Set the reconfiguration parameters to match the yaml configuration at startup
-    {
-      first_reconfigure_callback_ = false;
-
-      config.debug = Config::debug_output_;
-
-      config.n_paths = config_->n_paths_;
-      config.n_samples = config_->n_samples_;
-      config.visualize_samples = config_->visualize_all_samples_;
-      config.use_learning = config_->use_learning;
-    }
-
-    Config::debug_output_ = config.debug;
-
-    config_->n_paths_ = config.n_paths;
-    config_->n_samples_ = config.n_samples;
-    config_->visualize_all_samples_ = config.visualize_samples;
-    config_->use_learning = config.use_learning;
   }
 
   double GlobalGuidance::GetLastRuntime()

@@ -16,7 +16,6 @@
 
 #include <gsl/gsl_integration.h>
 
-// #include <functional>
 #include <vector>
 #include <unordered_map>
 
@@ -33,7 +32,7 @@ namespace GuidancePlanner
   class Homology : public TopologyComparison
   {
   public:
-    Homology(ros::NodeHandle &nh, bool assume_constant_velocity = true);
+    Homology(bool assume_constant_velocity = true);
     virtual ~Homology();
 
   public:

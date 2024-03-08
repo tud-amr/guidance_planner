@@ -12,13 +12,13 @@
 #ifndef HOMOTOPY_CONFIGURATION_H
 #define HOMOTOPY_CONFIGURATION_H
 
-#include <ros/ros.h>
+#include <ros_tools/base_configuration.h>
 
 #include <string>
 
 namespace GuidancePlanner
 {
-  class Config
+  class Config : public RosTools::BaseConfiguration
   {
 
   public:
@@ -91,52 +91,6 @@ namespace GuidancePlanner
     bool dynamically_propagate_nodes_;
     bool project_from_obstacles_;
     bool debug_continuous_replanning_;
-
-  private:
-    /**
-     * @brief Retrieve a parameter from the ROS parameter server, return false if it failed
-     *
-     * @tparam T Variable type
-     * @param nh nodehandle
-     * @param name Name of the parameter on the server
-     * @param value Variable to store the read value in
-     * @return true If variable exists
-     * @return false If variable does not exist
-     */
-    template <class T>
-    bool retrieveParameter(const ros::NodeHandle &nh, const std::string &name, T &value)
-    {
-
-      if (!nh.getParam(name, value))
-      {
-        ROS_WARN_STREAM(" Parameter " << name << " not set on node " << ros::this_node::getName().c_str());
-        return false;
-      }
-      else
-      {
-        return true;
-      }
-    }
-
-    /**
-     * @brief Retrieve a parameter from the ROS parameter server, otherwise use the default value
-     *
-     * @tparam T Variable type
-     * @param nh nodehandle
-     * @param name Name of the parameter on the server
-     * @param value Variable to store the read value in
-     * @param default_value Default value to use if the variable does not exist
-     */
-    template <class T>
-    void retrieveParameter(const ros::NodeHandle &nh, const std::string &name, T &value, const T &default_value)
-    {
-
-      if (!retrieveParameter(nh, name, value))
-      {
-        ROS_WARN_STREAM("\tUsing default value: " << default_value);
-        value = default_value;
-      }
-    }
   };
 }
 

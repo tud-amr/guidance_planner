@@ -1,14 +1,13 @@
 #ifndef __GLOBAL_GUIDANCE_H__
 #define __GLOBAL_GUIDANCE_H__
 
+#include <guidance_planner/reconfigure.h>
 #include <guidance_planner/prm.h>
 #include <guidance_planner/graph_search.h>
 #include <guidance_planner/types.h>
 
 // #include <guidance_planner/learning_guidance.h>
 // #include <guidance_planner/learning_types.h>
-
-#include <dynamic_reconfigure/server.h>
 
 namespace RosTools
 {
@@ -113,9 +112,6 @@ namespace GuidancePlanner
     /** @brief For tracking computation times */
     double GetLastRuntime();
 
-    /** @brief Add some of the settings to the rqt_reconfigure window */
-    void ReconfigureCallback(GuidancePlannerConfig &config, uint32_t level);
-
     /** @brief Reset this PRM. Removes previous nodes and all other transferred data. Use only when resetting the environment */
     void Reset();
 
@@ -151,15 +147,13 @@ namespace GuidancePlanner
     void VisualizeDebug();
 
   private:
-    ros::NodeHandle nh_;
-    std::unique_ptr<Config> config_; // Owns the configuration
-
-    boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerConfig>> reconfigure_server_;
-    boost::recursive_mutex reconfig_mutex_;
+    std::shared_ptr<Config> config_; // Owns the configuration
 
     PRM prm_;
     GraphSearch graph_search_;
     // LearningGuidance learning_guidance_; /** @note Learning disabled */
+
+    std::unique_ptr<Reconfigure> reconfigure_;
 
     // Join in a structure
     std::vector<GeometricPath> paths_;   // Found using path search
@@ -183,8 +177,6 @@ namespace GuidancePlanner
     std::vector<double> spline_goal_costs_;
     double orientation_;
     Eigen::Vector2d start_velocity_;
-
-    bool first_reconfigure_callback_;
 
     // Debugging variables
     bool no_message_sent_yet_;

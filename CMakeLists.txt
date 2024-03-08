@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.5)
 project(guidance_planner)
 
 if(NOT CMAKE_CXX_STANDARD)
@@ -9,56 +9,50 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
 endif()
 
-find_package(OpenMP)
+# OPENMP (for parallel computation)
+# find_package(OpenMP)
+# if(OPENMP_FOUND)
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+# else()
+#   message(WARNING "Compiling without OPENMP (OPENMP not found)")
+# endif()
 
-if(OPENMP_FOUND)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-else()
-  message(WARNING "Compiling without OPENMP")
-endif()
+# find_package(rosidl_default_generators REQUIRED)
 
-# General requirements
-set(DEPENDENCIES
-  roscpp
-  std_msgs
-  ros_tools
-  dynamic_reconfigure
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(ros_tools REQUIRED)
 
-  # genmsg
-)
-
-find_package(catkin REQUIRED COMPONENTS
-  ${DEPENDENCIES}
-)
-
-# ADD GSL FOR HOMOTOPY
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(gsl REQUIRED gsl)
-
+find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 add_definitions(${EIGEN_DEFINITIONS})
 
-generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
+# GSL (for integration)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(gsl REQUIRED gsl)
 
-# add_message_files(FILES TrajectoryMSG.msg ObstacleMSG.msg RightAvoidanceMSG.msg)
-# add_service_files(FILES guidances.srv guidances_Hcost.srv select_guidance.srv)
-# generate_messages(DEPENDENCIES std_msgs)
-catkin_package(
-  CATKIN_DEPENDS ${DEPENDENCIES}
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-)
+# For communicating with the learning model
+# rosidl_generate_interfaces(${PROJECT_NAME}
+#   "msg/TrajectoryMSG.msg"
+#   "msg/ObstacleMSG.msg"
+#   "msg/RightAvoidanceMSG.msg"
+#   "srv/Guidances.srv"
+#   "srv/GuidancesHcost.srv"
+#   "srv/SelectGuidances.srv"
+#   DEPENDENCIES std_msgs
+# )
 
 include_directories(
   include
   debug
-  ${catkin_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 # Library
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME}_lib SHARED
   src/global_guidance.cpp
   src/prm.cpp
   src/graph.cpp
@@ -69,151 +63,70 @@ add_library(${PROJECT_NAME}
   src/config.cpp
   src/homology.cpp
   src/cubic_spline.cpp
+)
+target_include_directories(${PROJECT_NAME}_lib
+  PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
+)
+# rosidl_get_typesupport_target(cpp_typesupport_target
+#   ${PROJECT_NAME} rosidl_typesupport_cpp)
 
-  # src/learning_guidance.cpp
+ament_target_dependencies(${PROJECT_NAME}_lib
+  rclcpp
+  std_msgs
+  ros_tools
+  Eigen3
 )
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+target_link_libraries(${PROJECT_NAME}_lib
   ${gsl_LIBRARIES}
+  "${cpp_typesupport_target}"
 )
+
+# add_dependencies(guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Example
-# add_executable(example
-# src/example.cpp
-# )
-# add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(example
-# ${PROJECT_NAME}
-# ${catkin_LIBRARIES}
-# )
-
-# # Guidance Server
-# add_executable(guidance_server
-# src/guidance_server.cpp
-# )
-# target_link_libraries(guidance_server
-# guidance_planner
-# ${catkin_LIBRARIES}
-# )
-# add_dependencies(guidance_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-# ############
-# # Install ##
-# ############
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+add_executable(example src/ros2_example.cpp)
+target_link_libraries(example ${PROJECT_NAME}_lib)
+ament_target_dependencies(example
+  rclcpp
+  std_msgs
+  ros_tools
+  Eigen3
 )
 
-# install(
-# TARGETS example
-# ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# )
+## INSTALL
+install(
+  TARGETS ${PROJECT_NAME}_lib
+  EXPORT export_${PROJECT_NAME}_lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
-# install(
-# TARGETS guidance_server
-# ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# )
+install(TARGETS example #guidance_server
+  DESTINATION lib/${PROJECT_NAME})
 
-# install(DIRECTORY include/${PROJECT_NAME}/
-# DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-# FILES_MATCHING PATTERN "*.h"
-# PATTERN ".svn" EXCLUDE
-# )
+install(DIRECTORY include/
+  DESTINATION include/${PROJECT_NAME})
 
-# install(
-# DIRECTORY include/${PROJECT_NAME}/
-# DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-# )
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME})
 
-# # Mark libraries for installation
-# See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${gsl_LIBRARIES}
-# ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME})
+  
+install(DIRECTORY rviz
+  DESTINATION share/${PROJECT_NAME})
 
-# # Add cmake target dependencies of the library
-# # as an example, code may need to be generated before libraries
-# # either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+## FINALIZE
+ament_export_include_directories(include/${PROJECT_NAME})
+ament_export_targets(export_${PROJECT_NAME}_lib HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp)
+ament_export_dependencies(std_msgs)
+ament_export_dependencies(ros_tools)
+ament_export_dependencies(rosidl_default_runtime)
+ament_export_dependencies(eigen3_cmake_module)
+ament_export_dependencies(Eigen3)
 
-# # Declare a C++ executable
-# # With catkin_make all packages are built within a single CMake context
-# # The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/guidance_planner_node.cpp)
-
-# # Rename C++ executable without prefix
-# # The above recommended prefix causes long target names, the following renames the
-# # target back to the shorter version for ease of user use
-# # e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
-
-# # Add cmake target dependencies of the executable
-# # same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-# # Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-# ${catkin_LIBRARIES}
-# )
-
-# ############
-# # Install ##
-# ############
-
-# all install targets should use catkin DESTINATION variables
-# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
-
-# # Mark executable scripts (Python etc.) for installation
-# # in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-# scripts/my_python_script
-# DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-# # Mark executables for installation
-# # See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-# install(TARGETS ${PROJECT_NAME}_node
-# RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-# # Mark libraries for installation
-# # See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${PROJECT_NAME}
-# ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-# RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
-
-# # Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-# DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-# FILES_MATCHING PATTERN "*.h"
-# PATTERN ".svn" EXCLUDE
-# )
-
-# # Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-# # myfile1
-# # myfile2
-# DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
-
-# ############
-# # Testing ##
-# ############
-
-# # Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_guidance_planner.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-# target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-# # Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+ament_package()

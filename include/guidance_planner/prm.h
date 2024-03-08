@@ -38,7 +38,7 @@ namespace GuidancePlanner
 
   public:
     PRM();
-    void Init(ros::NodeHandle &nh, Config *config);
+    void Init(Config *config);
 
     ~PRM();
 

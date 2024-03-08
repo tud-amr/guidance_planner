@@ -6,7 +6,7 @@
 
 namespace GuidancePlanner
 {
-  Homology::Homology(ros::NodeHandle &nh, bool assume_constant_velocity)
+  Homology::Homology(bool assume_constant_velocity)
       : assume_constant_velocity_(assume_constant_velocity)
   {
     // Initialize workspace, parameters, functions
@@ -301,7 +301,11 @@ namespace GuidancePlanner
     {
       double error;
 
+#ifdef _OPENMP
       int thread_id = omp_get_thread_num();
+#else
+      int thread_id = 0;
+#endif
       gsl_params_[thread_id].start = path.nodes_[n - 1]->point_.vec;
       gsl_params_[thread_id].end = path.nodes_[n]->point_.vec;
 

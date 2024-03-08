@@ -12,7 +12,7 @@ namespace GuidancePlanner
 
   PRM::PRM() {}
 
-  void PRM::Init(ros::NodeHandle &nh, Config *config)
+  void PRM::Init(Config *config)
   {
     config_ = config;
 
@@ -37,7 +37,7 @@ namespace GuidancePlanner
     }
     else
     {
-      topology_comparison_.reset(new Homology(nh, config_->assume_constant_velocity_));
+      topology_comparison_.reset(new Homology(config_->assume_constant_velocity_));
     }
     // debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
@@ -108,9 +108,9 @@ namespace GuidancePlanner
     min_y_ = min_y - config_->sample_margin_ / 2.;
 
     if (std::abs(range_x_) < 1e-3 && config_->sample_margin_ == 0.)
-      ROS_WARN("The x range of sampling is zero (goal and start on a line) please use config_->sample_margin_ > 0.");
+      LOG_WARN("The x range of sampling is zero (goal and start on a line) please use config_->sample_margin_ > 0.");
     if (std::abs(range_y_) < 1e-3 && config_->sample_margin_ == 0.)
-      ROS_WARN("The y range of sampling is zero please use config_->sample_margin_ > 0.");
+      LOG_WARN("The y range of sampling is zero please use config_->sample_margin_ > 0.");
   }
 
   Graph &PRM::Update()
