@@ -7,6 +7,12 @@
 #include <Eigen/Dense>
 #include <memory>
 
+namespace RosTools
+{
+    class Spline2D;
+
+}
+
 namespace GuidancePlanner
 {
 

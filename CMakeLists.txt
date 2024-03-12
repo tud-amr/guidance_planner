@@ -25,7 +25,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(ros_tools REQUIRED)
-find_package(mpc-planner-util REQUIRED)
 
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -35,25 +34,14 @@ add_definitions(${EIGEN_DEFINITIONS})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(gsl REQUIRED gsl)
 
-# For communicating with the learning model
-# rosidl_generate_interfaces(${PROJECT_NAME}
-#   "msg/TrajectoryMSG.msg"
-#   "msg/ObstacleMSG.msg"
-#   "msg/RightAvoidanceMSG.msg"
-#   "srv/Guidances.srv"
-#   "srv/GuidancesHcost.srv"
-#   "srv/SelectGuidances.srv"
-#   DEPENDENCIES std_msgs
-# )
-
 include_directories(
   include
   debug
-  ${EIGEN_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 # Library
-add_library(${PROJECT_NAME}_lib SHARED
+add_library(${PROJECT_NAME} SHARED
   src/global_guidance.cpp
   src/prm.cpp
   src/graph.cpp
@@ -65,41 +53,30 @@ add_library(${PROJECT_NAME}_lib SHARED
   src/homology.cpp
   src/cubic_spline.cpp
 )
-target_include_directories(${PROJECT_NAME}_lib
+target_include_directories(${PROJECT_NAME}
   PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
-# rosidl_get_typesupport_target(cpp_typesupport_target
-#   ${PROJECT_NAME} rosidl_typesupport_cpp)
 
-ament_target_dependencies(${PROJECT_NAME}_lib
+ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   std_msgs
   ros_tools
   Eigen3
 )
-target_link_libraries(${PROJECT_NAME}_lib
+target_link_libraries(${PROJECT_NAME}
   ${gsl_LIBRARIES}
-  "${cpp_typesupport_target}"
 )
-
-# add_dependencies(guidance_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Example
 add_executable(example src/ros2_example.cpp)
-target_link_libraries(example ${PROJECT_NAME}_lib)
-ament_target_dependencies(example
-  rclcpp
-  std_msgs
-  ros_tools
-  Eigen3
-)
+target_link_libraries(example ${PROJECT_NAME})
 
 ## INSTALL
 install(
-  TARGETS ${PROJECT_NAME}_lib
-  EXPORT export_${PROJECT_NAME}_lib
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
@@ -121,7 +98,7 @@ install(DIRECTORY rviz
   DESTINATION share/${PROJECT_NAME})
 
 ## FINALIZE
-ament_export_targets(export_${PROJECT_NAME}_lib HAS_LIBRARY_TARGET)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(std_msgs)
 ament_export_dependencies(ros_tools)

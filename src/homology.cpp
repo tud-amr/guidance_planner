@@ -275,9 +275,9 @@ namespace GuidancePlanner
         // obstacle_points_[1][i] = Line(start, end, 1 + fraction_);                         // An end above the actual end
         // obstacle_points_[2][i] = obstacle_points_[1][i] + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
 
-        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));   // An end above the actual end
-        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-10., 0., 0.)); // Move outside of the region
-        obstacle_points_[o].push_back(obstacle_points_[o].back());                                 // In that same (x,y) move down
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));    // An end above the actual end
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-250., 0., 0.)); // Move outside of the region
+        obstacle_points_[o].push_back(obstacle_points_[o].back());                                  // In that same (x,y) move down
         obstacle_points_[o].back()(2) = obstacle_points_[o][0](2);
         // obstacle_points_[3][i] = obstacle_points_[2][i];
         // obstacle_points_[3][i](2) = obstacle_points_[0][i](2); // Move down
@@ -297,11 +297,11 @@ namespace GuidancePlanner
     {
       double error;
 
-#ifdef _OPENMP
+      // #ifdef _OPENMP
       int thread_id = omp_get_thread_num();
-#else
-      int thread_id = 0;
-#endif
+      // #else
+      // int thread_id = 0;
+      // #endif
       gsl_params_[thread_id].start = path.nodes_[n - 1]->point_.vec;
       gsl_params_[thread_id].end = path.nodes_[n]->point_.vec;
 

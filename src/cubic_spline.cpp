@@ -34,7 +34,6 @@ void CubicSpline3D::defineSplineFromControlpoints()
   control_points_.GetY(y_points); // Get the vector of y including padding
 
   // Set the velocity as a boundary condition of the spline
-  std::cout << current_velocity_ << std::endl;
   x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0),
                   tk::spline::bd_type::second_deriv, 0.);
   y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1),
@@ -508,7 +507,7 @@ std::vector<Eigen::Vector3d> &CubicSpline3D::GetSamples()
 
   sampled_points_.clear();
 
-  Eigen::VectorXd sampled_t = Eigen::VectorXd::LinSpaced(100, 0., trajectory_spline_->length());
+  Eigen::VectorXd sampled_t = Eigen::VectorXd::LinSpaced(100, 0., trajectory_spline_->parameterLength());
 
   for (int i = 0; i < sampled_t.size(); i++)
   {
@@ -525,7 +524,7 @@ double CubicSpline3D::WeightVelocity()
 {
   double result = 0.;
 
-  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->length());
+  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->parameterLength());
 
   for (int i = 0; i < t_sampled.rows(); i++)
   {
@@ -553,7 +552,7 @@ void CubicSpline3D::ComputeAccelerationWeights()
 
   acceleration_weight_ = 0.;
 
-  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->length());
+  Eigen::ArrayXd t_sampled = Eigen::ArrayXd::LinSpaced(100, 0., trajectory_spline_->parameterLength());
 
   for (int i = 0; i < t_sampled.rows(); i++)
     acceleration_weight_ += trajectory_spline_->getAcceleration(t_sampled[i]).norm() * std::pow(0.95, i);
