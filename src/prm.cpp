@@ -637,7 +637,7 @@ namespace GuidancePlanner
   void PRM::VisualizeGraph()
   {
     // NODES IN THE GRAPH - COLORED BY PATH / TYPE
-    auto &graph_visuals = VISUALS.getPublisher("graph");
+    auto &graph_visuals = VISUALS.getPublisher("guidance_planner/graph");
     auto &sphere = graph_visuals.getNewPointMarker("SPHERE");
     sphere.setScale(0.1, 0.1, 0.1);
 
@@ -645,11 +645,11 @@ namespace GuidancePlanner
     edge.setScale(0.05, 0.05);
     edge.setColor(0., 0., 0., 1.);
 
-    auto &start_goal_visuals = VISUALS.getPublisher("start_and_goals");
+    auto &start_goal_visuals = VISUALS.getPublisher("guidance_planner/start_and_goals");
     auto &goal_start_sphere = start_goal_visuals.getNewPointMarker("SPHERE");
     goal_start_sphere.setScale(0.1, 0.1, 0.1);
 
-    auto &segments_visuals = VISUALS.getPublisher("segments");
+    auto &segments_visuals = VISUALS.getPublisher("guidance_planner/segments");
     auto &segment_text = segments_visuals.getNewTextMarker();
     segment_text.setScale(1.0);
 
@@ -716,7 +716,7 @@ namespace GuidancePlanner
     // IF ENABLED, ALL PRM SAMPLES
     if (config_->visualize_all_samples_)
     {
-      auto &sample_visuals = VISUALS.getPublisher("samples");
+      auto &sample_visuals = VISUALS.getPublisher("guidance_planner/samples");
       auto &samples = sample_visuals.getNewPointMarker("SPHERE");
       samples.setScale(.15, .15, .15);
       samples.setColorInt(0);

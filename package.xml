@@ -17,8 +17,9 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>std_msgs</depend>  
+  <depend>std_msgs</depend>
   <depend>ros_tools</depend>
+  <depend>mpc-planner-util</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

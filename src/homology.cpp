@@ -74,7 +74,6 @@ namespace GuidancePlanner
 
       h -= PathHValue(b, cached_b, obstacle_id, obstacle); // Integrate over path B
 
-      // std::cout << h << std::endl;
       // If it is not zero, then these paths are homology distinct!
       if (std::abs(h) >= 1e-1)
       {
@@ -133,8 +132,6 @@ namespace GuidancePlanner
 
   std::vector<bool> Homology::LeftPassingVector(const GeometricPath &path, Environment &environment)
   {
-    std::cout << "LEFT PASSING\n"
-              << std::endl;
     auto &obstacles = environment.GetDynamicObstacles();
     std::vector<double> results_h(obstacles.size());
     std::vector<bool> results(obstacles.size());
@@ -261,7 +258,6 @@ namespace GuidancePlanner
 
         Eigen::Vector3d start(obstacle.positions_[0](0), obstacle.positions_[0](1), 0);
         // Eigen::Vector3d end(obstacle.positions_.back()(0), obstacle.positions_.back()(1), Config::N);
-
         obstacle_points_[o].push_back(Eigen::Vector3d(start(0), start(1), -1)); // A start below the actual start
 
         if (!assume_constant_velocity_)
@@ -272,16 +268,16 @@ namespace GuidancePlanner
         else
         {
           // For constant velocity, only one line is sufficient
-          obstacle_points_[o].push_back(Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), obstacle.positions_.size()));
+          obstacle_points_[o].push_back(Eigen::Vector3d(obstacle.positions_.back()(0), obstacle.positions_.back()(1), obstacle.positions_.size() - 1));
         }
         // obstacle_points_[o].push_back(Line(start, end, -fraction_)); // A start below the actual start
         // obstacle_points_[0][i] = Line(start, end, -fraction_);                            // A start below the actual start
         // obstacle_points_[1][i] = Line(start, end, 1 + fraction_);                         // An end above the actual end
         // obstacle_points_[2][i] = obstacle_points_[1][i] + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
 
-        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));    // An end above the actual end
-        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-250., 0., 0.)); // Move outside of the region
-        obstacle_points_[o].push_back(obstacle_points_[o].back());                                  // In that same (x,y) move down
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));   // An end above the actual end
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-10., 0., 0.)); // Move outside of the region
+        obstacle_points_[o].push_back(obstacle_points_[o].back());                                 // In that same (x,y) move down
         obstacle_points_[o].back()(2) = obstacle_points_[o][0](2);
         // obstacle_points_[3][i] = obstacle_points_[2][i];
         // obstacle_points_[3][i](2) = obstacle_points_[0][i](2); // Move down
@@ -336,7 +332,7 @@ namespace GuidancePlanner
 
   void Homology::Visualize(Environment &environment)
   {
-    auto &debug_visuals = VISUALS.getPublisher("homology");
+    auto &debug_visuals = VISUALS.getPublisher("guidance_planner/homology");
     auto &line = debug_visuals.getNewLine();
     line.setScale(0.05);
 

@@ -1,5 +1,8 @@
 #include <guidance_planner/config.h>
 
+#include <ros_tools/logging.h>
+#include <ros_tools/ros2_wrappers.h>
+
 namespace GuidancePlanner
 {
   // Need to be initialized outside of a member function
@@ -14,8 +17,10 @@ namespace GuidancePlanner
 #ifdef MPC_ROS_PLANNER
     ros::NodeHandle node;
 #else
-    auto node = rclcpp::Node::make_shared("guidance_planner"); // Create a node
+    rclcpp::Node *node = GET_STATIC_NODE_POINTER();
 #endif
+
+    // auto config = loadYAML("guidance_planner.yaml");
 
     retrieveParameter(node, "prm/debug_output", Config::debug_output_);
 

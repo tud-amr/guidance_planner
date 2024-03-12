@@ -34,6 +34,7 @@ void CubicSpline3D::defineSplineFromControlpoints()
   control_points_.GetY(y_points); // Get the vector of y including padding
 
   // Set the velocity as a boundary condition of the spline
+  std::cout << current_velocity_ << std::endl;
   x_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(0),
                   tk::spline::bd_type::second_deriv, 0.);
   y_.set_boundary(tk::spline::bd_type::first_deriv, current_velocity_(1),
@@ -77,7 +78,6 @@ void CubicSpline3D::ConvertToTrajectory(const GeometricPath &path)
         1e-3);
 
     control_points_.AddPoint(path(s_cur));
-
     last_k = s_cur; // Limit the search to [last_k, 1]
 
     // control_points_.PrintLast();
@@ -565,7 +565,7 @@ void CubicSpline3D::ComputeAccelerationWeights()
 
 void CubicSpline3D::Visualize()
 {
-  auto &visuals = VISUALS.getPublisher("spline");
+  auto &visuals = VISUALS.getPublisher("guidance_planner/spline");
   auto &cube = visuals.getNewPointMarker("CUBE");
   cube.setScale(0.15, 0.15, 0.15);
   cube.setColor(0., 0., 0.);

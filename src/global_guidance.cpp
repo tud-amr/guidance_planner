@@ -709,7 +709,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::VisualizeGeometricPaths(int path_nr)
   {
-    auto &path_visuals = VISUALS.getPublisher("geometric_paths");
+    auto &path_visuals = VISUALS.getPublisher("guidance_planner/geometric_paths");
 
     RosTools::ROSLine &path_line = path_visuals.getNewLine();
     path_line.setScale(0.15, 0.15, 0.15);
@@ -742,7 +742,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::VisualizeObstacles()
   {
-    auto &obstacle_visuals = VISUALS.getPublisher("obstacles_3d");
+    auto &obstacle_visuals = VISUALS.getPublisher("guidance_planner/obstacles_3d");
     auto &disc = obstacle_visuals.getNewPointMarker("CYLINDER");
 
     // Visualize the obstacles
@@ -765,7 +765,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::VisualizeTrajectories(bool highlight_selected, int path_nr)
   {
-    auto &trajectory_visuals = VISUALS.getPublisher("trajectories");
+    auto &trajectory_visuals = VISUALS.getPublisher("guidance_planner/trajectories");
 
     RosTools::ROSLine &line = trajectory_visuals.getNewLine();
     line.setScale(0.15, 0.15);
@@ -831,7 +831,7 @@ namespace GuidancePlanner
   {
     if (splines_.size() != 0)
     {
-      auto &spline_visuals = VISUALS.getPublisher("spline");
+      auto &spline_visuals = VISUALS.getPublisher("guidance_planner/spline");
       // VISUALIZE THE USED PART OF THE SPLINE //
       RosTools::ROSLine &guidance_path = spline_visuals.getNewLine();
 
