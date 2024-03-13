@@ -1,7 +1,10 @@
 #include <guidance_planner/config.h>
 
 #include <ros_tools/logging.h>
+
+#ifndef MPC_PLANNER_ROS
 #include <ros_tools/ros2_wrappers.h>
+#endif
 
 namespace GuidancePlanner
 {
@@ -14,7 +17,7 @@ namespace GuidancePlanner
 
   Config::Config()
   {
-#ifdef MPC_ROS_PLANNER
+#ifdef MPC_PLANNER_ROS
     ros::NodeHandle node;
 #else
     rclcpp::Node *node = GET_STATIC_NODE_POINTER();
@@ -39,7 +42,6 @@ namespace GuidancePlanner
 
     retrieveParameter(node, "prm/predictions_are_constant_velocity", assume_constant_velocity_);
     retrieveParameter(node, "prm/track_selected_homology_only", track_selected_homology_only_);
-    retrieveParameter(node, "prm/min_path_improvement", min_path_improvement_);
 
     retrieveParameter(node, "prm/view_angle_times_pi", view_angle_);
     view_angle_ *= M_PI;

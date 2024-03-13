@@ -277,7 +277,7 @@ namespace GuidancePlanner
         PRM_LOG("Segment of the new connector is homotopically equivalent to that of " << *neighbour);
         path_is_distinct = false;
 
-        if (FirstPathIsBetter(new_path, other_path, config_->min_path_improvement_))
+        if (FirstPathIsBetter(new_path, other_path))
         {
           PRM_LOG("Replacing existing node " << *neighbour << "with faster node " << new_node
                                              << " (difference in length: " << other_path.Length3D() - new_path.Length3D() << " = "
@@ -596,7 +596,7 @@ namespace GuidancePlanner
     return true; // This connection is valid
   }
 
-  bool PRM::FirstPathIsBetter(const GeometricPath &first_path, const GeometricPath &second_path, double min_improvement)
+  bool PRM::FirstPathIsBetter(const GeometricPath &first_path, const GeometricPath &second_path)
   {
     double goal_1_cost, goal_2_cost;
     if (first_path.nodes_.back()->type_ == NodeType::GOAL && second_path.nodes_.back()->type_ == NodeType::GOAL)

@@ -63,7 +63,7 @@ namespace GuidancePlanner
   GlobalGuidance::~GlobalGuidance()
   {
     /** @todo Fix profiler */
-    RosTools::Instrumentor::Get().EndSession();
+    // RosTools::Instrumentor::Get().EndSession();
   }
 
   GlobalGuidance::GlobalGuidance() // std::shared_ptr<Config> config)
@@ -71,13 +71,13 @@ namespace GuidancePlanner
     PRM_LOG("Initializing Global Guidance");
 
     // Initialize profiling
-    RosTools::Instrumentor::Get().BeginSession("guidance_planner");
+    // RosTools::Instrumentor::Get().BeginSession("guidance_planner");
 
     config_.reset(new Config());
     prm_.Init(config_.get());
     // learning_guidance_.Init(nh_);
 
-    reconfigure_ = std::make_unique<Reconfigure>();
+    reconfigure_ = std::make_unique<Reconfigure>(config_);
 
     start_velocity_ = Eigen::Vector2d(0., 0.);
     color_manager_.reset(new ColorManager(config_->n_paths_));
@@ -448,6 +448,7 @@ namespace GuidancePlanner
 
   void GlobalGuidance::OrderOutputByLearning(std::vector<OutputTrajectory> &outputs)
   {
+    (void)outputs;
     // if (outputs.size() <= 1)
     //   return;
 

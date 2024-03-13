@@ -15,11 +15,12 @@
 #include <guidance_planner/environment.h>
 #include <guidance_planner/graph_search.h>
 #include <guidance_planner/config.h>
-#include <guidance_planner/paths.h>
-#include <guidance_planner/types.h>
 
 #include <guidance_planner/homology.h>
 #include <guidance_planner/uvd.h>
+
+#include <guidance_planner/paths.h>
+#include <guidance_planner/types.h>
 
 #include <ros_tools/random_generator.h>
 
@@ -75,7 +76,7 @@ namespace GuidancePlanner
     bool AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b);
 
     /** @brief Do we prefer the first path or the second path */
-    bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path, double min_improvement = 0.);
+    bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
 
     /** @brief For each obstacle compute if the path is passing left or right */
     std::vector<bool> GetLeftPassingVector(const GeometricPath &path) { return topology_comparison_->LeftPassingVector(path, environment_); }

@@ -49,7 +49,6 @@ namespace GuidancePlanner
     bool track_selected_homology_only_;
     int n_paths_;
     int path_after_samples_;
-    double min_path_improvement_;
     double prefer_goal_over_smoothness_;
     double view_angle_;
     double max_velocity_, max_acceleration_;

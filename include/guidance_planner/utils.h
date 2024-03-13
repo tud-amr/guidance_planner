@@ -5,25 +5,25 @@
 #include "gsl/gsl_errno.h"
 
 /** Logging definitions */
-#define PRM_LOGGING_ENABLED 1
-#if PRM_LOGGING_ENABLED == 1
+// #define PRM_LOGGING_ENABLED 1
+// #if PRM_LOGGING_ENABLED == 1
 #define PRM_LOG(msg)                \
     if (Config::debug_output_)      \
     {                               \
         LOG_INFO("[PRM]: " << msg); \
     }
-#else
-#define PRM_LOG(msg)
-#endif
+// #else
+// #define PRM_LOG(msg)
+// #endif
 
 #define PRM_WARN(msg) LOG_WARN("[PRM]: " << msg)
 
-#define PRM_DEBUG_ALL 0
-#if PRM_DEBUG_ALL == 1
+// #define PRM_DEBUG_ALL 0
+// #if PRM_DEBUG_ALL == 1
 #define IF_PRM_DEBUG(x) x
-#else
-#define IF_PRM_DEBUG(x)
-#endif
+// #else
+// #define IF_PRM_DEBUG(x)
+// #endif
 
 class IntegrationException : public std::exception
 {

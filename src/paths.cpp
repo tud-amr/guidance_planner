@@ -1,5 +1,3 @@
-
-
 #include <guidance_planner/paths.h>
 
 #include <ros_tools/math.h>

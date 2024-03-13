@@ -63,8 +63,7 @@ namespace GuidancePlanner
 
   private:
     /** @brief Integrate the H-value over a geometric path (with cached values) */
-    double
-    PathHValue(const GeometricPath &path, std::vector<double> &cached_h, const int obstacle_id, const Obstacle &obstacle);
+    double PathHValue(const GeometricPath &path, std::vector<double> &cached_h, const int obstacle_id);
 
     /** @brief Integrate the H-value in a point over an obstacle */
     double ObstacleHValue(const Eigen::Vector3d &r, const Eigen::Vector3d &dr);
@@ -73,7 +72,7 @@ namespace GuidancePlanner
     double SegmentHValue(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const Eigen::Vector3d &r, const Eigen::Vector3d &dr);
 
     void ComputeObstacleLoops(const std::vector<Obstacle> &obstacles);
-    void LoadObstacle(int i, const Obstacle &obstacle);
+    void LoadObstacle(int i);
 
     /** @brief Function that integrates the H value over a segment */
     static double GSLHValue(double x, void *params);
