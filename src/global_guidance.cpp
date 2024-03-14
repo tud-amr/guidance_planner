@@ -94,6 +94,11 @@ namespace GuidancePlanner
     //   learning_guidance_.LoadObstacles(obstacles, static_obstacles);
   }
 
+  void GlobalGuidance::LoadStaticObstacles(const std::vector<Halfspace> &static_obstacles)
+  {
+    static_obstacles_ = static_obstacles;
+  }
+
   void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width)
   {
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);

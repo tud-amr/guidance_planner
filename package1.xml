@@ -16,15 +16,15 @@
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_export_depend>roscpp</build_export_depend>
-  <build_export_depend>std_msgs</build_export_depend>
-  <exec_depend>roscpp</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  
-  <!-- <depend>genmsg</depend> -->
+
+  <depend>std_msgs</depend>
+  <depend>roscpp</depend>
   <depend>ros_tools</depend>
   <depend>dynamic_reconfigure</depend>
+  <depend>eigen</depend>
 
+  <export>
+    <build_type>catkin</build_type>
+  </export>
+  
 </package>

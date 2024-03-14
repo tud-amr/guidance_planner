@@ -1,10 +1,10 @@
 #ifndef GUIDANCE_PLANNER_RECONFIGURE_H
 #define GUIDANCE_PLANNER_RECONFIGURE_H
+#include <guidance_planner/config.h>
 
 #ifdef MPC_PLANNER_ROS
 #include <dynamic_reconfigure/server.h>
 #include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
-#include <guidance_planner/config.h>
 namespace GuidancePlanner
 {
     class Reconfigure
@@ -59,6 +59,8 @@ namespace GuidancePlanner
 {
     class Reconfigure
     {
+    public:
+        Reconfigure(std::shared_ptr<Config> config) { (void)config; }
     };
 }
 #endif

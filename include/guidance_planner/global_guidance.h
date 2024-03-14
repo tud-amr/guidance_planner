@@ -42,6 +42,7 @@ namespace GuidancePlanner
 
     /** @brief Load the obstacles to be used in the PRM, each obstacle needs to have at least the current position and N future predicted positions */
     void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles);
+    void LoadStaticObstacles(const std::vector<Halfspace> &static_obstacles);
     void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width = 4.);
     void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width_left, double road_width_right);
     void SetGoals(const std::vector<Goal> &goals);
