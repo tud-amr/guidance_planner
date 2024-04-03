@@ -65,6 +65,8 @@ namespace GuidancePlanner
 
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
 
+    void DoNotPropagateNodes() { do_not_propagate_nodes_ = true; };
+
     /** @brief Propagate the graph to the next iteration by lowering the time axis */
     void PropagateGraph(const std::vector<GeometricPath> &paths);
 
@@ -126,6 +128,7 @@ namespace GuidancePlanner
 
   private:
     bool done_;
+    bool do_not_propagate_nodes_{false};
 
     Config *config_;
 

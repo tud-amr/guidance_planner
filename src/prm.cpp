@@ -320,62 +320,68 @@ namespace GuidancePlanner
 
       PropagateNode(node, node_path);
     }
+    do_not_propagate_nodes_ = false;
   }
 
   void PRM::PropagateNode(const Node &node, const GeometricPath *path)
   {
     previous_nodes_.push_back(node); // Copy the given node to save it (by value, because the graph will be reset)
+
+    if (!config_->dynamically_propagate_nodes_) // Setting must be enabled in general
+      return;
+
+    if (do_not_propagate_nodes_) // This setting can be enabled externally to stop node propagation for one iteration
+      return;
+
     auto &propagated_node = previous_nodes_.back();
 
     // Then, we would like to propagate this node on its path so that it remains on the path at the same point in time
     // (next iteration) All our current nodes will be the same nodes in the next time step, but one step earlier in time
-    if (config_->dynamically_propagate_nodes_)
+
+    propagated_node.point_.Time() = node.point_.Time() - (Config::CONTROL_DT / Config::DT); // Drop by however much discrete steps we
+                                                                                            // are moving in one control iteration
+
+    // if (propagated_node.point_.Pos()(0) < start_(0))
+    // {
+    // previous_nodes_.pop_back();
+    // return;
+    // }
+
+    // If a node hits the floor when it belongs to a path, then we should resample to ensure that the path remains valid
+    if (propagated_node.point_.Time() < 1)
     {
-      propagated_node.point_.Time() = node.point_.Time() - (Config::CONTROL_DT / Config::DT); // Drop by however much discrete steps we
-                                                                                              // are moving in one control iteration
-
-      // if (propagated_node.point_.Pos()(0) < start_(0))
-      // {
-      // previous_nodes_.pop_back();
-      // return;
-      // }
-
-      // If a node hits the floor when it belongs to a path, then we should resample to ensure that the path remains valid
-      if (propagated_node.point_.Time() < 1)
+      if (propagated_node.type_ == NodeType::CONNECTOR && path != nullptr) // Resample connectors
       {
-        if (propagated_node.type_ == NodeType::CONNECTOR && path != nullptr) // Resample connectors
-        {
-          // Find the first node in the path that is not our current node
-          // bool found_first_node = false;
-          // int first_node_id = 1; // Skip the start
-          // for (; first_node_id < (int)path->nodes_.size(); first_node_id++)
-          // {
-          //   if (path->nodes_[first_node_id]->id_ != node.id_)
-          //   {
-          //     found_first_node = true;
-          //     break;
-          //   }
-          // }
-          // ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
-          int first_node_id = 2; // Cannot be the start, cannot be the first connector
-          auto &next_node = path->nodes_[first_node_id];
+        // Find the first node in the path that is not our current node
+        // bool found_first_node = false;
+        // int first_node_id = 1; // Skip the start
+        // for (; first_node_id < (int)path->nodes_.size(); first_node_id++)
+        // {
+        //   if (path->nodes_[first_node_id]->id_ != node.id_)
+        //   {
+        //     found_first_node = true;
+        //     break;
+        //   }
+        // }
+        // ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
+        int first_node_id = 2; // Cannot be the start, cannot be the first connector
+        auto &next_node = path->nodes_[first_node_id];
 
-          // Sample halfway up to the next node (0.5(T2 + T1) / (T_end - T_start)) \in [0, 1]
-          propagated_node.point_ = (*path)((0.5 * (next_node->point_.Time() + node.point_.Time())) /
-                                           (path->EndTimeIndex() - path->StartTimeIndex()));
+        // Sample halfway up to the next node (0.5(T2 + T1) / (T_end - T_start)) \in [0, 1]
+        propagated_node.point_ = (*path)((0.5 * (next_node->point_.Time() + node.point_.Time())) /
+                                         (path->EndTimeIndex() - path->StartTimeIndex()));
 
-          // Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR); // Replace the node
-          // replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
+        // Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR); // Replace the node
+        // replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
 
-          // // Remove the previous node and add the replacement
-          // previous_nodes_.pop_back();
-          // previous_nodes_.push_back(replacement_node);
-        }
-        else
-        {
-          if (propagated_node.type_ != NodeType::CONNECTOR)
-            previous_nodes_.pop_back(); // Do not resample GUARDS when they time-out
-        }
+        // // Remove the previous node and add the replacement
+        // previous_nodes_.pop_back();
+        // previous_nodes_.push_back(replacement_node);
+      }
+      else
+      {
+        if (propagated_node.type_ != NodeType::CONNECTOR)
+          previous_nodes_.pop_back(); // Do not resample GUARDS when they time-out
       }
     }
   }
