@@ -507,7 +507,7 @@ std::vector<Eigen::Vector3d> &CubicSpline3D::GetSamples()
 
   sampled_points_.clear();
 
-  Eigen::VectorXd sampled_t = Eigen::VectorXd::LinSpaced(100, 0., trajectory_spline_->parameterLength());
+  Eigen::VectorXd sampled_t = Eigen::VectorXd::LinSpaced(20, 0., trajectory_spline_->parameterLength());
 
   for (int i = 0; i < sampled_t.size(); i++)
   {
