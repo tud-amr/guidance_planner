@@ -793,7 +793,7 @@ namespace GuidancePlanner
 
       if (highlight_selected && previous_outputs_[i].previously_selected_)
       {
-        line.setScale(0.3, 0.3);
+        // line.setScale(0.3, 0.3);
 
         if (config_->use_learning) // Blue
         {
@@ -802,8 +802,8 @@ namespace GuidancePlanner
         }
         else // Red
         {
-          text_marker.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
-          line.setColorInt(2.0, 1.0, RosTools::Colormap::BRUNO);
+          text_marker.setColor(131. / 255., 10. / 255., 72. / 255., 1.0);
+          line.setColor(131. / 255., 10. / 255., 72. / 255., 1.0);
         }
       }
       else // Color scale
