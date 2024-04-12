@@ -17,6 +17,10 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <build_depend>libgsl</build_depend>
+  <build_depend>libomp-dev</build_depend>
+  <build_depend>pkg-config</build_depend>
+  
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>ros_tools</depend>

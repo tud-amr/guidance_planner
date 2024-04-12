@@ -2,6 +2,10 @@
 
 #include <guidance_planner/graph.h>
 
+#include <guidance_planner/homology.h>
+#include <guidance_planner/uvd.h>
+#include <guidance_planner/winding_angle.h>
+
 #include <ros_tools/profiling.h>
 #include <ros_tools/math.h>
 
@@ -34,6 +38,10 @@ namespace GuidancePlanner
     else if (config_->topology_comparison_function_ == "None")
     {
       topology_comparison_.reset(new NoTopologyComparison());
+    }
+    else if (config_->topology_comparison_function_ == "Winding")
+    {
+      topology_comparison_.reset(new WindingAngle());
     }
     else
     {
@@ -477,6 +485,11 @@ namespace GuidancePlanner
     // debug_benchmarker_->stop();
 
     return h;
+  }
+
+  std::vector<bool> PRM::GetLeftPassingVector(const GeometricPath &path)
+  {
+    return topology_comparison_->LeftPassingVector(path, environment_);
   }
 
   /** @todo: Should be per connection, not all at once */

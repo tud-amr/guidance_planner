@@ -28,7 +28,9 @@ namespace GuidancePlanner
      *  @return Interpolated point in discrete time space (i.e., k in [0, N]) */
     SpaceTimePoint operator()(double s) const;
 
-    double Length2D() const;
+    std::vector<Eigen::Vector2d> GetKParameterized() const;
+
+        double Length2D() const;
     double Length3D() const;
 
     /** @brief Return a smoothness measure, which divides the distance between start and end by the 3D length of the path. I.e., straighter paths are

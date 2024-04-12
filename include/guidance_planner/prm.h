@@ -16,9 +16,6 @@
 #include <guidance_planner/graph_search.h>
 #include <guidance_planner/config.h>
 
-#include <guidance_planner/homology.h>
-#include <guidance_planner/uvd.h>
-
 #include <guidance_planner/paths.h>
 #include <guidance_planner/types.h>
 
@@ -33,6 +30,7 @@ namespace GuidancePlanner
 {
   class PRM;
   typedef SpaceTimePoint (PRM::*SamplingFunction)();
+  class TopologyComparison;
 
   class PRM
   {
@@ -81,7 +79,7 @@ namespace GuidancePlanner
     bool FirstPathIsBetter(const GeometricPath &new_path, const GeometricPath &old_path);
 
     /** @brief For each obstacle compute if the path is passing left or right */
-    std::vector<bool> GetLeftPassingVector(const GeometricPath &path) { return topology_comparison_->LeftPassingVector(path, environment_); }
+    std::vector<bool> GetLeftPassingVector(const GeometricPath &path);
 
     /** @brief Get homotopic cost between paths if using homologies*/
     double GetHomotopicCost(const GeometricPath &a, const GeometricPath &b);

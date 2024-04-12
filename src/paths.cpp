@@ -38,6 +38,33 @@ namespace GuidancePlanner
                                              nodes_[segment_idx + 1]->point_);
     }
 
+    /** @brief Evaluate this path at a particular k **/
+    std::vector<Eigen::Vector2d> GeometricPath::GetKParameterized() const
+    {
+
+        std::vector<Eigen::Vector2d> points;
+        int cur_k = 1;
+        points.emplace_back(nodes_[0]->point_.Pos());
+
+        for (size_t i = 1; i < nodes_.size(); i++)
+        {
+            while (cur_k < nodes_[i]->point_.Time())
+            {
+                points.emplace_back(RosTools::InterpolateLinearly(
+                    nodes_[i - 1]->point_.Time(),
+                    nodes_[i]->point_.Time(),
+                    cur_k,
+                    nodes_[i - 1]->point_.Pos(),
+                    nodes_[i]->point_.Pos()));
+
+                cur_k++;
+            }
+        }
+        points.emplace_back(nodes_.back()->point_.Pos());
+
+        return points;
+    }
+
     double GeometricPath::Length2D() const
     {
         double length = 0.;
