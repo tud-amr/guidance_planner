@@ -174,6 +174,26 @@ namespace GuidancePlanner
         }
     }
 
+    bool operator==(const GeometricPath &a, const GeometricPath &b)
+    {
+        {
+            if (a.nodes_.size() != b.nodes_.size())
+                return false;
+
+            for (size_t i = 0; i < a.nodes_.size(); i++)
+            {
+                // If we do not have two goals (they are always equal)
+                if (!(a.nodes_[i]->type_ == NodeType::GOAL && b.nodes_[i]->type_ == NodeType::GOAL))
+                {
+                    if (a.nodes_[i]->id_ != b.nodes_[i]->id_) // Then if they do not have the same ID, these are not the same paths!
+                        return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
     StandaloneGeometricPath::StandaloneGeometricPath(const std::list<Node> &nodes)
     {
         saved_nodes_ = nodes;

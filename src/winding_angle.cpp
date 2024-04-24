@@ -1,9 +1,9 @@
 #include "guidance_planner/winding_angle.h"
-#include "guidance_planner/homology.h"
 
 #include <ros_tools/math.h>
 #include <ros_tools/visuals.h>
 
+#include <guidance_planner/paths.h>
 #include <guidance_planner/environment.h>
 
 namespace GuidancePlanner

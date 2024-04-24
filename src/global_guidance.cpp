@@ -104,6 +104,58 @@ namespace GuidancePlanner
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
   }
 
+  // void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path,
+  //                                        double road_width_left, double road_width_right)
+  // {
+  //   PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
+
+  //   ROSTOOLS_ASSERT(!goals_set_, "Please set the goals via SetGoals or LoadReferencePath, but not both!"); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
+  //   goals_set_ = true;
+
+  //   // DEFINE THE GOALS FOR THE GUIDANCE PLANNER
+  //   int grid_long = config_->longitudinal_goals_;
+  //   int grid_vert = config_->vertical_goals_;
+
+  //   ROSTOOLS_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
+
+  //   // ROSTOOLS_ASSERT(grid_long >= 3, "There should be at least three longitudinal goals (start, end, past end)");
+  //   int vert_start = std::floor((double)grid_vert / 2.);
+
+  //   double s_start = spline_start;
+  //   double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
+
+  //   double s_step = grid_long > 2 ? (s_best - s_start) / ((double)grid_long - 2.) : s_best - s_start; // -1 for starting at 0
+  //   ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
+
+  //   double width = road_width_left + road_width_right;
+  //   double offset = -road_width_left + width / 2.;
+  //   double v_step = grid_vert > 1 ? width / ((double)(grid_vert - 1)) : 0.;
+
+  //   goals_.clear();
+  //   // goal_costs_.clear(); // Better goals have a lower score
+  //   for (int i = 0; i < grid_long; i++)
+  //   {
+  //     // Compute the distance at which our goal is longitudinally
+  //     double s = grid_long > 1 ? s_start + (double)i * s_step : s_best;
+
+  //     // Compute its cost (integer * 2), minimum at desired velocity
+  //     double long_cost = std::abs((grid_long - 2) - i) * 2.;
+
+  //     // Compute the normal vector to the reference path
+  //     Eigen::Vector2d line_point = reference_path->getPoint(s);
+  //     Eigen::Vector2d normal = reference_path->getVelocity(s).normalized();
+  //     normal = Eigen::Vector2d(-normal(1), normal(0));
+
+  //     // Place goals orthogonally to the path
+  //     for (int j = -vert_start; j < -vert_start + grid_vert; j++)
+  //     {
+  //       double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
+  //       double cost = long_cost + lat_cost;
+  //       goals_.emplace_back(line_point + normal * (-offset + ((double)j) * v_step), cost); // Add the goal
+  //     }
+  //   }
+  // }
+
   void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path,
                                          double road_width_left, double road_width_right)
   {
@@ -117,14 +169,13 @@ namespace GuidancePlanner
     int grid_vert = config_->vertical_goals_;
 
     ROSTOOLS_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
-
-    // ROSTOOLS_ASSERT(grid_long >= 3, "There should be at least three longitudinal goals (start, end, past end)");
+    ROSTOOLS_ASSERT(grid_long >= 2, "There should be at least three longitudinal goals (start, end)");
     int vert_start = std::floor((double)grid_vert / 2.);
 
     double s_start = spline_start;
     double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
-
-    double s_step = grid_long > 2 ? (s_best - s_start) / ((double)grid_long - 2.) : s_best - s_start; // -1 for starting at 0
+    double s_range = s_best - s_start;
+    double s_step = s_range / (grid_long - 1);
     ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
 
     double width = road_width_left + road_width_right;
@@ -139,7 +190,7 @@ namespace GuidancePlanner
       double s = grid_long > 1 ? s_start + (double)i * s_step : s_best;
 
       // Compute its cost (integer * 2), minimum at desired velocity
-      double long_cost = std::abs((grid_long - 2) - i) * 2.;
+      double long_cost = std::abs((grid_long - 1) - i) * 2.;
 
       // Compute the normal vector to the reference path
       Eigen::Vector2d line_point = reference_path->getPoint(s);
@@ -149,6 +200,9 @@ namespace GuidancePlanner
       // Place goals orthogonally to the path
       for (int j = -vert_start; j < -vert_start + grid_vert; j++)
       {
+        // if (i == 0 && j != 0)
+        // continue; // Only the first goal should be in the center
+
         double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
         double cost = long_cost + lat_cost;
         goals_.emplace_back(line_point + normal * (-offset + ((double)j) * v_step), cost); // Add the goal
@@ -230,7 +284,9 @@ namespace GuidancePlanner
 
         // If there are no paths - WARN
         if (paths_.size() == 0 && config_->n_paths_ != 0)
-          PRM_WARN("Guidance failed to find a path from the robot position to the goal (using last path)");
+        {
+          PRM_LOG("Guidance failed to find a path from the robot position to the goal (using last path)");
+        }
       }
 
       PRM_LOG("======== Filter And Select ==========");
@@ -248,8 +304,10 @@ namespace GuidancePlanner
         // Print all paths
         PRM_LOG("Paths:");
         for (auto &path : paths_)
+        {
           PRM_LOG("\t" << path << "\b");
-
+          (void)path;
+        }
         /** Propagate nodes in the graph to the next iteration */
         prm_.PropagateGraph(paths_);
       }
@@ -781,6 +839,10 @@ namespace GuidancePlanner
     RosTools::ROSLine &line = trajectory_visuals.getNewLine();
     line.setScale(0.15, 0.15);
 
+    RosTools::ROSPointMarker &dots = trajectory_visuals.getNewPointMarker("SPHERE");
+    dots.setColor(0., 0., 0., 1.);
+    dots.setScale(0.15, 0.15, 0.15);
+
     RosTools::ROSTextMarker text_marker = trajectory_visuals.getNewTextMarker();
     text_marker.setScale(1.0);
 
@@ -809,7 +871,7 @@ namespace GuidancePlanner
       else // Color scale
       {
         line.setScale(0.15, 0.15);
-        line.setColorInt(outputs_[i].color_, config_->n_paths_, 0.75);
+        line.setColorInt(outputs_[i].color_, config_->n_paths_, 1.0); // 0.75);
       }
 
       std::vector<Eigen::Vector3d> &points = spline.GetSamples(); // Get samples on the current spline
@@ -824,6 +886,8 @@ namespace GuidancePlanner
       for (size_t j = 0; j < points.size(); j++)
       {
         Eigen::Vector3d &cur_vec = points[j];
+
+        dots.addPointMarker(cur_vec);
 
         if (j > 0)
         {
@@ -874,9 +938,9 @@ namespace GuidancePlanner
     }
   }
 
-  void GlobalGuidance::ExportData(RosTools::DataSaver &data_saver) // Export data for analysis
+  void GlobalGuidance::saveData(RosTools::DataSaver &data_saver) // Export data for analysis
   {
-    data_saver.AddData("n_paths", paths_.size());
+    prm_.saveData(data_saver);
   }
 
   double GlobalGuidance::GetLastRuntime()

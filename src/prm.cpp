@@ -8,6 +8,7 @@
 
 #include <ros_tools/profiling.h>
 #include <ros_tools/math.h>
+#include <ros_tools/data_saver.h>
 
 namespace GuidancePlanner
 {
@@ -34,18 +35,22 @@ namespace GuidancePlanner
     if (config_->topology_comparison_function_ == "UVD")
     {
       topology_comparison_.reset(new UVD());
+      LOG_VALUE("Topology Comparison", "UVD");
     }
     else if (config_->topology_comparison_function_ == "None")
     {
       topology_comparison_.reset(new NoTopologyComparison());
+      LOG_VALUE("Topology Comparison", "None");
     }
     else if (config_->topology_comparison_function_ == "Winding")
     {
       topology_comparison_.reset(new WindingAngle());
+      LOG_VALUE("Topology Comparison", "Winding Angles");
     }
     else
     {
       topology_comparison_.reset(new Homology(config_->assume_constant_velocity_));
+      LOG_VALUE("Topology Comparison", "Homology");
     }
     // debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
@@ -130,6 +135,8 @@ namespace GuidancePlanner
 
     done_ = false;
 
+    BENCHMARKERS.getBenchmarker("homotopy_comparison").reset();
+
     topology_comparison_->Clear();
     graph_->Clear();
     all_samples_.clear();
@@ -165,7 +172,7 @@ namespace GuidancePlanner
       std::vector<Node *> visible_guards, visible_goals;
       FindVisibleGuards(sample, visible_guards, visible_goals);
 
-      // If we only see one goal
+      // If we see no goals and no guards,add a guard
       if (visible_goals.size() == 0 && visible_guards.size() == 0)
       {
         AddGuard(i, sample);
@@ -259,8 +266,9 @@ namespace GuidancePlanner
       return;
     }
     else
+    {
       PRM_LOG("Connector is valid");
-
+    }
     Node new_node = sample_is_from_previous_iteration
                         ? Node(graph_->GetNodeID(), previous_nodes_[i])
                         : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
@@ -462,9 +470,9 @@ namespace GuidancePlanner
 
   bool PRM::AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b)
   {
-    // debug_benchmarker_->start();
+    BENCHMARKERS.getBenchmarker("homotopy_comparison").start();
     bool homology_result = topology_comparison_->AreEquivalent(a, b, environment_);
-    // debug_benchmarker_->stop();
+    BENCHMARKERS.getBenchmarker("homotopy_comparison").stop();
 
     return homology_result;
   }
@@ -748,4 +756,10 @@ namespace GuidancePlanner
       sample_visuals.publish();
     }
   }
-} // namespace Homotopy
+
+  void PRM::saveData(RosTools::DataSaver &data_saver)
+  {
+    data_saver.AddData("homotopy_comparison_runtime", BENCHMARKERS.getBenchmarker("homotopy_comparison").getTotalDuration());
+  }
+
+} // namespace GuidancePlanner

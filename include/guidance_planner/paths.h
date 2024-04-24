@@ -68,6 +68,9 @@ namespace GuidancePlanner
     void ComputeDistanceVector();
   };
 
+    bool operator==(const GeometricPath &a, const GeometricPath &b);
+
+
   struct StandaloneGeometricPath
   {
     GeometricPath path;

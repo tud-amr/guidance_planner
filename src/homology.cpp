@@ -269,9 +269,9 @@ namespace GuidancePlanner
         // obstacle_points_[1][i] = Line(start, end, 1 + fraction_);                         // An end above the actual end
         // obstacle_points_[2][i] = obstacle_points_[1][i] + Eigen::Vector3d(-250., 0., 0.); // Move outside of the region
 
-        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));    // An end above the actual end
-        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-250., 0., 0.)); // Move outside of the region
-        obstacle_points_[o].push_back(obstacle_points_[o].back());                                  // In that same (x,y) move down
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(0., 0., 1.));                // An end above the actual end
+        obstacle_points_[o].push_back(obstacle_points_[o].back() + Eigen::Vector3d(-HSIGNATURE_RANGE, 0., 0.)); // Move outside of the region
+        obstacle_points_[o].push_back(obstacle_points_[o].back());                                              // In that same (x,y) move down
         obstacle_points_[o].back()(2) = obstacle_points_[o][0](2);
         // obstacle_points_[3][i] = obstacle_points_[2][i];
         // obstacle_points_[3][i](2) = obstacle_points_[0][i](2); // Move down
@@ -328,7 +328,7 @@ namespace GuidancePlanner
   {
     auto &debug_visuals = VISUALS.getPublisher("guidance_planner/homology");
     auto &line = debug_visuals.getNewLine();
-    line.setScale(0.05);
+    line.setScale(0.1);
 
     const auto &obstacles = environment.GetDynamicObstacles();
     for (size_t i = 0; i < obstacles.size(); i++)
@@ -362,23 +362,4 @@ namespace GuidancePlanner
     debug_visuals.publish();
   }
 
-  bool operator==(const GeometricPath &a, const GeometricPath &b)
-  {
-    {
-      if (a.nodes_.size() != b.nodes_.size())
-        return false;
-
-      for (size_t i = 0; i < a.nodes_.size(); i++)
-      {
-        // If we do not have two goals (they are always equal)
-        if (!(a.nodes_[i]->type_ == NodeType::GOAL && b.nodes_[i]->type_ == NodeType::GOAL))
-        {
-          if (a.nodes_[i]->id_ != b.nodes_[i]->id_) // Then if they do not have the same ID, these are not the same paths!
-            return false;
-        }
-      }
-
-      return true;
-    }
-  }
 } // namespace Homotopy

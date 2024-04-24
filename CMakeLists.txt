@@ -38,7 +38,7 @@ generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
 catkin_package(
   CATKIN_DEPENDS ${DEPENDENCIES}
   INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIRS}
-  LIBRARIES ${PROJECT_NAME} ${gsl_LIBRARIES}
+  LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_homotopy ${gsl_LIBRARIES}
   DEPENDS EIGEN3
 )
 
@@ -47,6 +47,17 @@ include_directories(
   debug
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+)
+
+add_library(${PROJECT_NAME}_homotopy SHARED
+  src/uvd.cpp
+  src/winding_angle.cpp
+  src/homology.cpp
+)
+add_dependencies(${PROJECT_NAME}_homotopy ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_homotopy
+  ${catkin_LIBRARIES}
+  ${gsl_LIBRARIES}
 )
 
 # Library
@@ -59,14 +70,16 @@ add_library(${PROJECT_NAME} SHARED
   src/environment.cpp
   src/graph_search.cpp
   src/config.cpp
-  src/homology.cpp
-  src/winding_angle.cpp
+
+  # src/homology.cpp
+  # src/winding_angle.cpp
+  # src/uvd.cpp
   src/cubic_spline.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${gsl_LIBRARIES}
+  ${PROJECT_NAME}_homotopy
 )
 
 add_definitions(-DMPC_PLANNER_ROS)
@@ -80,7 +93,9 @@ add_definitions(-DMPC_PLANNER_ROS)
 # ${PROJECT_NAME}
 # ${catkin_LIBRARIES}
 # )
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS
+  ${PROJECT_NAME}_homotopy
+  ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}

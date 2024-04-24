@@ -5,16 +5,16 @@
 #include "gsl/gsl_errno.h"
 
 /** Logging definitions */
-// #define PRM_LOGGING_ENABLED 1
-// #if PRM_LOGGING_ENABLED == 1
+#define PRM_LOGGING_ENABLED 0
+#if PRM_LOGGING_ENABLED == 1
 #define PRM_LOG(msg)                \
     if (Config::debug_output_)      \
     {                               \
         LOG_INFO("[PRM]: " << msg); \
     }
-// #else
-// #define PRM_LOG(msg)
-// #endif
+#else
+#define PRM_LOG(msg)
+#endif
 
 #define PRM_WARN(msg) LOG_WARN("[PRM]: " << msg)
 

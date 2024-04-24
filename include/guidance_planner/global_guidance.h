@@ -51,7 +51,7 @@ namespace GuidancePlanner
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
     void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = reference_velocity; }
     void SetTrackOnlyTheSelectedHomology() { config_->track_selected_homology_only_ = true; }
-    void DoNotPropagateNodes(){prm_.DoNotPropagateNodes();}
+    void DoNotPropagateNodes() { prm_.DoNotPropagateNodes(); }
 
     /**
      * @brief Compute Guidance trajectories
@@ -124,7 +124,7 @@ namespace GuidancePlanner
     void VisualizePath(RosTools::ROSLine &line, GeometricPath &path);
 
     /** @brief Export data for external analysis */
-    void ExportData(RosTools::DataSaver &data_saver);
+    void saveData(RosTools::DataSaver &data_saver);
 
     Config *GetConfig() const { return config_.get(); };
 

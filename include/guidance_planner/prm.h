@@ -92,7 +92,7 @@ namespace GuidancePlanner
     void Visualize();
 
     /** @brief Export data for external analysis */
-    void ExportData(RosTools::DataSaver &data_saver);
+    void saveData(RosTools::DataSaver &data_saver);
 
   private:
     void SampleNewPoints(std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes); // Sample ALL new points
