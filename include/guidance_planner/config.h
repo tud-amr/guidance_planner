@@ -30,6 +30,7 @@ namespace GuidancePlanner
 
     // Debug
     static bool debug_output_;
+    static bool debug_visuals_;
 
     // Homotopy (Key variables)
     double T_;

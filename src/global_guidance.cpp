@@ -182,6 +182,9 @@ namespace GuidancePlanner
     double offset = -road_width_left + width / 2.;
     double v_step = grid_vert > 1 ? width / ((double)(grid_vert - 1)) : 0.;
 
+    Eigen::Vector2d orth = reference_path->getOrthogonal(s_start).normalized();
+    double current_v_offset = orth.transpose() * (reference_path->getPoint(s_start) - start_);
+
     goals_.clear();
     // goal_costs_.clear(); // Better goals have a lower score
     for (int i = 0; i < grid_long; i++)
@@ -205,7 +208,7 @@ namespace GuidancePlanner
 
         double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
         double cost = long_cost + lat_cost;
-        goals_.emplace_back(line_point + normal * (-offset + ((double)j) * v_step), cost); // Add the goal
+        goals_.emplace_back(line_point + normal * (current_v_offset - offset + ((double)j) * v_step), cost); // Add the goal
       }
     }
   }
@@ -235,6 +238,7 @@ namespace GuidancePlanner
       PRM_LOG("GlobalGuidance::Update")
       auto &guidance_benchmarker = BENCHMARKERS.getBenchmarker("Guidance Planner");
       auto &prm_benchmarker = BENCHMARKERS.getBenchmarker("PRM");
+      auto &processing_benchmarker = BENCHMARKERS.getBenchmarker("processing");
 
       guidance_benchmarker.start();
 
@@ -260,6 +264,7 @@ namespace GuidancePlanner
       prm_benchmarker.stop();
 
       PRM_LOG("======== Depth First Path Search ==========");
+      processing_benchmarker.start();
       {
         PROFILE_SCOPE("Path Search");
 
@@ -315,6 +320,7 @@ namespace GuidancePlanner
       if (paths_.size() == 0) // Stop here if no paths were found
       {
         guidance_benchmarker.stop();
+        processing_benchmarker.stop();
 
         // There are no outputs
         outputs_.clear();
@@ -390,7 +396,7 @@ namespace GuidancePlanner
           previous_outputs_[0].previously_selected_ = true; // The first output was selected internally
         }
       }
-
+      processing_benchmarker.stop();
       guidance_benchmarker.stop();
       PRM_LOG("=========== Done ============");
 
@@ -749,11 +755,11 @@ namespace GuidancePlanner
     PRM_LOG("======== Visualization ==========");
     VisualizeObstacles();
     prm_.Visualize();
-    VisualizeGeometricPaths(only_path_nr);
     VisualizeTrajectories(highlight_selected, only_path_nr);
 
-    if (config_->debug_output_)
+    if (config_->debug_visuals_)
     {
+      VisualizeGeometricPaths(only_path_nr);
       VisualizeSplinePoints();
       VisualizeDebug();
     }
@@ -835,13 +841,17 @@ namespace GuidancePlanner
   void GlobalGuidance::VisualizeTrajectories(bool highlight_selected, int path_nr)
   {
     auto &trajectory_visuals = VISUALS.getPublisher("guidance_planner/trajectories");
+    bool add_dots = false;
 
     RosTools::ROSLine &line = trajectory_visuals.getNewLine();
     line.setScale(0.15, 0.15);
 
     RosTools::ROSPointMarker &dots = trajectory_visuals.getNewPointMarker("SPHERE");
-    dots.setColor(0., 0., 0., 1.);
-    dots.setScale(0.15, 0.15, 0.15);
+    if (add_dots)
+    {
+      dots.setColor(0., 0., 0., 1.);
+      dots.setScale(0.15, 0.15, 0.15);
+    }
 
     RosTools::ROSTextMarker text_marker = trajectory_visuals.getNewTextMarker();
     text_marker.setScale(1.0);
@@ -887,7 +897,8 @@ namespace GuidancePlanner
       {
         Eigen::Vector3d &cur_vec = points[j];
 
-        dots.addPointMarker(cur_vec);
+        if (add_dots)
+          dots.addPointMarker(cur_vec);
 
         if (j > 0)
         {
@@ -940,6 +951,8 @@ namespace GuidancePlanner
 
   void GlobalGuidance::saveData(RosTools::DataSaver &data_saver) // Export data for analysis
   {
+    data_saver.AddData("prm_runtime", BENCHMARKERS.getBenchmarker("PRM").getLast());
+    data_saver.AddData("processing_runtime", BENCHMARKERS.getBenchmarker("processing").getLast());
     prm_.saveData(data_saver);
   }
 
