@@ -55,6 +55,8 @@ add_library(${PROJECT_NAME} SHARED
   src/environment.cpp
   src/graph_search.cpp
   src/homology.cpp
+  src/uvd.cpp
+  src/winding_angle.cpp
   src/cubic_spline.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
