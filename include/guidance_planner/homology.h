@@ -26,8 +26,8 @@ namespace GuidancePlanner
 
 #define GSL_ACCURACY 1e-1 // 1e-1
 #define GSL_POINTS 20
-#define HSIGNATURE_RANGE 5.0 // For figure in the paper
-  // #define HSIGNATURE_RANGE 250.0
+  // #define HSIGNATURE_RANGE 3.0 // For figure in the paper
+#define HSIGNATURE_RANGE 250.0
 
   struct GSLParams;
   class Homology : public TopologyComparison

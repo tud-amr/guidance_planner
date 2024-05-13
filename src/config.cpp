@@ -10,6 +10,7 @@ namespace GuidancePlanner
 {
   // Need to be initialized outside of a member function
   bool Config::debug_output_ = false;
+  bool Config::debug_visuals_ = false;
   double Config::DT = 0.0;
   double Config::CONTROL_DT = 0.0;
   int Config::N = 20;
@@ -26,6 +27,7 @@ namespace GuidancePlanner
     // auto config = loadYAML("guidance_planner.yaml");
 
     retrieveParameter(node, "prm/debug_output", Config::debug_output_);
+    retrieveParameter(node, "prm/debug_visuals", Config::debug_visuals_);
 
     // High-level settings
     retrieveParameter(node, "prm/T", T_);

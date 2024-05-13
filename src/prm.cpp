@@ -130,9 +130,6 @@ namespace GuidancePlanner
   {
     PROFILE_SCOPE("PRM::Update");
     PRM_LOG("PRM::Update")
-
-    // debug_visuals_->publish(false);
-
     done_ = false;
 
     BENCHMARKERS.getBenchmarker("homotopy_comparison").reset();
@@ -653,9 +650,9 @@ namespace GuidancePlanner
   void PRM::Visualize()
   {
     VisualizeGraph();
-    VisualizeAllSamples();
 
-    // debug_visuals_->publish(true);
+    if (config_->visualize_all_samples_)
+      VisualizeAllSamples();
 
     if (config_->visualize_homology_)
       topology_comparison_->Visualize(environment_);
@@ -664,9 +661,10 @@ namespace GuidancePlanner
   void PRM::VisualizeGraph()
   {
     // NODES IN THE GRAPH - COLORED BY PATH / TYPE
+    double sphere_size = 0.15;
     auto &graph_visuals = VISUALS.getPublisher("guidance_planner/graph");
     auto &sphere = graph_visuals.getNewPointMarker("SPHERE");
-    sphere.setScale(0.1, 0.1, 0.1);
+    sphere.setScale(sphere_size, sphere_size, sphere_size);
 
     auto &edge = graph_visuals.getNewLine();
     edge.setScale(0.05, 0.05);
@@ -674,7 +672,7 @@ namespace GuidancePlanner
 
     auto &start_goal_visuals = VISUALS.getPublisher("guidance_planner/start_and_goals");
     auto &goal_start_sphere = start_goal_visuals.getNewPointMarker("SPHERE");
-    goal_start_sphere.setScale(0.1, 0.1, 0.1);
+    goal_start_sphere.setScale(sphere_size, sphere_size, sphere_size);
 
     auto &segments_visuals = VISUALS.getPublisher("guidance_planner/segments");
     auto &segment_text = segments_visuals.getNewTextMarker();
@@ -741,20 +739,18 @@ namespace GuidancePlanner
   void PRM::VisualizeAllSamples()
   {
     // IF ENABLED, ALL PRM SAMPLES
-    if (config_->visualize_all_samples_)
-    {
-      auto &sample_visuals = VISUALS.getPublisher("guidance_planner/samples");
-      auto &samples = sample_visuals.getNewPointMarker("SPHERE");
-      samples.setScale(.15, .15, .15);
-      samples.setColorInt(0);
 
-      for (size_t s = 0; s < all_samples_.size(); s++)
-      {
-        if (sample_succes_[s])
-          samples.addPointMarker(all_samples_[s].MapToTime());
-      }
-      sample_visuals.publish();
+    auto &sample_visuals = VISUALS.getPublisher("guidance_planner/samples");
+    auto &samples = sample_visuals.getNewPointMarker("SPHERE");
+    samples.setScale(.15, .15, .15);
+    samples.setColorInt(0);
+
+    for (size_t s = 0; s < all_samples_.size(); s++)
+    {
+      if (sample_succes_[s])
+        samples.addPointMarker(all_samples_[s].MapToTime());
     }
+    sample_visuals.publish();
   }
 
   void PRM::saveData(RosTools::DataSaver &data_saver)
