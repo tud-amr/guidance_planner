@@ -15,19 +15,18 @@
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
   <build_depend>libgsl</build_depend>
   <build_depend>libomp-dev</build_depend>
   <build_depend>pkg-config</build_depend>
-
+  
+  <depend>rclcpp</depend>
   <depend>std_msgs</depend>
-  <depend>roscpp</depend>
   <depend>ros_tools</depend>
-  <depend>dynamic_reconfigure</depend>
-  <depend>eigen</depend>
 
   <export>
-    <build_type>catkin</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
-  
+
 </package>
