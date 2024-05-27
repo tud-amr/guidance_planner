@@ -34,7 +34,7 @@ namespace GuidancePlanner
     retrieveParameter(node, "prm/N", Config::N);
     Config::DT = T_ / (double)Config::N;
 
-    retrieveParameter(node, "clock_frequency", Config::CONTROL_DT, 20.); // NOTE: from LMPCC
+    retrieveParameter(node, "clock_frequency", Config::CONTROL_DT, 10.); // NOTE: from LMPCC
     Config::CONTROL_DT = 1. / Config::CONTROL_DT;                        // dt = 1 / Hz
 
     retrieveParameter(node, "prm/seed", seed_);
@@ -49,6 +49,7 @@ namespace GuidancePlanner
     view_angle_ *= M_PI;
 
     retrieveParameter(node, "prm/topology_comparison", topology_comparison_function_, std::string("Homology"));
+    retrieveParameter(node, "prm/winding_pass_threshold", winding_pass_threshold_, 0.25);
     retrieveParameter(node, "prm/use_learning", use_learning, false);
     retrieveParameter(node, "prm/sampling_function", sampling_function_, std::string("Uniform"));
     retrieveParameter(node, "prm/rules", rules_, std::string());

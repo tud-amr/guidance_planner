@@ -88,7 +88,23 @@ namespace GuidancePlanner
 
   void GlobalGuidance::LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles)
   {
+
     obstacles_ = obstacles;
+
+    // Make sure the time horizon of the obstacles matches the setting
+    for (auto &obstacle : obstacles_)
+    {
+      if (obstacle.positions_.size() < Config::N + 1)
+      {
+        // Extend with constant velocity
+        Eigen::Vector2d last_vel = obstacle.positions_.back() - obstacle.positions_[obstacle.positions_.size() - 2];
+        for (size_t i = obstacle.positions_.size(); i < Config::N + 1; i++)
+        {
+          obstacle.positions_.push_back(obstacle.positions_.back() + last_vel);
+        }
+      }
+    }
+
     static_obstacles_ = static_obstacles;
     // if (config_->use_learning)
     //   learning_guidance_.LoadObstacles(obstacles, static_obstacles);
@@ -99,64 +115,12 @@ namespace GuidancePlanner
     static_obstacles_ = static_obstacles;
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width)
+  void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width)
   {
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
   }
 
-  // void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path,
-  //                                        double road_width_left, double road_width_right)
-  // {
-  //   PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
-
-  //   ROSTOOLS_ASSERT(!goals_set_, "Please set the goals via SetGoals or LoadReferencePath, but not both!"); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
-  //   goals_set_ = true;
-
-  //   // DEFINE THE GOALS FOR THE GUIDANCE PLANNER
-  //   int grid_long = config_->longitudinal_goals_;
-  //   int grid_vert = config_->vertical_goals_;
-
-  //   ROSTOOLS_ASSERT((grid_vert % 2) == 1, "Number of vertical grid points should be odd!");
-
-  //   // ROSTOOLS_ASSERT(grid_long >= 3, "There should be at least three longitudinal goals (start, end, past end)");
-  //   int vert_start = std::floor((double)grid_vert / 2.);
-
-  //   double s_start = spline_start;
-  //   double s_best = s_start + Config::DT * (double)Config::N * config_->reference_velocity_;
-
-  //   double s_step = grid_long > 2 ? (s_best - s_start) / ((double)grid_long - 2.) : s_best - s_start; // -1 for starting at 0
-  //   ROSTOOLS_ASSERT(s_step > 0.05, "Goals should have some spacing between them (Config::reference_velocity_ should not be zero)");
-
-  //   double width = road_width_left + road_width_right;
-  //   double offset = -road_width_left + width / 2.;
-  //   double v_step = grid_vert > 1 ? width / ((double)(grid_vert - 1)) : 0.;
-
-  //   goals_.clear();
-  //   // goal_costs_.clear(); // Better goals have a lower score
-  //   for (int i = 0; i < grid_long; i++)
-  //   {
-  //     // Compute the distance at which our goal is longitudinally
-  //     double s = grid_long > 1 ? s_start + (double)i * s_step : s_best;
-
-  //     // Compute its cost (integer * 2), minimum at desired velocity
-  //     double long_cost = std::abs((grid_long - 2) - i) * 2.;
-
-  //     // Compute the normal vector to the reference path
-  //     Eigen::Vector2d line_point = reference_path->getPoint(s);
-  //     Eigen::Vector2d normal = reference_path->getVelocity(s).normalized();
-  //     normal = Eigen::Vector2d(-normal(1), normal(0));
-
-  //     // Place goals orthogonally to the path
-  //     for (int j = -vert_start; j < -vert_start + grid_vert; j++)
-  //     {
-  //       double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
-  //       double cost = long_cost + lat_cost;
-  //       goals_.emplace_back(line_point + normal * (-offset + ((double)j) * v_step), cost); // Add the goal
-  //     }
-  //   }
-  // }
-
-  void GlobalGuidance::LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path,
+  void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path,
                                          double road_width_left, double road_width_right)
   {
     PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");
@@ -183,7 +147,7 @@ namespace GuidancePlanner
     double v_step = grid_vert > 1 ? width / ((double)(grid_vert - 1)) : 0.;
 
     Eigen::Vector2d orth = reference_path->getOrthogonal(s_start).normalized();
-    double current_v_offset = orth.transpose() * (reference_path->getPoint(s_start) - start_);
+    double current_v_offset = 0.; // orth.transpose() * (reference_path->getPoint(s_start) - start_); // Moves the goals with the offset of the robot
 
     goals_.clear();
     // goal_costs_.clear(); // Better goals have a lower score
@@ -203,8 +167,8 @@ namespace GuidancePlanner
       // Place goals orthogonally to the path
       for (int j = -vert_start; j < -vert_start + grid_vert; j++)
       {
-        // if (i == 0 && j != 0)
-        // continue; // Only the first goal should be in the center
+        if (i == 0 && j != 0)
+          continue; // Only the first goal should be in the center
 
         double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
         double cost = long_cost + lat_cost;
@@ -828,7 +792,7 @@ namespace GuidancePlanner
       for (int k = 0; k < Config::N; k++)
       {
         // Transparent
-        disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k)) / (double)Config::N, 2.), RosTools::Colormap::BRUNO);
+        disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k + 2)) / (double)Config::N + 2, 2.), RosTools::Colormap::BRUNO);
 
         disc.addPointMarker(Eigen::Vector3d(obstacle.positions_[k](0), obstacle.positions_[k](1), (float)k * Config::DT));
       }

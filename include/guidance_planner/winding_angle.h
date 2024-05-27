@@ -24,9 +24,9 @@ namespace GuidancePlanner
 
         void Clear() override;
 
+        double pass_threshold_{0.125}; // 1/4 pi
     private:
         bool assume_constant_velocity_;
-        double min_abs_lambda_{0.125}; // 1/4 pi
 
         std::unordered_map<GeometricPath, std::vector<double>> cached_values_;
 

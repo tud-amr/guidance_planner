@@ -43,14 +43,15 @@ namespace GuidancePlanner
     /** @brief Load the obstacles to be used in the PRM, each obstacle needs to have at least the current position and N future predicted positions */
     void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles);
     void LoadStaticObstacles(const std::vector<Halfspace> &static_obstacles);
-    void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width = 4.);
-    void LoadReferencePath(double spline_start, std::unique_ptr<RosTools::Spline2D> &reference_path, double road_width_left, double road_width_right);
+    void LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width = 4.);
+    void LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width_left, double road_width_right);
     void SetGoals(const std::vector<Goal> &goals);
 
     /** @brief Additional configuration */
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
     void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = reference_velocity; }
     void SetTrackOnlyTheSelectedHomology() { config_->track_selected_homology_only_ = true; }
+    void SetPlanningFrequency(double f) { config_->CONTROL_DT = 1. / f; }
     void DoNotPropagateNodes() { prm_.DoNotPropagateNodes(); }
 
     /**

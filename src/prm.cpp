@@ -45,6 +45,7 @@ namespace GuidancePlanner
     else if (config_->topology_comparison_function_ == "Winding")
     {
       topology_comparison_.reset(new WindingAngle());
+      ((WindingAngle *)topology_comparison_.get())->pass_threshold_ = config_->winding_pass_threshold_;
       LOG_VALUE("Topology Comparison", "Winding Angles");
     }
     else

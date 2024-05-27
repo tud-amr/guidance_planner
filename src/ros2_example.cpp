@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     std::vector<double> xx, yy;
     xx = {0., 2., 4., 6., 8., 10.};
     yy = {0., 0., 0., 0., 0., 0.};
-    std::unique_ptr<RosTools::Spline2D> reference_path = std::make_unique<RosTools::Spline2D>(xx, yy);
+    std::shared_ptr<RosTools::Spline2D> reference_path = std::make_shared<RosTools::Spline2D>(xx, yy);
 
     double distance_on_spline = 0.;
     guidance.LoadReferencePath(distance_on_spline, reference_path);

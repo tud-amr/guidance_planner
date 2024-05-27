@@ -33,19 +33,47 @@ namespace GuidancePlanner
         {
             const auto &obstacle = obstacles[obstacle_id];
 
+            // Ignore obstacles far away
+            if (RosTools::distance(obstacle.positions_[0], a_positions[0]) > 20. &&
+                RosTools::distance(obstacle.positions_.back(), a_positions.back()) > 20.)
+            {
+                continue;
+            }
+
+            if (RosTools::distance(obstacle.positions_[0], b_positions[0]) > 20. &&
+                RosTools::distance(obstacle.positions_.back(), b_positions.back()) > 20.)
+            {
+                continue;
+            }
+
             double lambda_a = ComputeWindingAngle(obstacle_id, cached_a, a_positions, obstacle.positions_);
             double lambda_b = ComputeWindingAngle(obstacle_id, cached_b, b_positions, obstacle.positions_);
 
             // Winding angles must be large enough to indicate passing
-            if (std::abs(lambda_a) < min_abs_lambda_)
-                continue;
+            bool a_passes = std::abs(lambda_a) >= pass_threshold_;
+            bool b_passes = std::abs(lambda_b) >= pass_threshold_;
 
-            if (std::abs(lambda_b) < min_abs_lambda_)
-                continue;
-
-            // If winding angles are different for any obstacle, then the paths are not equivalent
-            if (RosTools::sgn(lambda_a) != RosTools::sgn(lambda_b))
+            /** @brief Distinction between passing / not-passing trajectories
+            if (a_passes != b_passes) // One of the two trajectories passes
+            {
                 return false;
+            }
+            else if (a_passes) // If both pass
+            {
+                // If winding angles are different for any obstacle, then the paths are not equivalent
+                if (RosTools::sgn(lambda_a) != RosTools::sgn(lambda_b))
+                {
+                    return false;
+                }
+            }*/
+
+            if (a_passes && b_passes)
+            {
+                if (RosTools::sgn(lambda_a) != RosTools::sgn(lambda_b))
+                {
+                    return false;
+                }
+            }
         }
 
         return true; // If all winding angles are the same for all obstacles, then the paths are equivalent

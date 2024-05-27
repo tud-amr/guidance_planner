@@ -54,6 +54,8 @@ namespace GuidancePlanner
     double view_angle_;
     double max_velocity_, max_acceleration_;
 
+    double winding_pass_threshold_;
+
     int longitudinal_goals_, vertical_goals_;
 
     bool use_learning;
