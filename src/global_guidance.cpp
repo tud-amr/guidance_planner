@@ -94,11 +94,11 @@ namespace GuidancePlanner
     // Make sure the time horizon of the obstacles matches the setting
     for (auto &obstacle : obstacles_)
     {
-      if (obstacle.positions_.size() < Config::N + 1)
+      if ((int)obstacle.positions_.size() < Config::N + 1)
       {
         // Extend with constant velocity
         Eigen::Vector2d last_vel = obstacle.positions_.back() - obstacle.positions_[obstacle.positions_.size() - 2];
-        for (size_t i = obstacle.positions_.size(); i < Config::N + 1; i++)
+        for (int i = obstacle.positions_.size(); i < Config::N + 1; i++)
         {
           obstacle.positions_.push_back(obstacle.positions_.back() + last_vel);
         }
@@ -146,7 +146,7 @@ namespace GuidancePlanner
     double offset = -road_width_left + width / 2.;
     double v_step = grid_vert > 1 ? width / ((double)(grid_vert - 1)) : 0.;
 
-    Eigen::Vector2d orth = reference_path->getOrthogonal(s_start).normalized();
+    // Eigen::Vector2d orth = reference_path->getOrthogonal(s_start).normalized();
     double current_v_offset = 0.; // orth.transpose() * (reference_path->getPoint(s_start) - start_); // Moves the goals with the offset of the robot
 
     goals_.clear();
