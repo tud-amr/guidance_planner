@@ -2,13 +2,17 @@
 
 #include <guidance_planner/graph.h>
 
-#include <guidance_planner/homology.h>
-#include <guidance_planner/uvd.h>
-#include <guidance_planner/winding_angle.h>
+#include <guidance_planner/environment.h>
+#include <guidance_planner/sampler.h>
+
+#include <guidance_planner/homotopy_comparison/homology.h>
+#include <guidance_planner/homotopy_comparison/uvd.h>
+#include <guidance_planner/homotopy_comparison/winding_angle.h>
 
 #include <ros_tools/profiling.h>
 #include <ros_tools/math.h>
 #include <ros_tools/data_saver.h>
+#include <ros_tools/visuals.h>
 
 namespace GuidancePlanner
 {
@@ -22,15 +26,17 @@ namespace GuidancePlanner
     config_ = config;
 
     graph_.reset(new Graph(config));
-    environment_.Init();
+    environment_ = std::make_shared<Environment>();
+    environment_->Init();
 
-    samples_.resize(config_->n_samples_);
-    sample_succes_.resize(config_->n_samples_);
+    sampler_ = std::make_shared<Sampler>(config_);
+    // samples_.resize(config_->n_samples_);
+    // sample_succes_.resize(config_->n_samples_);
 
-    random_generator_ = RosTools::RandomGenerator(config_->seed_);
+    // random_generator_ = RosTools::RandomGenerator(config_->seed_);
 
-    if (config_->sampling_function_ == "Uniform")
-      sampling_function_ = &PRM::SampleUniformly3D;
+    // if (config_->sampling_function_ == "Uniform")
+    // sampling_function_ = &PRM::SampleUniformly3D;
 
     if (config_->topology_comparison_function_ == "UVD")
     {
@@ -39,7 +45,7 @@ namespace GuidancePlanner
     }
     else if (config_->topology_comparison_function_ == "None")
     {
-      topology_comparison_.reset(new NoTopologyComparison());
+      topology_comparison_.reset(new NoHomotopyComparison());
       LOG_VALUE("Topology Comparison", "None");
     }
     else if (config_->topology_comparison_function_ == "Winding")
@@ -66,9 +72,9 @@ namespace GuidancePlanner
       PRM_LOG("Loading data into PRM...")
 
       /* Obstacles */
-      environment_.SetPosition(start);
+      environment_->SetPosition(start);
       PRM_LOG("Static obstacles size: " << static_obstacles.size());
-      environment_.LoadObstacles(obstacles, static_obstacles);
+      environment_->LoadObstacles(obstacles, static_obstacles);
     }
 
     /* Start */
@@ -77,7 +83,7 @@ namespace GuidancePlanner
     start_velocity_ = velocity;
 
     SpaceTimePoint start_point(start_(0), start_(1), 0.);
-    environment_.ProjectToFreeSpace(start_point, 0.1);
+    environment_->ProjectToFreeSpace(start_point, 0.1);
     start_(0) = start_point.Pos()(0);
     start_(1) = start_point.Pos()(1);
 
@@ -90,9 +96,9 @@ namespace GuidancePlanner
       for (auto &goal : goals)
       {
 
-        Eigen::Vector2d goal_copy = goal.pos;                       // Need to copy, because goal is const
-        environment_.ProjectToFreeSpace(goal_copy, Config::N, 0.5); // Project the goal if it is in collision
-        if (environment_.InCollision(SpaceTimePoint(goal_copy(0), goal_copy(1), Config::N)))
+        Eigen::Vector2d goal_copy = goal.pos;                        // Need to copy, because goal is const
+        environment_->ProjectToFreeSpace(goal_copy, Config::N, 0.5); // Project the goal if it is in collision
+        if (environment_->InCollision(SpaceTimePoint(goal_copy(0), goal_copy(1), Config::N)))
         {
           PRM_LOG("Rejecting a goal (it is in collision after projection).");
         }
@@ -106,25 +112,7 @@ namespace GuidancePlanner
 
     PRM_LOG(goals_.size() << " Collision-free goals were received");
 
-    // Compute the range of the planning space (between start and goals)
-    double min_x = start_(0), max_x = start_(0), min_y = start_(1), max_y = start_(1);
-    for (auto &goal : goals_)
-    {
-      min_x = std::min(goal.pos(0), min_x);
-      min_y = std::min(goal.pos(1), min_y);
-
-      max_x = std::max(goal.pos(0), max_x);
-      max_y = std::max(goal.pos(1), max_y);
-    }
-    range_x_ = max_x - min_x + config_->sample_margin_;
-    range_y_ = max_y - min_y + config_->sample_margin_;
-    min_x_ = min_x - config_->sample_margin_ / 2.;
-    min_y_ = min_y - config_->sample_margin_ / 2.;
-
-    if (std::abs(range_x_) < 1e-3 && config_->sample_margin_ == 0.)
-      LOG_WARN("The x range of sampling is zero (goal and start on a line) please use config_->sample_margin_ > 0.");
-    if (std::abs(range_y_) < 1e-3 && config_->sample_margin_ == 0.)
-      LOG_WARN("The y range of sampling is zero please use config_->sample_margin_ > 0.");
+    sampler_->SetRange(start_, goals_);
   }
 
   Graph &PRM::Update()
@@ -137,24 +125,22 @@ namespace GuidancePlanner
 
     topology_comparison_->Clear();
     graph_->Clear();
-    all_samples_.clear();
+    sampler_->Clear();
 
     RosTools::Timer prm_timer(config_->timeout_ / 1000.);
     prm_timer.start();
 
     graph_->Initialize(start_, goals_);
 
-    // Resize, because the number of samples may have been changed
-    samples_.resize(config_->n_samples_);
-    sample_succes_.resize(config_->n_samples_);
-
-    SampleNewPoints(samples_, sample_succes_); // Draw random samples
+    SampleNewPoints(); // Draw random samples
     PRM_LOG("New candidate nodes ready. Inserting them into the Visibility-PRM graph");
 
     // Then add them to the graph
     for (int i = 0; i < config_->n_samples_; i++)
     {
-      if (!sample_succes_[i])
+      Sample &sample = sampler_->GetSample(i);
+
+      if (!sample.success)
         continue;
 
       if (prm_timer.hasFinished()) // Timeout
@@ -164,16 +150,15 @@ namespace GuidancePlanner
       }
 
       bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size();
-      SpaceTimePoint sample = samples_[i];
 
       // Find the number of visible guards from this node
       std::vector<Node *> visible_guards, visible_goals;
-      FindVisibleGuards(sample, visible_guards, visible_goals);
+      FindVisibleGuards(sample.point, visible_guards, visible_goals);
 
       // If we see no goals and no guards,add a guard
       if (visible_goals.size() == 0 && visible_guards.size() == 0)
       {
-        AddGuard(i, sample);
+        AddGuard(i, sample.point);
         continue;
       }
 
@@ -183,17 +168,17 @@ namespace GuidancePlanner
         for (auto &goal : visible_goals)
           visible_guards.push_back(goal); // Add the goal to the visible guards if it exists
 
-        AddSample(i, sample, visible_guards, sample_is_from_previous_iteration); // single threaded
+        AddSample(i, sample.point, visible_guards, sample_is_from_previous_iteration); // single threaded
       }
       else if (visible_goals.size() > 1 && visible_guards.size() == 1) // We connect a guard with more than one goal
       {
         PRM_LOG("New sample connects to more than one goal");
         Node new_node = sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i])
-                                                          : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
+                                                          : Node(graph_->GetNodeID(), sample.point, NodeType::CONNECTOR);
 
         Node *goal = FindTopologyDistinctGoalConnection(new_node, visible_guards, visible_goals);
         if (goal != nullptr)
-          AddSample(i, sample, {visible_guards[0], goal}, sample_is_from_previous_iteration);
+          AddSample(i, sample.point, {visible_guards[0], goal}, sample_is_from_previous_iteration);
       }
     }
 
@@ -203,38 +188,43 @@ namespace GuidancePlanner
     return *graph_;
   }
 
-  void PRM::SampleNewPoints(std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes)
+  void PRM::SampleNewPoints() // std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes)
   {
     // First sample all the points in parallel
-    all_samples_.resize(config_->n_samples_);
+    // all_samples_.resize(config_->n_samples_);
 #pragma omp parallel for num_threads(8)
     for (int i = 0; i < config_->n_samples_; i++)
     {
-      sample_succes[i] = true;
+      // sample_succes[i] = true;
 
       bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size(); // First resample previous nodes
 
       // Get a new sample (either from the previous iteration, or a new one)
-      SpaceTimePoint sample = sample_is_from_previous_iteration ? previous_nodes_[i].point_ : SampleNewPoint();
+      // Sample prev_node(previous_nodes_[std::max(i, (int)previous_nodes_.size() - 1)].point_);
 
-      if (environment_.InCollision(sample)) // Check if the sample is in collision
+      // Sample &sample = sample_is_from_previous_iteration ? prev_node : sampler_->SampleUniformly(i); // SampleNewPoint(i);
+      Sample &sample = sampler_->SampleUniformly(i); // SampleNewPoint(i);
+      if (sample_is_from_previous_iteration)
+        sample.point = previous_nodes_[i].point_;
+
+      if (environment_->InCollision(sample.point)) // Check if the sample is in collision
       {
         PRM_LOG("Sample was in collision. Projecting to free space");
-        environment_.ProjectToFreeSpace(sample, 0.1);
-        if (environment_.InCollision(sample))
-          sample_succes[i] = false; // If that didn't work, then try another sample
+        environment_->ProjectToFreeSpace(sample.point, 0.1);
+        if (environment_->InCollision(sample.point))
+          sample.success = false; // If that didn't work, then try another sample
       }
 
-      if (sample_succes[i])
+      if (sample.success)
       {
         if (sample_is_from_previous_iteration)
-          previous_nodes_[i].point_ = sample; // Update the previous node's position if necessary (for construction later)
+          previous_nodes_[i].point_ = sample.point; // Update the previous node's position if necessary (for construction later)
 
-        samples[i] = sample;
+        // samples[i] = sample;
       }
 
-      if (config_->visualize_all_samples_)
-        all_samples_[i] = sample;
+      // if (config_->visualize_all_samples_)
+      // all_samples_[i] = sample;
     }
   }
 
@@ -400,13 +390,13 @@ namespace GuidancePlanner
     }
   }
 
-  SpaceTimePoint PRM::SampleNewPoint() { return (this->*sampling_function_)(); }
-  SpaceTimePoint PRM::SampleUniformly3D()
-  {
-    return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
-                          min_y_ + random_generator_.Double() * range_y_,
-                          random_generator_.Int(Config::N - 2) + 1);
-  }
+  // SpaceTimePoint PRM::SampleNewPoint() { return (this->*sampling_function_)(); }
+  // SpaceTimePoint PRM::SampleUniformly3D()
+  // {
+  //   return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
+  //                         min_y_ + random_generator_.Double() * range_y_,
+  //                         random_generator_.Int(Config::N - 2) + 1);
+  // }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
   {
@@ -414,7 +404,7 @@ namespace GuidancePlanner
     {
       if (node.type_ == NodeType::GUARD || node.type_ == NodeType::GOAL)
       {
-        if (environment_.IsVisible(sample, node.point_))
+        if (environment_->IsVisible(sample, node.point_))
         {
           if (node.type_ == NodeType::GUARD)
             visible_guards.push_back(&node);
@@ -459,7 +449,7 @@ namespace GuidancePlanner
     Node new_guard(i, sample, NodeType::GUARD); // Define the new node
 
     /* There is space here to check if this guard has some favourable properties */
-    if (environment_.InCollision(sample, 0.1))
+    if (environment_->InCollision(sample, 0.1))
       return;
 
     PRM_LOG("Adding new guard");
@@ -469,7 +459,7 @@ namespace GuidancePlanner
   bool PRM::AreHomotopicEquivalent(const GeometricPath &a, const GeometricPath &b)
   {
     BENCHMARKERS.getBenchmarker("homotopy_comparison").start();
-    bool homology_result = topology_comparison_->AreEquivalent(a, b, environment_);
+    bool homology_result = topology_comparison_->AreEquivalent(a, b, *environment_);
     BENCHMARKERS.getBenchmarker("homotopy_comparison").stop();
 
     return homology_result;
@@ -478,7 +468,7 @@ namespace GuidancePlanner
   double PRM::GetHomotopicCost(const GeometricPath &a, const GeometricPath &b)
   {
     // debug_benchmarker_->start();
-    double homology_cost = reinterpret_cast<Homology *>(topology_comparison_.get())->GetCost(a, b, environment_);
+    double homology_cost = reinterpret_cast<Homology *>(topology_comparison_.get())->GetCost(a, b, *environment_);
     // debug_benchmarker_->stop();
 
     return homology_cost;
@@ -487,7 +477,7 @@ namespace GuidancePlanner
   std::vector<bool> PRM::PassesRight(const GeometricPath &path)
   {
     // debug_benchmarker_->start();
-    std::vector<bool> h = topology_comparison_->LeftPassingVector(path, environment_);
+    std::vector<bool> h = topology_comparison_->LeftPassingVector(path, *environment_);
     // debug_benchmarker_->stop();
 
     return h;
@@ -495,7 +485,7 @@ namespace GuidancePlanner
 
   std::vector<bool> PRM::GetLeftPassingVector(const GeometricPath &path)
   {
-    return topology_comparison_->LeftPassingVector(path, environment_);
+    return topology_comparison_->LeftPassingVector(path, *environment_);
   }
 
   /** @todo: Should be per connection, not all at once */
@@ -643,7 +633,6 @@ namespace GuidancePlanner
 
     done_ = false;
     config_->seed_ += 1; // Keep the randomizer consistent for every experiment
-    random_generator_ = RosTools::RandomGenerator(config_->seed_);
 
     previous_nodes_.clear(); // Forget nodes
   }
@@ -652,11 +641,10 @@ namespace GuidancePlanner
   {
     VisualizeGraph();
 
-    if (config_->visualize_all_samples_)
-      VisualizeAllSamples();
+    sampler_->Visualize();
 
     if (config_->visualize_homology_)
-      topology_comparison_->Visualize(environment_);
+      topology_comparison_->Visualize(*environment_);
   }
 
   void PRM::VisualizeGraph()
@@ -735,23 +723,6 @@ namespace GuidancePlanner
     graph_visuals.publish();
     start_goal_visuals.publish();
     segments_visuals.publish();
-  }
-
-  void PRM::VisualizeAllSamples()
-  {
-    // IF ENABLED, ALL PRM SAMPLES
-
-    auto &sample_visuals = VISUALS.getPublisher("guidance_planner/samples");
-    auto &samples = sample_visuals.getNewPointMarker("SPHERE");
-    samples.setScale(.15, .15, .15);
-    samples.setColorInt(0);
-
-    for (size_t s = 0; s < all_samples_.size(); s++)
-    {
-      if (sample_succes_[s])
-        samples.addPointMarker(all_samples_[s].MapToTime());
-    }
-    sample_visuals.publish();
   }
 
   void PRM::saveData(RosTools::DataSaver &data_saver)

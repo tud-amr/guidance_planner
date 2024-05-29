@@ -57,7 +57,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /lmpcc/homotopy/obstacles_3d
+      Marker Topic: /example/guidance_planner/obstacles_3d
       Name: Obstacles
       Namespaces:
         "": true
@@ -65,7 +65,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /lmpcc/homotopy/graph
+      Marker Topic: /example/guidance_planner/graph
       Name: Graph
       Namespaces:
         "": true
@@ -73,7 +73,23 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /lmpcc/homotopy/geometric_paths
+      Marker Topic: /example/guidance_planner/trajectories
+      Name: Trajectories
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /example/guidance_planner/samples
+      Name: All Samples
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /example/guidance_planner/start_and_goals
       Name: Geometric Paths
       Namespaces:
         "": true
@@ -83,38 +99,6 @@ Visualization Manager:
       Enabled: false
       Marker Topic: /lmpcc/homotopy/spline_points
       Name: Spline Points
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /lmpcc/homotopy/guidance_trajectories
-      Name: Trajectories
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /lmpcc/homotopy/selected_guidance
-      Name: Selected Trajectory
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /lmpcc/homotopy/all_samples
-      Name: All Samples
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /lmpcc/homotopy/debug
-      Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
@@ -147,7 +131,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 27.102109909057617
+      Distance: 20.541885375976562
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -163,9 +147,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6597973108291626
+      Pitch: 0.6797972917556763
       Target Frame: <Fixed Frame>
-      Yaw: 3.8180482387542725
+      Yaw: 2.588038206100464
     Saved: ~
 Window Geometry:
   Displays:

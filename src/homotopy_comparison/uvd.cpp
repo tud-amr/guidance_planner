@@ -1,6 +1,6 @@
-#include <guidance_planner/uvd.h>
+#include <guidance_planner/homotopy_comparison/uvd.h>
 
-#include <guidance_planner/paths.h>
+#include <guidance_planner/types/paths.h>
 #include <guidance_planner/environment.h>
 
 #include <Eigen/Dense>

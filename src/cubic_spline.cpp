@@ -1,8 +1,8 @@
 #include "guidance_planner/cubic_spline.h"
 
 #include <guidance_planner/config.h>
-#include <guidance_planner/paths.h>
-#include <guidance_planner/types.h>
+
+#include <guidance_planner/types/paths.h>
 
 #include <ros_tools/visuals.h>
 #include <ros_tools/math.h>
@@ -29,6 +29,8 @@ CubicSpline3D::CubicSpline3D(const GeometricPath &path, Config *config, const Ei
 
 void CubicSpline3D::defineSplineFromControlpoints()
 {
+  x_ = tk::spline();
+  y_ = tk::spline();
   std::vector<double> x_points, y_points;
   control_points_.GetX(x_points); // Get the vector of x including padding
   control_points_.GetY(y_points); // Get the vector of y including padding

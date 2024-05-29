@@ -3,6 +3,8 @@
 
 #include <ros_tools/spline.h>
 
+#include <guidance_planner/types/type_define.h>
+
 #include <vector>
 #include <Eigen/Dense>
 #include <memory>
@@ -18,7 +20,6 @@ namespace GuidancePlanner
 
     class Config;
     class GeometricPath;
-    struct SpaceTimePoint;
     struct Node;
     struct Obstacle;
 

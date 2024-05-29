@@ -2,8 +2,8 @@
 #ifndef __WINDING_ANGLE_H__
 #define __WINDING_ANGLE_H__
 
-#include <guidance_planner/topology_comparison.h>
-#include <guidance_planner/paths.h>
+#include <guidance_planner/homotopy_comparison/homotopy_comparison.h>
+#include <guidance_planner/types/paths.h>
 
 #include <unordered_map>
 #include <vector>
@@ -13,7 +13,7 @@ namespace GuidancePlanner
     class Environment;
     struct Obstacle;
 
-    class WindingAngle : public TopologyComparison
+    class WindingAngle : public HomotopyComparison
     {
     public:
         WindingAngle(bool assume_constant_velocity = true);

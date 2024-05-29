@@ -1,7 +1,5 @@
 #include "guidance_planner/environment.h"
 
-#include <guidance_planner/types.h>
-
 #include <ros_tools/math.h>
 
 namespace GuidancePlanner

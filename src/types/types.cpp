@@ -1,4 +1,4 @@
-#include <guidance_planner/types.h>
+#include <guidance_planner/types/types.h>
 
 #include <ros_tools/logging.h>
 
@@ -58,33 +58,37 @@ namespace GuidancePlanner
         radius_ = radius;
     }
 
-    Node::Node(int id, const SpaceTimePoint &point, const NodeType &node_type)
-        : id_(id), point_(point)
-    {
-        type_ = node_type;
-        replaced_ = false;
-    }
+    // Node::Node(int id, const SpaceTimePoint &point, const NodeType &node_type)
+    //     : id_(id), point_(point)
+    // {
+    //     type_ = node_type;
+    //     replaced_ = false;
+    // }
 
-    Node::Node(int id, const Node &other) : id_(id), point_(other.point_)
-    {
-        type_ = other.type_;
-        replaced_ = false;
-    }
+    // Node::Node(int id, const Node &other) : id_(id), point_(other.point_)
+    // {
+    //     type_ = other.type_;
+    //     replaced_ = false;
+    // }
 
-    bool Node::ReplaceNeighbour(Node *node_to_replace, Node *new_node)
-    {
-        for (auto &neighbour : neighbours_) // Always use references in these loops
-        {
-            if (neighbour->id_ == node_to_replace->id_) // To be sure, using the values not the pointers
-            {
-                neighbour = new_node;              // Replace the neighbour
-                node_to_replace->replaced_ = true; // The neighbour was replaced
-                return true;
-            }
-        }
+    // bool Node::ReplaceNeighbour(Node *node_to_replace, Node *new_node)
+    // {
+    //     for (auto &neighbour : neighbours_) // Always use references in these loops
+    //     {
+    //         if (neighbour->id_ == node_to_replace->id_) // To be sure, using the values not the pointers
+    //         {
+    //             neighbour = new_node;              // Replace the neighbour
+    //             node_to_replace->replaced_ = true; // The neighbour was replaced
+    //             return true;
+    //         }
+    //     }
 
-        return false;
-    }
+    //     return false;
+    // }
 
-    double Node::DistanceTo(const Node &other) { return (other.point_.MapToTime() - this->point_.MapToTime()).norm(); }
+    // // double Node::DistanceTo(const Node &other) { return (other.point_.MapToTime() - this->point_.MapToTime()).norm(); }
+    // double Node::DistanceTo(const Node &other)
+    // {
+    //     return (other.point_.MapToTime(Config::DT) - point_.MapToTime(Config::DT)).norm();
+    // }
 }

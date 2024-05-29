@@ -11,8 +11,8 @@
 #ifndef __HOMOLOGY_H__
 #define __HOMOLOGY_H__
 
-#include <guidance_planner/topology_comparison.h>
-#include <guidance_planner/paths.h>
+#include <guidance_planner/homotopy_comparison/homotopy_comparison.h>
+#include <guidance_planner/types/paths.h>
 
 #include <gsl/gsl_integration.h>
 
@@ -30,7 +30,7 @@ namespace GuidancePlanner
 #define HSIGNATURE_RANGE 250.0
 
   struct GSLParams;
-  class Homology : public TopologyComparison
+  class Homology : public HomotopyComparison
   {
   public:
     Homology(bool assume_constant_velocity = true);

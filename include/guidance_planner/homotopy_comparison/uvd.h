@@ -1,17 +1,16 @@
 #ifndef __UVD_H__
 #define __UVD_H__
 
-#include <guidance_planner/topology_comparison.h>
+#include <guidance_planner/homotopy_comparison/homotopy_comparison.h>
 
 namespace GuidancePlanner
 {
-  class UVD : public TopologyComparison
+  class UVD : public HomotopyComparison
   {
     virtual bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override;
   };
 } // namespace Homotopy
 
-// DISABLED UVD HOMOTOPY CHECK
 // Homotopy check with visualization
 // if (config_->debug_output_)
 // {

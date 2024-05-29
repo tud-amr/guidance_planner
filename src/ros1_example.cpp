@@ -1,20 +1,48 @@
+// #include <ros/ros.h>
+// #include <guidance_planner/types/types.h>
+
+// using namespace GuidancePlanner;
+
+// int main(int argc, char **argv)
+// {
+//     ros::init(argc, argv, ros::this_node::getName());
+
+//     SpaceTimePoint a(0.1, 2.0, 0.3);
+//     SpaceTimePoint b(-200., 2.0, 0.3);
+
+//     auto c = a + b;
+
+//     std::cout << c << std::endl;
+
+//     Node node_a(1, a, NodeType::GOAL);
+//     Node node_b(2, b, NodeType::CONNECTOR);
+
+//     std::cout << node_a << std::endl;
+//     std::cout << node_b << std::endl;
+// }
+/** @brief ======================= */
+
 #include <ros/ros.h>
-#include <string>
-#include <stdexcept>
+
 #include <guidance_planner/global_guidance.h>
 
 // Reading from file
-#include <20_ts/read_scenario.h>
+// #include <20_ts/read_scenario.h>
+
+#include <ros_tools/profiling.h>
+#include <ros_tools/visuals.h>
+
+#include <string>
+#include <stdexcept>
 
 using namespace GuidancePlanner;
 
 Config *config_;
 bool replan_ = false;
 
-// bool random_obstacles_ = false; // Set to true to randomize the obstacles
-// std::string obstacle_source = "Random";
+std::string obstacle_source = "Random";
 // std::string obstacle_source = "Manual";
-std::string obstacle_source = "File";
+// std::string obstacle_source = "File";
 
 int count = 0;
 int file_id = 15;
@@ -67,124 +95,122 @@ void FileObstacles(GlobalGuidance &guidance, std::vector<GuidancePlanner::Obstac
         if (file_id >= num_files)
             file_id = file_id % num_files;
     }
-    ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
+    // ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
 
     count++;
 }
 
 int main(int argc, char **argv)
 {
-    try
+
+    ROS_INFO("Starting Homotopy Test");
+    ros::init(argc, argv, ros::this_node::getName());
+    ros::NodeHandle nh;
+    VISUALS.init(&nh);
+
+    // Initialize profiling
+    RosTools::Instrumentor::Get().BeginSession("guidance_planner");
+
+    LOG_INFO("Creating Guidance");
+    GlobalGuidance guidance;        // Initializes the guidance planner
+    config_ = guidance.GetConfig(); // Retrieves the configuration file, if you need it
+
+    /** @brief Load inputs for the guidance planner (you should do this for each computation) */
+    ROS_INFO("Preparing Obstacles");
+    std::vector<Obstacle> obstacles;
+
+    /** @brief Static obstacles: Ax <= b */
+    std::vector<Halfspace> static_obstacles;
+    static_obstacles.resize(2);
+    static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
+    static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
+
+    /** @brief Set the robot position */
+    guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.); // Position, yaw angle, velocity magnitude
+
+    /** @brief Set the goals for the planner */
+    std::vector<Goal> goals;
+
+    // Using explicit goals
+    // goals.emplace_back(Eigen::Vector2d(6., 0.), 1.); // x = 6, y = 0, cost = 1
+    // goals.emplace_back(Eigen::Vector2d(8., 0.), 1.); // x = 8, y = 0, cost = 1
+    // guidance.SetGoals(goals);
+
+    // Using a reference path
+    // Construct a spline in x, y
+    if (obstacle_source != "File")
     {
-        ROS_INFO("Starting Homotopy Test");
-        ros::init(argc, argv, ros::this_node::getName());
+        std::vector<double> xx, yy;
+        xx = {0., 2., 4., 6., 8., 10.};
+        yy = {0., 0., 0., 0., 0., 0.};
+        std::shared_ptr<RosTools::Spline2D> reference_path = std::make_shared<RosTools::Spline2D>(xx, yy);
 
-        ROS_INFO("Creating Guidance");
-        GlobalGuidance guidance;        // Initializes the guidance planner
-        config_ = guidance.GetConfig(); // Retrieves the configuration file, if you need it
-
-        /** @brief Load inputs for the guidance planner (you should do this for each computation) */
-        ROS_INFO("Preparing Obstacles");
-        std::vector<Obstacle> obstacles;
-
-        /** @brief Static obstacles: Ax <= b */
-        std::vector<Halfspace> static_obstacles;
-        static_obstacles.resize(2);
-        static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
-        static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
-
-        /** @brief Set the robot position */
-        guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.); // Position, yaw angle, velocity magnitude
-
-        /** @brief Set the goals for the planner */
-        std::vector<Goal> goals;
-
-        // Using explicit goals
-        // goals.emplace_back(Eigen::Vector2d(6., 0.), 1.); // x = 6, y = 0, cost = 1
-        // goals.emplace_back(Eigen::Vector2d(8., 0.), 1.); // x = 8, y = 0, cost = 1
-        // guidance.SetGoals(goals);
-
-        // Using a reference path
-        // Construct a spline in x, y
-        if (obstacle_source != "File")
+        double distance_on_spline = 0.;
+        guidance.LoadReferencePath(distance_on_spline, reference_path, 6.);
+    }
+    // ----------------------------
+    /** @brief Mimic a control loop */
+    ros::Rate rate(1);
+    while (!ros::isShuttingDown())
+    {
+        ROS_WARN("Updating Guidance");
+        if (obstacle_source == "Random")
+            RandomizeObstacles(obstacles);
+        else if (obstacle_source == "File")
         {
-            std::vector<double> xx, yy;
-            xx = {0., 2., 4., 6., 8., 10.};
-            yy = {0., 0., 0., 0., 0., 0.};
-            std::unique_ptr<RosTools::Spline2D> reference_path = std::make_unique<RosTools::Spline2D>(xx, yy);
+            FileObstacles(guidance, obstacles);
+            ros::spinOnce();
+            rate.sleep();
 
-            double distance_on_spline = 0.;
-            guidance.LoadReferencePath(distance_on_spline, reference_path);
+            continue;
         }
-        // ----------------------------
-        /** @brief Mimic a control loop */
-        ros::Rate rate(5);
-        while (!ros::isShuttingDown())
+        else
+            ManualObstacles(obstacles);
+
+        // Normally: load the start and goals in each timestep
+        // Then, load the obstacles
+        guidance.LoadObstacles(obstacles, static_obstacles);
+
+        // Update (i.e., compute) the guidance trajectories
+        guidance.Update();
+
+        // Show some results:
+        bool success = guidance.Succeeded();
+        if (success)
         {
-            ROS_WARN("Updating Guidance");
-            if (obstacle_source == "Random")
-                RandomizeObstacles(obstacles);
-            else if (obstacle_source == "File")
+            ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
+            CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(0).spline;
+            ROS_INFO("[Best Trajectory]");
+
+            RosTools::Spline2D guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
+            for (double t = 0; t < Config::N * Config::DT; t += 4 * Config::DT)
             {
-                FileObstacles(guidance, obstacles);
-                ros::spinOnce();
-                rate.sleep();
-
-                continue;
+                Eigen::Vector2d pos = guidance_trajectory.getPoint(t);
+                ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
             }
-            else
-                ManualObstacles(obstacles);
+            RosTools::Spline2D guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
 
-            // Normally: load the start and goals in each timestep
-            // Then, load the obstacles
-            guidance.LoadObstacles(obstacles, static_obstacles);
+            /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
+            // int used_trajectory_id = guidance.GetUsedTrajectory()
+            // guidance.SetUsedTrajectory(int spline_id);
+        }
+        else
+        {
+            ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
+        }
 
-            // Update (i.e., compute) the guidance trajectories
-            guidance.Update();
+        replan_ = false;
 
-            // Show some results:
-            bool success = guidance.Succeeded();
-            if (success)
-            {
-                ROS_INFO_STREAM("Guidance planner found: " << guidance.NumberOfGuidanceTrajectories() << " trajectories");
-                CubicSpline3D &guidance_spline = guidance.GetGuidanceTrajectory(0).spline;
-                ROS_INFO("[Best Trajectory]");
+        while (!ros::isShuttingDown() && !replan_)
+        {
+            guidance.Visualize(); // Visualize the result in RVIZ
+            if (config_->debug_continuous_replanning_)
+                replan_ = true;
 
-                RosTools::Spline2D guidance_trajectory = guidance_spline.GetTrajectory(); // Retrieves the trajectory: t -> (x, y))
-                for (double t = 0; t < Config::N * Config::DT; t += 4 * Config::DT)
-                {
-                    Eigen::Vector2d pos = guidance_trajectory.getPoint(t);
-                    ROS_INFO_STREAM("\t[t = " << t << "]: (" << pos(0) << ", " << pos(1) << ")");
-                }
-                RosTools::Spline2D guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
-
-                /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
-                // int used_trajectory_id = guidance.GetUsedTrajectory()
-                // guidance.SetUsedTrajectory(int spline_id);
-            }
-            else
-            {
-                ROS_WARN("\tGuidance planner found no trajectories that reach any of the goals!");
-            }
-
-            replan_ = false;
-
-            while (!ros::isShuttingDown() && !replan_)
-            {
-                guidance.Visualize(); // Visualize the result in RVIZ
-                if (config_->debug_continuous_replanning_)
-                    replan_ = true;
-
-                ros::spinOnce();
-                rate.sleep();
-            }
+            ros::spinOnce();
+            rate.sleep();
         }
     }
-    catch (ros::Exception &e)
-    {
-        ROS_ERROR("Test Homotopy Node: Error occured: %s ", e.what());
-        exit(1);
-    }
-
-    return 0;
+    RosTools::Instrumentor::Get().EndSession();
+    return 1;
 }

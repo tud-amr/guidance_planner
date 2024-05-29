@@ -1,7 +1,7 @@
 #ifndef __PATHS_H__
 #define __PATHS_H__
 
-#include <guidance_planner/types.h>
+#include <guidance_planner/types/types.h>
 
 namespace GuidancePlanner
 {
@@ -30,7 +30,7 @@ namespace GuidancePlanner
 
     std::vector<Eigen::Vector2d> GetKParameterized() const;
 
-        double Length2D() const;
+    double Length2D() const;
     double Length3D() const;
 
     /** @brief Return a smoothness measure, which divides the distance between start and end by the 3D length of the path. I.e., straighter paths are
@@ -68,8 +68,7 @@ namespace GuidancePlanner
     void ComputeDistanceVector();
   };
 
-    bool operator==(const GeometricPath &a, const GeometricPath &b);
-
+  bool operator==(const GeometricPath &a, const GeometricPath &b);
 
   struct StandaloneGeometricPath
   {

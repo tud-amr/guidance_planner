@@ -11,14 +11,16 @@
 #ifndef __ENVIRONMENT_H__
 #define __ENVIRONMENT_H__
 
-#include <vector>
+#include <guidance_planner/types/types.h>
 
 #include <Eigen/Dense>
 
+#include <vector>
+
 namespace GuidancePlanner
 {
-  class Node;
-  struct SpaceTimePoint;
+  // struct Node;
+  // struct SpaceTimePoint;
   struct Obstacle;
   struct Halfspace;
 

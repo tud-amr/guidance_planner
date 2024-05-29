@@ -1,14 +1,18 @@
 prm:
   debug_output: false
+  debug_visuals: false
   seed: 1 # Seed of the visibility-PRM. Set to -1 for random!
   T: 4.8 # Time horizon [s]
   N: 12 # 40                                 # Discrete time steps [#]
   # T: 8.0
   # N: 20
+  winding_pass_threshold: 0.25
   topology_comparison: Homology # Homology (default) or UVD
   use_learning: false
   sampling_function: Uniform # Uniform (default)
   predictions_are_constant_velocity: false
+  track_selected_homology_only: false
+  rules: none
   sample_margin: 5.0
   n_samples: 1000 #200    # Number of samples for PRM
   timeout: 200 #15       # Timeout for PRM sampling [ms]
@@ -37,8 +41,10 @@ prm:
   visuals:
     transparency: 0.7 # The least transparent the obstacle visualization is (0-1)
     visualize_all_samples: true # Visualizes all PRM samples
+    visualize_homology: false
+    show_indices: false
   enable:
     dynamically_propagate_nodes: false #true  # Propagate the nodes in time (dropping them)
     project_from_obstacles: false # Project the guidance trajectory from obstacles if enabled (not necessary by default)
   test_node:
-    continuous_replanning: false #true         # When using the test nodes: keep planning continuously?
+    continuous_replanning: true         # When using the test nodes: keep planning continuously?

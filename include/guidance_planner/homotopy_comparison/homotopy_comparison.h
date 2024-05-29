@@ -8,7 +8,7 @@ namespace GuidancePlanner
   class Environment;
   class GeometricPath;
 
-  class TopologyComparison
+  class HomotopyComparison
   {
 
   public:
@@ -21,11 +21,11 @@ namespace GuidancePlanner
     };
 
     virtual void Visualize(Environment &environment) { (void)environment; };
-    virtual void Clear(){};
+    virtual void Clear() {};
   };
 
   /** @brief To disable topology comparison, you can use this topology comparison instead */
-  class NoTopologyComparison : public TopologyComparison
+  class NoHomotopyComparison : public HomotopyComparison
   {
     // There are no equivalences
     bool AreEquivalent(const GeometricPath &a, const GeometricPath &b, Environment &environment, bool compute_all = false) override

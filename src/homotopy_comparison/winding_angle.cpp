@@ -1,10 +1,11 @@
-#include "guidance_planner/winding_angle.h"
+#include "guidance_planner/homotopy_comparison/winding_angle.h"
 
 #include <ros_tools/math.h>
 #include <ros_tools/visuals.h>
 
-#include <guidance_planner/paths.h>
 #include <guidance_planner/environment.h>
+
+#include <guidance_planner/types/paths.h>
 
 namespace GuidancePlanner
 {

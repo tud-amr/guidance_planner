@@ -1,7 +1,7 @@
 #include "guidance_planner/graph_search.h"
 
 #include <guidance_planner/graph.h>
-#include <guidance_planner/paths.h>
+#include <guidance_planner/types/paths.h>
 
 using namespace GuidancePlanner;
 

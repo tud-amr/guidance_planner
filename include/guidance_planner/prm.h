@@ -12,12 +12,10 @@
 #define __PRM_H__
 
 #include <guidance_planner/cubic_spline.h>
-#include <guidance_planner/environment.h>
 #include <guidance_planner/graph_search.h>
 #include <guidance_planner/config.h>
 
-#include <guidance_planner/paths.h>
-#include <guidance_planner/types.h>
+#include <guidance_planner/types/paths.h>
 
 #include <ros_tools/random_generator.h>
 
@@ -30,7 +28,9 @@ namespace GuidancePlanner
 {
   class PRM;
   typedef SpaceTimePoint (PRM::*SamplingFunction)();
-  class TopologyComparison;
+  class HomotopyComparison;
+  class Environment;
+  class Sampler;
 
   class PRM
   {
@@ -61,7 +61,7 @@ namespace GuidancePlanner
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals);
 
-    void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
+    void SetPRMSamplingFunction(SamplingFunction sampling_function) {} // sampling_function_ = sampling_function; }
 
     void DoNotPropagateNodes() { do_not_propagate_nodes_ = true; };
 
@@ -95,11 +95,11 @@ namespace GuidancePlanner
     void saveData(RosTools::DataSaver &data_saver);
 
   private:
-    void SampleNewPoints(std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes); // Sample ALL new points
+    void SampleNewPoints(); // std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes); // Sample ALL new points
 
     /** @brief Sample a new random point */
-    SpaceTimePoint SampleNewPoint();
-    SpaceTimePoint SampleUniformly3D();
+    // SpaceTimePoint SampleNewPoint();
+    // SpaceTimePoint SampleUniformly3D();
 
     void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
     Node *FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
@@ -122,7 +122,7 @@ namespace GuidancePlanner
 
     /** Visualization functions */
     void VisualizeGraph();
-    void VisualizeAllSamples();
+    // void VisualizeAllSamples();
 
   private:
     bool done_;
@@ -131,27 +131,28 @@ namespace GuidancePlanner
     Config *config_;
 
     std::unique_ptr<Graph> graph_;                            // PRM Graph
-    std::unique_ptr<TopologyComparison> topology_comparison_; // H-invariant or UVD comparison
+    std::unique_ptr<HomotopyComparison> topology_comparison_; // H-invariant or UVD comparison
 
-    SamplingFunction sampling_function_; /** @note Samples are relative to start position and orientation */
+    // SamplingFunction sampling_function_; /** @note Samples are relative to start position and orientation */
+    std::shared_ptr<Sampler> sampler_;
 
-    RosTools::RandomGenerator random_generator_; // Used to generate samples
+    // RosTools::RandomGenerator random_generator_; // Used to generate samples
 
     std::vector<Node> previous_nodes_; // Save nodes from previous iterations to enforce consistency between multiple iterations
 
     // Real-time data
-    Environment environment_;
+    std::shared_ptr<Environment> environment_;
     Eigen::Vector2d start_, start_velocity_;
     double orientation_;
 
     std::vector<Goal> goals_;
-    double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
+    // double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
 
-    std::vector<SpaceTimePoint> samples_;
-    std::vector<bool> sample_succes_;
+    // std::vector<SpaceTimePoint> samples_;
+    // std::vector<bool> sample_succes_;
 
     // Debugging variables
-    std::vector<SpaceTimePoint> all_samples_; // For visualizing the sampling algorithm
+    // std::vector<SpaceTimePoint> all_samples_; // For visualizing the sampling algorithm
     // std::unique_ptr<RosTools::Benchmarker> debug_benchmarker_;
   };
 

@@ -4,10 +4,8 @@
 #include <guidance_planner/reconfigure.h>
 #include <guidance_planner/prm.h>
 #include <guidance_planner/graph_search.h>
-#include <guidance_planner/types.h>
 
-// #include <guidance_planner/learning_guidance.h>
-// #include <guidance_planner/learning_types.h>
+#include <guidance_planner/types/types.h>
 
 namespace RosTools
 {
@@ -43,8 +41,8 @@ namespace GuidancePlanner
     /** @brief Load the obstacles to be used in the PRM, each obstacle needs to have at least the current position and N future predicted positions */
     void LoadObstacles(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles);
     void LoadStaticObstacles(const std::vector<Halfspace> &static_obstacles);
-    void LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width = 4.);
-    void LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width_left, double road_width_right);
+    void LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> reference_path, double road_width = 4.);
+    void LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> reference_path, double road_width_left, double road_width_right);
     void SetGoals(const std::vector<Goal> &goals);
 
     /** @brief Additional configuration */

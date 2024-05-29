@@ -11,7 +11,7 @@ namespace GuidancePlanner
   // Need to be initialized outside of a member function
   bool Config::debug_output_ = false;
   bool Config::debug_visuals_ = false;
-  double Config::DT = 0.0;
+  double Config::DT = 0.05;
   double Config::CONTROL_DT = 0.0;
   int Config::N = 20;
   double Config::reference_velocity_ = 2.0; // Is updated based on rqt_reconfigure
@@ -21,11 +21,13 @@ namespace GuidancePlanner
 #ifdef MPC_PLANNER_ROS
     ros::NodeHandle node;
 #else
+    LOG_INFO("Get static node pointer");
     rclcpp::Node *node = GET_STATIC_NODE_POINTER();
 #endif
 
     // auto config = loadYAML("guidance_planner.yaml");
 
+    LOG_INFO("hi");
     retrieveParameter(node, "prm/debug_output", Config::debug_output_);
     retrieveParameter(node, "prm/debug_visuals", Config::debug_visuals_);
 
@@ -92,5 +94,10 @@ namespace GuidancePlanner
     retrieveParameter(node, "prm/enable/project_from_obstacles", project_from_obstacles_);
 
     retrieveParameter(node, "prm/test_node/continuous_replanning", debug_continuous_replanning_);
+
+    LOG_HOOK();
+    LOG_VALUE("Config::debug_output_", Config::debug_output_);
+    LOG_VALUE("Config::N", Config::N);
+    LOG_VALUE("Config::DT", Config::DT);
   }
 }

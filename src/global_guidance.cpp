@@ -1,13 +1,18 @@
 #include "guidance_planner/global_guidance.h"
 
 #include <guidance_planner/config.h>
+
 #include <guidance_planner/cubic_spline.h>
-#include <guidance_planner/paths.h>
+
 #include <guidance_planner/graph.h>
+
 #include <guidance_planner/utils.h>
+#include <guidance_planner/types/paths.h>
 
 #include <ros_tools/profiling.h>
 #include <ros_tools/data_saver.h>
+#include <ros_tools/visuals.h>
+#include <ros_tools/logging.h>
 
 #include <omp.h>
 
@@ -66,15 +71,13 @@ namespace GuidancePlanner
     // RosTools::Instrumentor::Get().EndSession();
   }
 
-  GlobalGuidance::GlobalGuidance() // std::shared_ptr<Config> config)
+  GlobalGuidance::GlobalGuidance()
   {
-    PRM_LOG("Initializing Global Guidance");
+    LOG_INFO("Initializing Guidance Planner");
+    config_ = std::make_shared<Config>();
 
-    // Initialize profiling
-    // RosTools::Instrumentor::Get().BeginSession("guidance_planner");
-
-    config_.reset(new Config());
     prm_.Init(config_.get());
+
     // learning_guidance_.Init(nh_);
 
     reconfigure_ = std::make_unique<Reconfigure>(config_);
@@ -115,12 +118,12 @@ namespace GuidancePlanner
     static_obstacles_ = static_obstacles;
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width)
+  void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> reference_path, double road_width)
   {
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
   }
 
-  void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path,
+  void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> reference_path,
                                          double road_width_left, double road_width_right)
   {
     PRM_LOG("Global Guidance: Loading Reference Path and Setting Goal Locations");

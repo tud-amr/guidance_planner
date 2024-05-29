@@ -1,4 +1,4 @@
-#include <guidance_planner/paths.h>
+#include <guidance_planner/types/paths.h>
 
 #include <ros_tools/math.h>
 

@@ -2,7 +2,10 @@
 
 #include <guidance_planner/graph.h>
 
-#include <guidance_planner/types.h>
+#include <guidance_planner/types/types.h>
+
+#include <ros_tools/logging.h>
+#include <ros_tools/visuals.h>
 
 namespace GuidancePlanner
 {

@@ -1,4 +1,4 @@
-#include "guidance_planner/homology.h"
+#include "guidance_planner/homotopy_comparison/homology.h"
 
 #include <ros_tools/visuals.h>
 
@@ -59,8 +59,8 @@ namespace GuidancePlanner
 
       // Connect end points of a and b
       {
-        gsl_params_[0].start = a.nodes_.back()->point_.vec;
-        gsl_params_[0].end = b.nodes_.back()->point_.vec;
+        gsl_params_[0].start = a.nodes_.back()->point_;
+        gsl_params_[0].end = b.nodes_.back()->point_;
 
         // double result = 0.;
         // NumericalIntegration(result, &gsl_params_[0]);
@@ -110,8 +110,8 @@ namespace GuidancePlanner
 
       // Connect end points of a and b
       {
-        gsl_params_[0].start = a.nodes_.back()->point_.vec;
-        gsl_params_[0].end = b.nodes_.back()->point_.vec;
+        gsl_params_[0].start = a.nodes_.back()->point_;
+        gsl_params_[0].end = b.nodes_.back()->point_;
 
         double result, error;
 
@@ -296,8 +296,8 @@ namespace GuidancePlanner
       // #else
       // int thread_id = 0;
       // #endif
-      gsl_params_[thread_id].start = path.nodes_[n - 1]->point_.vec;
-      gsl_params_[thread_id].end = path.nodes_[n]->point_.vec;
+      gsl_params_[thread_id].start = path.nodes_[n - 1]->point_;
+      gsl_params_[thread_id].end = path.nodes_[n]->point_;
 
       // NumericalIntegration(results[n - 1], &gsl_params_[thread_id]);
 

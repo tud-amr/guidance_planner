@@ -3,9 +3,6 @@
 
 #include <guidance_planner/config.h>
 
-#include <ros_tools/logging.h>
-#include <ros_tools/visuals.h>
-
 #include <string>
 #include <vector>
 #include <Eigen/Dense>
