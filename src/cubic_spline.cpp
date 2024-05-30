@@ -3,6 +3,7 @@
 #include <guidance_planner/config.h>
 
 #include <guidance_planner/types/paths.h>
+#include <guidance_planner/utils.h>
 
 #include <ros_tools/visuals.h>
 #include <ros_tools/math.h>
@@ -67,19 +68,19 @@ void CubicSpline3D::ConvertToTrajectory(const GeometricPath &path)
   //     sampled_k(k) = path.nodes_[k]->point_.Time();
 
   /** @note We need to find throughout the spline, where the integer "k"s are */
-  double last_k = -0.1;
+  double last_s = -0.1;                                      //-0.1;
   for (int k_idx = 1; k_idx < sampled_k.size() - 1; k_idx++) // Then add from the first until the last sampled point (which exclude start and end)
   {
     double k = sampled_k[k_idx];
 
     // A bisection finds the point where the 3rd coordinate of this spline is equal to "k".
     double s_cur = RosTools::Bisection(
-        last_k, 1., [&](double s)
+        last_s, 1., [&](double s)
         { return path(s)(2) - k; },
         1e-3);
 
     control_points_.AddPoint(path(s_cur));
-    last_k = s_cur; // Limit the search to [last_k, 1]
+    last_s = s_cur; // Limit the search to [last_k, 1]
 
     // control_points_.PrintLast();
   }

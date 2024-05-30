@@ -1,5 +1,6 @@
 // #include <ros/ros.h>
 // #include <guidance_planner/types/types.h>
+// #include <guidance_planner/types/paths.h>
 
 // using namespace GuidancePlanner;
 
@@ -7,18 +8,21 @@
 // {
 //     ros::init(argc, argv, ros::this_node::getName());
 
-//     SpaceTimePoint a(0.1, 2.0, 0.3);
-//     SpaceTimePoint b(-200., 2.0, 0.3);
+//     SpaceTimePoint a(0, 0, 0);
+//     SpaceTimePoint b(1., 0, 5);
+//     SpaceTimePoint c(5., 0, 20);
 
-//     auto c = a + b;
-
-//     std::cout << c << std::endl;
-
-//     Node node_a(1, a, NodeType::GOAL);
+//     Node node_a(1, a, NodeType::GUARD);
 //     Node node_b(2, b, NodeType::CONNECTOR);
+//     Node node_c(3, c, NodeType::GOAL);
 
 //     std::cout << node_a << std::endl;
 //     std::cout << node_b << std::endl;
+//     std::cout << node_c << std::endl;
+
+//     GeometricPath p({&node_a, &node_b, &node_c});
+//     std::cout << p.Length2D() << std::endl;
+//     std::cout << p.Length3D() << std::endl;
 // }
 /** @brief ======================= */
 
@@ -30,6 +34,7 @@
 // #include <20_ts/read_scenario.h>
 
 #include <ros_tools/profiling.h>
+#include <ros_tools/logging.h>
 #include <ros_tools/visuals.h>
 
 #include <string>
@@ -149,8 +154,10 @@ int main(int argc, char **argv)
         guidance.LoadReferencePath(distance_on_spline, reference_path, 6.);
     }
     // ----------------------------
+    auto &benchmarker = BENCHMARKERS.getBenchmarker("Guidance Planning");
+
     /** @brief Mimic a control loop */
-    ros::Rate rate(1);
+    ros::Rate rate(1. / 3.); // 3s
     while (!ros::isShuttingDown())
     {
         ROS_WARN("Updating Guidance");
@@ -167,12 +174,15 @@ int main(int argc, char **argv)
         else
             ManualObstacles(obstacles);
 
+        benchmarker.start();
         // Normally: load the start and goals in each timestep
         // Then, load the obstacles
         guidance.LoadObstacles(obstacles, static_obstacles);
 
         // Update (i.e., compute) the guidance trajectories
         guidance.Update();
+
+        benchmarker.stop();
 
         // Show some results:
         bool success = guidance.Succeeded();
@@ -211,6 +221,8 @@ int main(int argc, char **argv)
             rate.sleep();
         }
     }
+
+    BENCHMARKERS.print();
     RosTools::Instrumentor::Get().EndSession();
     return 1;
 }

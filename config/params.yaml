@@ -1,6 +1,6 @@
 prm:
   debug_output: false
-  debug_visuals: false
+  debug_visuals: true
   seed: 1 # Seed of the visibility-PRM. Set to -1 for random!
   T: 4.8 # Time horizon [s]
   N: 12 # 40                                 # Discrete time steps [#]
@@ -9,19 +9,21 @@ prm:
   winding_pass_threshold: 0.25
   topology_comparison: Homology # Homology (default) or UVD
   use_learning: false
+  turning_radius: 0.305
   sampling_function: Uniform # Uniform (default)
   predictions_are_constant_velocity: false
   track_selected_homology_only: false
   rules: none
   sample_margin: 5.0
-  n_samples: 1000 #200    # Number of samples for PRM
+  n_samples: 100 #1000 #200    # Number of samples for PRM
   timeout: 200 #15       # Timeout for PRM sampling [ms]
   n_paths: 4 # Number of guidance trajectories
   view_angle_times_pi: 0.606 # View angle when sampling in a conus (disabled by default)
-  max_velocity: 3.0 # Maximum velocity of connections between nodes
-  max_acceleration: 3.0 # Maximum velocity of connections between nodes
+  max_velocity: 4.0 #3.0 #3.0 # Maximum velocity of connections between nodes
+  max_acceleration: 5.0 #3.0 # Maximum velocity of connections between nodes
   connection_filters:
-    forward: false
+    forward: true
+    velocity: true
     acceleration: true
   selection_weights: # Weights on the spline selection heuristic cost
     length: 1.

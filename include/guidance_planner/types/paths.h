@@ -3,30 +3,39 @@
 
 #include <guidance_planner/types/types.h>
 
+#include <guidance_planner/types/connection.h>
+
 namespace GuidancePlanner
 {
+  // typedef StraightConnection PathConnection;
+  typedef DubinsConnection PathConnection;
 
-  /** @brief Segments help to keep a consistent ID per combination of Guard -> Connector -> Guard, while the Connector ID can vary */
-  // Could also just add an extra ID to the node ID, i.e., the path association ID should be a segment association ID
-  struct Segment
-  {
-    int id_;
-  };
-
-  /** @brief A collection of nodes that constitute a path */
+  /** @brief A path that connects several nodes */
   struct GeometricPath
   {
-    std::vector<Node *> nodes_; // The nodes of this path organized by k
-
     GeometricPath()
     {
     }
     /** @brief Convert a vector of nodes to a path directly */
     GeometricPath(const std::vector<Node *> &nodes);
 
+    GeometricPath(const GeometricPath &other)
+    {
+      connections_ = other.GetConnections();
+      ComputeDistanceVector();
+    }
+    GeometricPath &operator=(const GeometricPath &other)
+    {
+      connections_ = other.GetConnections();
+      ComputeDistanceVector();
+      return *this;
+    }
+
     /** @brief Evaluate this path at 0 <= s <= 1
      *  @return Interpolated point in discrete time space (i.e., k in [0, N]) */
     SpaceTimePoint operator()(double s) const;
+
+    bool isValid(Config *config, const Eigen::Vector2d &start_velocity, double start_orientation);
 
     std::vector<Eigen::Vector2d> GetKParameterized() const;
 
@@ -44,21 +53,19 @@ namespace GuidancePlanner
     /** @brief Loop through nodes, get the highest "k" */
     double EndTimeIndex() const;
 
+    Node *GetStart() const;
+    Node *GetEnd() const;
+
+    const std::vector<PathConnection> &GetConnections() const { return connections_; }
+    std::vector<Node *> GetNodes() const;
+    std::vector<SpaceTimePoint> GetIntegrationNodes() const;
+
     /** @brief Return this path as a vector of Eigen::Vector3d */
     std::vector<Eigen::Vector3d> AsVectorOfVector3d();
 
     bool ContainsNode(const Node &node) const;
 
-    friend std::ostream &operator<<(std::ostream &stream, const GeometricPath &path)
-    {
-      stream << "Path: [";
-      for (auto &node : path.nodes_)
-        stream << *node << ", ";
-
-      stream << "\b\b]";
-
-      return stream;
-    }
+    friend std::ostream &operator<<(std::ostream &stream, const GeometricPath &path);
 
     void Clear();
 
@@ -66,6 +73,10 @@ namespace GuidancePlanner
     std::vector<double> aggregated_distances_; // The distance from start to each node over the path
 
     void ComputeDistanceVector();
+
+    std::vector<PathConnection> connections_;
+    bool validity_checked_{false};
+    bool valid_{false};
   };
 
   bool operator==(const GeometricPath &a, const GeometricPath &b);
@@ -108,14 +119,14 @@ namespace std
   {
     size_t operator()(const GuidancePlanner::GeometricPath &x) const
     {
-
       size_t seed = 0;
-      for (auto &node : x.nodes_) // We hash the IDs of the nodes in this path
+      for (auto &node : x.GetNodes()) // We hash the IDs of the nodes in this path
       {
         int hash_id = node->type_ == GuidancePlanner::NodeType::GOAL ? -10 : node->id_;
 
         seed ^= (uint32_t)(hash_id) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
       }
+
       return seed;
     }
   };

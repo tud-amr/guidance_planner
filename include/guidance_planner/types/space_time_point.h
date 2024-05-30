@@ -60,7 +60,7 @@ namespace GuidancePlanner
 
         double &Time() { return _vec(T); }
         double Time() const { return _vec(T); }
-        void setTime(double time) { _vec(T) = time; }
+        void SetTime(double time) { _vec(T) = time; }
 
         double Norm() const { return _vec.norm(); }
 

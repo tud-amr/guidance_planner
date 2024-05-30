@@ -1,5 +1,6 @@
 #include <guidance_planner/sampler.h>
 
+#include <ros_tools/logging.h>
 #include <ros_tools/visuals.h>
 
 namespace GuidancePlanner
@@ -83,7 +84,7 @@ namespace GuidancePlanner
         }
 
         // Sample time [DISCRETE TIME]
-        sample.point.setTime(random_generator_.Int(Config::N - 2) + 1);
+        sample.point.SetTime(random_generator_.Int(Config::N - 2) + 1);
 
         return sample;
 

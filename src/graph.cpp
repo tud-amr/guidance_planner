@@ -4,6 +4,8 @@
 
 #include <guidance_planner/types/types.h>
 
+#include <guidance_planner/utils.h>
+
 #include <ros_tools/logging.h>
 #include <ros_tools/visuals.h>
 

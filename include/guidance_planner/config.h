@@ -37,6 +37,7 @@ namespace GuidancePlanner
     static int N;
     static double DT;
     static double CONTROL_DT;
+    static double turning_radius_;
 
     // Other statics
     static double reference_velocity_;
@@ -68,6 +69,7 @@ namespace GuidancePlanner
 
     // Connection Filters
     bool enable_forward_filter_;
+    bool enable_velocity_filter_;
     bool enable_acceleration_filter_;
 
     // Sampling parameters

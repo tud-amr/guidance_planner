@@ -59,8 +59,8 @@ namespace GuidancePlanner
 
       // Connect end points of a and b
       {
-        gsl_params_[0].start = a.nodes_.back()->point_;
-        gsl_params_[0].end = b.nodes_.back()->point_;
+        gsl_params_[0].start = a.GetEnd()->point_;
+        gsl_params_[0].end = b.GetEnd()->point_;
 
         // double result = 0.;
         // NumericalIntegration(result, &gsl_params_[0]);
@@ -110,8 +110,8 @@ namespace GuidancePlanner
 
       // Connect end points of a and b
       {
-        gsl_params_[0].start = a.nodes_.back()->point_;
-        gsl_params_[0].end = b.nodes_.back()->point_;
+        gsl_params_[0].start = a.GetEnd()->point_;
+        gsl_params_[0].end = b.GetEnd()->point_;
 
         double result, error;
 
@@ -130,64 +130,66 @@ namespace GuidancePlanner
 
   std::vector<bool> Homology::LeftPassingVector(const GeometricPath &path, Environment &environment)
   {
+    // Disabled!
     auto &obstacles = environment.GetDynamicObstacles();
-    std::vector<double> results_h(obstacles.size());
-    std::vector<bool> results(obstacles.size());
-
-    std::list<Node> always_left_nodes;
-    std::vector<Node *> always_left_node_ptrs;
-
-    double max_time = path.nodes_.back()->point_.Time();
-
-    // In principle we could pass the pointer, but this is clearer
-    always_left_nodes.emplace_back(*(path.nodes_[0])); // Start in the same point
-    // Go down
-    always_left_nodes.emplace_back(1, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
-
-    // Go back
-    // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
-    // Go left = move towards the negative y
-    // always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
-    // // Go up
-    // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
-    // // Go front
-    // always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
-    // // Go to the goal position in y, remaining above and in front of it
-    // always_left_nodes.emplace_back(6, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
-    // // Go to the goal position in (x, y), remaining just above it
-    // always_left_nodes.emplace_back(7, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
-    // Go left = move towards the negative y
-    always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
-    // Go up
-    always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
-    // Go to the goal position in (x)
-    always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
-    // Go to the goal position in (x, y), remaining just above it
-    always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
-    // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
-    // always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
-    // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
-    // Connect to the given path
-    always_left_nodes.emplace_back(*(path.nodes_.back()));
-
-    for (auto &node : always_left_nodes)
-      always_left_node_ptrs.push_back(&node);
-
-    GeometricPath always_left_path(always_left_node_ptrs);
-
-    AreEquivalent(always_left_path, path, environment, true);
-
-    // Retrieve the values from the cache
-    std::vector<double> &cached_a = cached_values_[always_left_path]; // Note: will create the cache if it does not exist
-    std::vector<double> &cached_b = cached_values_[path];             // Note: will create the cache if it does not exist
-
-    for (size_t i = 0; i < cached_a.size(); i++)
-    {
-      results_h[i] = cached_a[i] - cached_b[i];
-      results[i] = std::abs(results_h[i]) < 0.1; // If we are in the same homology as "always left", then we are going left here
-    }
-
+    // std::vector<double> results_h(obstacles.size());
+    std::vector<bool> results(obstacles.size(), false);
     return results;
+
+    // std::list<Node> always_left_nodes;
+    // std::vector<Node *> always_left_node_ptrs;
+
+    // double max_time = path.GetEnd()->point_.Time();
+
+    // // In principle we could pass the pointer, but this is clearer
+    // always_left_nodes.emplace_back(*(path.GetStart())); // Start in the same point
+    // // Go down
+    // always_left_nodes.emplace_back(1, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
+
+    // // Go back
+    // // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1), -0.5), NodeType::NONE);
+    // // Go left = move towards the negative y
+    // // always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
+    // // // Go up
+    // // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0) - 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
+    // // // Go front
+    // // always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
+    // // // Go to the goal position in y, remaining above and in front of it
+    // // always_left_nodes.emplace_back(6, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0) + 100, path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
+    // // // Go to the goal position in (x, y), remaining just above it
+    // // always_left_nodes.emplace_back(7, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
+    // // Go left = move towards the negative y
+    // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
+    // // Go up
+    // always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
+    // // Go to the goal position in (x)
+    // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
+    // // Go to the goal position in (x, y), remaining just above it
+    // always_left_nodes.emplace_back(5, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
+    // // always_left_nodes.emplace_back(2, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, -0.5), NodeType::NONE);
+    // // always_left_nodes.emplace_back(3, SpaceTimePoint(path.nodes_[0]->point_.Pos()(0), path.nodes_[0]->point_.Pos()(1) - 100, max_time + 0.5), NodeType::NONE);
+    // // always_left_nodes.emplace_back(4, SpaceTimePoint(path.nodes_.back()->point_.Pos()(0), path.nodes_.back()->point_.Pos()(1), max_time + 0.5), NodeType::NONE);
+    // // Connect to the given path
+    // always_left_nodes.emplace_back(*(path.nodes_.back()));
+
+    // for (auto &node : always_left_nodes)
+    //   always_left_node_ptrs.push_back(&node);
+
+    // GeometricPath always_left_path(always_left_node_ptrs);
+
+    // AreEquivalent(always_left_path, path, environment, true);
+
+    // // Retrieve the values from the cache
+    // std::vector<double> &cached_a = cached_values_[always_left_path]; // Note: will create the cache if it does not exist
+    // std::vector<double> &cached_b = cached_values_[path];             // Note: will create the cache if it does not exist
+
+    // for (size_t i = 0; i < cached_a.size(); i++)
+    // {
+    //   results_h[i] = cached_a[i] - cached_b[i];
+    //   results[i] = std::abs(results_h[i]) < 0.1; // If we are in the same homology as "always left", then we are going left here
+    // }
+
+    // return results;
   }
 
   double Homology::GSLHValue(double lambda, void *params)
@@ -285,9 +287,11 @@ namespace GuidancePlanner
     if (obstacle_id < (int)cached_h.size())
       return cached_h[obstacle_id]; // Retrieve from cache
 
-    std::vector<double> results(path.nodes_.size() - 1, 0);
+    std::vector<SpaceTimePoint> integration_points = path.GetIntegrationNodes();
+
+    std::vector<double> results(integration_points.size() - 1, 0);
     // #pragma omp parallel for num_threads(8)
-    for (size_t n = 1; n < path.nodes_.size(); n++) // From the start to the end of a
+    for (size_t n = 1; n < integration_points.size(); n++) // From the start to the end of a
     {
       double error;
 
@@ -296,8 +300,8 @@ namespace GuidancePlanner
       // #else
       // int thread_id = 0;
       // #endif
-      gsl_params_[thread_id].start = path.nodes_[n - 1]->point_;
-      gsl_params_[thread_id].end = path.nodes_[n]->point_;
+      gsl_params_[thread_id].start = integration_points[n - 1];
+      gsl_params_[thread_id].end = integration_points[n];
 
       // NumericalIntegration(results[n - 1], &gsl_params_[thread_id]);
 

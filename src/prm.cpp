@@ -9,6 +9,8 @@
 #include <guidance_planner/homotopy_comparison/uvd.h>
 #include <guidance_planner/homotopy_comparison/winding_angle.h>
 
+#include <guidance_planner/utils.h>
+
 #include <ros_tools/profiling.h>
 #include <ros_tools/math.h>
 #include <ros_tools/data_saver.h>
@@ -30,13 +32,6 @@ namespace GuidancePlanner
     environment_->Init();
 
     sampler_ = std::make_shared<Sampler>(config_);
-    // samples_.resize(config_->n_samples_);
-    // sample_succes_.resize(config_->n_samples_);
-
-    // random_generator_ = RosTools::RandomGenerator(config_->seed_);
-
-    // if (config_->sampling_function_ == "Uniform")
-    // sampling_function_ = &PRM::SampleUniformly3D;
 
     if (config_->topology_comparison_function_ == "UVD")
     {
@@ -190,20 +185,15 @@ namespace GuidancePlanner
 
   void PRM::SampleNewPoints() // std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes)
   {
-    // First sample all the points in parallel
-    // all_samples_.resize(config_->n_samples_);
+// First sample all the points in parallel
 #pragma omp parallel for num_threads(8)
     for (int i = 0; i < config_->n_samples_; i++)
     {
-      // sample_succes[i] = true;
-
       bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size(); // First resample previous nodes
 
       // Get a new sample (either from the previous iteration, or a new one)
-      // Sample prev_node(previous_nodes_[std::max(i, (int)previous_nodes_.size() - 1)].point_);
-
-      // Sample &sample = sample_is_from_previous_iteration ? prev_node : sampler_->SampleUniformly(i); // SampleNewPoint(i);
-      Sample &sample = sampler_->SampleUniformly(i); // SampleNewPoint(i);
+      // Sample &sample = sample_is_from_previous_iteration ? prev_node : sampler_->SampleUniformly(i);
+      Sample &sample = sampler_->SampleUniformly(i);
       if (sample_is_from_previous_iteration)
         sample.point = previous_nodes_[i].point_;
 
@@ -219,12 +209,7 @@ namespace GuidancePlanner
       {
         if (sample_is_from_previous_iteration)
           previous_nodes_[i].point_ = sample.point; // Update the previous node's position if necessary (for construction later)
-
-        // samples[i] = sample;
       }
-
-      // if (config_->visualize_all_samples_)
-      // all_samples_[i] = sample;
     }
   }
 
@@ -237,7 +222,8 @@ namespace GuidancePlanner
     for (auto &goal : visible_goals)
     {
       GeometricPath new_path({visible_guards[0], &new_node, goal}); // Construct the path for this goal
-      if (ConnectionIsValid(new_path))                              // Check validity
+
+      if (new_path.isValid(config_, start_velocity_, orientation_))
         return goal;
     }
 
@@ -248,15 +234,15 @@ namespace GuidancePlanner
   {
     PRM_LOG("Guards: " << *guards[0] << " and " << *guards[1]);
 
-    if (!ConnectionIsValid(guards[0], guards[1], sample)) // Check if the proposed connection is valid
-    {
-      PRM_LOG("Sampled connector is not a valid connector");
+    // if (!ConnectionIsValid(guards[0], guards[1], sample)) // Check if the proposed connection is valid
+    Node temporary_node(-1e2, sample, NodeType::CONNECTOR);                     // temporary new node
+    int g0_index = guards[0]->point_.Time() < guards[1]->point_.Time() ? 0 : 1; // Which guard is first
+    int g1_index = g0_index == 0 ? 1 : 0;
+    GeometricPath temporary_path({guards[g0_index], &temporary_node, guards[g1_index]});
+
+    if (!temporary_path.isValid(config_, start_velocity_, orientation_)) // Check if the proposed connection is valid
       return;
-    }
-    else
-    {
-      PRM_LOG("Connector is valid");
-    }
+
     Node new_node = sample_is_from_previous_iteration
                         ? Node(graph_->GetNodeID(), previous_nodes_[i])
                         : Node(graph_->GetNodeID(), sample, NodeType::CONNECTOR);
@@ -369,7 +355,8 @@ namespace GuidancePlanner
         // }
         // ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
         int first_node_id = 2; // Cannot be the start, cannot be the first connector
-        auto &next_node = path->nodes_[first_node_id];
+        // auto *next_node = path->nodes_[first_node_id];
+        auto *next_node = path->GetConnections()[0].getEnd();
 
         // Sample halfway up to the next node (0.5(T2 + T1) / (T_end - T_start)) \in [0, 1]
         propagated_node.point_ = (*path)((0.5 * (next_node->point_.Time() + node.point_.Time())) /
@@ -389,14 +376,6 @@ namespace GuidancePlanner
       }
     }
   }
-
-  // SpaceTimePoint PRM::SampleNewPoint() { return (this->*sampling_function_)(); }
-  // SpaceTimePoint PRM::SampleUniformly3D()
-  // {
-  //   return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
-  //                         min_y_ + random_generator_.Double() * range_y_,
-  //                         random_generator_.Int(Config::N - 2) + 1);
-  // }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
   {
@@ -488,137 +467,14 @@ namespace GuidancePlanner
     return topology_comparison_->LeftPassingVector(path, *environment_);
   }
 
-  /** @todo: Should be per connection, not all at once */
-  bool PRM::ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePoint &second_point)
-  {
-    // This subfunction checks the connection between any two points
-    // Connections must move forward in the "x" direction
-    bool forward_connection = (!config_->enable_forward_filter_) || (Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * second_point.Pos() >
-                                                                     Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation_) * first_point.Pos()); //.Pos()(0) > first_point.Pos()(0);
-    if (!forward_connection)
-    {
-      PRM_LOG("Connection does not move forward in time");
-      return false;
-    }
-
-    // Connections have a limited velocity
-    double dist = RosTools::distance(first_point.Pos(), second_point.Pos());
-    double vel = dist / ((double)std::abs(first_point.Time() - second_point.Time()) * Config::DT); // The average velocity of this connection
-    bool vel_satisfies_limits = vel < config_->max_velocity_;
-
-    if (!vel_satisfies_limits)
-    {
-      PRM_LOG("Connection does not satisfy velocity limits");
-      return false;
-    }
-
-    return true; // Connection is valid
-  }
-
-  bool PRM::ConnectionIsValid(const GeometricPath &path)
-  {
-    ROSTOOLS_ASSERT(path.nodes_.size() == 3, "Paths must have 3 nodes to check the connection");
-
-    // First make sure that the connection times are causal
-    const Node *start_node = path.nodes_[0];
-    const Node *end_node = path.nodes_.back();
-    const Node *path_node = path.nodes_[1];
-    const SpaceTimePoint &new_point = path_node->point_;
-    bool valid = ConnectionIsValid(start_node, end_node, new_point);
-
-    if (!valid)
-    {
-      PRM_LOG("Connection was invalid");
-      return false;
-    }
-
-    return true; // This connection is valid
-  }
-
-  bool PRM::ConnectionIsValid(const Node *a, const Node *b, const SpaceTimePoint &new_point)
-  {
-    // We check a number of conditions here that must be satisfied by a valid connection from a -> new_point -> b
-
-    // First make sure that the connection times are causal
-    const Node *start_node = a->point_.Time() < b->point_.Time() ? a : b;
-    const Node *end_node = a->point_.Time() < b->point_.Time() ? b : a;
-
-    // Connections need to be in the same direction in time
-    bool causality_correct = (start_node->point_.Time() < new_point.Time()) && (new_point.Time() < end_node->point_.Time());
-
-    if (!causality_correct)
-    {
-      PRM_LOG("Three point connection is not causal (" << start_node->point_.Time() << ", " << new_point.Time() << ", " << end_node->point_.Time()
-                                                       << ")");
-
-      return false;
-    }
-
-    // Check other conditions per connection
-    if (!ConnectionIsValid(start_node->point_, new_point) || !ConnectionIsValid(new_point, end_node->point_))
-      return false;
-
-    // ACCELERATIONS
-    if (config_->enable_acceleration_filter_)
-    {
-      // Fit time parameterized splines over the points and validate that the accelerations along this spline satisfy the limits
-      SpaceTimePoint first_point = start_node->point_;
-      SpaceTimePoint second_point = new_point;
-      SpaceTimePoint third_point = end_node->point_;
-
-      std::vector<double> t, x, y;
-      t.push_back(first_point.Time() * Config::DT);
-      t.push_back(second_point.Time() * Config::DT);
-      t.push_back(third_point.Time() * Config::DT);
-
-      x.push_back(first_point.Pos()(0));
-      x.push_back(second_point.Pos()(0));
-      x.push_back(third_point.Pos()(0));
-
-      y.push_back(first_point.Pos()(1));
-      y.push_back(second_point.Pos()(1));
-      y.push_back(third_point.Pos()(1));
-
-      tk::spline connect_x, connect_y;
-
-      if (first_point.Time() == 0) // Start with initial velocity
-      {
-        connect_x.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(0), tk::spline::bd_type::second_deriv, 0.);
-        connect_y.set_boundary(tk::spline::bd_type::first_deriv, start_velocity_(1), tk::spline::bd_type::second_deriv, 0.);
-      }
-      else // No acceleration on start points
-      {
-        connect_x.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
-        connect_y.set_boundary(tk::spline::bd_type::second_deriv, 0., tk::spline::bd_type::second_deriv, 0.);
-      }
-
-      connect_x.set_points(t, x);
-      connect_y.set_points(t, y);
-
-      // Check accelerations
-      Eigen::ArrayXd evals = Eigen::ArrayXd::LinSpaced(3, t[0], t[2]);
-
-      for (int i = 0; i < evals.rows(); i++)
-      {
-        if (Eigen::Vector2d(connect_x.deriv(2, evals(i)), connect_y.deriv(2, evals(i))).norm() > config_->max_acceleration_)
-        {
-          PRM_LOG("Acceleration limits are not satisfied");
-          return false;
-        }
-      }
-    }
-
-    return true; // This connection is valid
-  }
-
   bool PRM::FirstPathIsBetter(const GeometricPath &first_path, const GeometricPath &second_path)
   {
     double goal_1_cost, goal_2_cost;
-    if (first_path.nodes_.back()->type_ == NodeType::GOAL && second_path.nodes_.back()->type_ == NodeType::GOAL)
+    if (first_path.GetEnd()->type_ == NodeType::GOAL && second_path.GetEnd()->type_ == NodeType::GOAL)
     {
       // Bit annoying: Find which goals they are to find the associated costs
-      goal_1_cost = Goal::FindGoalWithNode(goals_, first_path.nodes_.back()).cost;
-      goal_2_cost = Goal::FindGoalWithNode(goals_, second_path.nodes_.back()).cost;
+      goal_1_cost = Goal::FindGoalWithNode(goals_, first_path.GetEnd()).cost;
+      goal_2_cost = Goal::FindGoalWithNode(goals_, second_path.GetEnd()).cost;
 
       if (goal_1_cost != goal_2_cost)
         return goal_1_cost < goal_2_cost; // Is the goal better?
@@ -633,6 +489,7 @@ namespace GuidancePlanner
 
     done_ = false;
     config_->seed_ += 1; // Keep the randomizer consistent for every experiment
+    sampler_->Reset();
 
     previous_nodes_.clear(); // Forget nodes
   }

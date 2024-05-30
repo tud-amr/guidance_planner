@@ -131,6 +131,8 @@ namespace GuidancePlanner
     ROSTOOLS_ASSERT(!goals_set_, "Please set the goals via SetGoals or LoadReferencePath, but not both!"); // Goals should be set either by SetGoals or by LoadReferencePath, not both!
     goals_set_ = true;
 
+    orientation_ = reference_path->getPathAngle(spline_start);
+
     // DEFINE THE GOALS FOR THE GUIDANCE PLANNER
     int grid_long = config_->longitudinal_goals_;
     int grid_vert = config_->vertical_goals_;
@@ -439,7 +441,7 @@ namespace GuidancePlanner
 
   double GlobalGuidance::PathSelectionCost(const GeometricPath &path)
   {
-    return 1000. * Goal::FindGoalWithNode(*prm_.GetGoals(), path.nodes_.back()).cost - path.Length3D();
+    return 1000. * Goal::FindGoalWithNode(*prm_.GetGoals(), path.GetEnd()).cost - path.Length3D();
     // return 1000 * path.nodes_.back()->point_.Pos()(0) - path.Length3D();
   }
 
@@ -457,7 +459,7 @@ namespace GuidancePlanner
       // Add costs for all splines
       double heuristic = 0.;
 
-      double goal_cost = Goal::FindGoalWithNode(*prm_.GetGoals(), output.path.path.nodes_.back()).cost;
+      double goal_cost = Goal::FindGoalWithNode(*prm_.GetGoals(), output.path.path.GetEnd()).cost;
       heuristic += goal_cost * config_->selection_weight_length_;
 
       heuristic += output.spline.WeightVelocity() * config_->selection_weight_velocity_;
@@ -650,17 +652,18 @@ namespace GuidancePlanner
 
   std::vector<bool> GlobalGuidance::PassesRight(int output_id, const Eigen::Vector2d &goal)
   {
-    if (output_id >= (int)outputs_.size())
-    {
-      LOG_WARN("Trying to get the cost of a trajectory that does not exist!");
-      std::vector<bool> empty;
-      return empty;
-    }
-    GuidancePlanner::GeometricPath h_def_path = outputs_[output_id].path;
-    GuidancePlanner::SpaceTimePoint goal_point(goal.x(), goal.y(), h_def_path.nodes_.back()->point_.Time());
-    GuidancePlanner::Node goal_node(h_def_path.nodes_.back()->id_, goal_point, h_def_path.nodes_.back()->type_);
-    h_def_path.nodes_.push_back(&goal_node);
-    return prm_.PassesRight(h_def_path); // Return the guidance trajectory
+    return {};
+    // if (output_id >= (int)outputs_.size())
+    // {
+    //   LOG_WARN("Trying to get the cost of a trajectory that does not exist!");
+    //   std::vector<bool> empty;
+    //   return empty;
+    // }
+    // GuidancePlanner::GeometricPath h_def_path = outputs_[output_id].path;
+    // GuidancePlanner::SpaceTimePoint goal_point(goal.x(), goal.y(), h_def_path.GetEnd()->point_.Time());
+    // GuidancePlanner::Node goal_node(h_def_path.GetEnd()->id_, goal_point, h_def_path.GetEnd()->type_);
+    // h_def_path.nodes_.push_back(&goal_node);
+    // return prm_.PassesRight(h_def_path); // Return the guidance trajectory
   }
 
   double GlobalGuidance::GetHomotopicCost(int output_id, const GeometricPath &path)
@@ -736,17 +739,8 @@ namespace GuidancePlanner
   /** @brief Helper function*/
   void GlobalGuidance::VisualizePath(RosTools::ROSLine &line, GeometricPath &path)
   {
-    Node *prev_node;
-    bool first_node = true;
-    for (auto &node : path.nodes_)
-    {
-      if (!first_node)
-        line.addLine(node->point_.MapToTime(), prev_node->point_.MapToTime());
-      else
-        first_node = false;
-
-      prev_node = node;
-    }
+    for (auto &connection : path.GetConnections())
+      line.addLine(connection.getStart()->point_.MapToTime(), connection.getEnd()->point_.MapToTime());
   }
 
   void GlobalGuidance::VisualizeGeometricPaths(int path_nr)

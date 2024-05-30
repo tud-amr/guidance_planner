@@ -46,7 +46,7 @@ namespace GuidancePlanner
     void SetGoals(const std::vector<Goal> &goals);
 
     /** @brief Additional configuration */
-    void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
+    // void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
     void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = reference_velocity; }
     void SetTrackOnlyTheSelectedHomology() { config_->track_selected_homology_only_ = true; }
     void SetPlanningFrequency(double f) { config_->CONTROL_DT = 1. / f; }

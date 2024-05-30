@@ -61,7 +61,7 @@ namespace GuidancePlanner
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals);
 
-    void SetPRMSamplingFunction(SamplingFunction sampling_function) {} // sampling_function_ = sampling_function; }
+    // void SetPRMSamplingFunction(SamplingFunction sampling_function) {} // sampling_function_ = sampling_function; }
 
     void DoNotPropagateNodes() { do_not_propagate_nodes_ = true; };
 
@@ -110,9 +110,9 @@ namespace GuidancePlanner
     void ReplaceConnector(Node &new_node, Node *neighbour, const std::vector<Node *> &visible_guards);
 
     /** @brief Check if the two given nodes may be connected */
-    bool ConnectionIsValid(const Node *a, const Node *b, const SpaceTimePoint &new_point);         // Three points
-    bool ConnectionIsValid(const GeometricPath &path);                                             // Three points
-    bool ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePoint &second_point); // Two points
+    // bool ConnectionIsValid(const Node *a, const Node *b, const SpaceTimePoint &new_point); // Three points
+    // bool ConnectionIsValid(const GeometricPath &path); // Three points
+    // bool ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePoint &second_point); // Two points
 
     /** @brief Propagate a node from this PRM instance "t" to the next instance "t+1". Specify a path if the node belonged to a path*/
     void PropagateNode(const Node &node, const GeometricPath *path = nullptr);

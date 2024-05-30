@@ -15,6 +15,7 @@ namespace GuidancePlanner
   double Config::CONTROL_DT = 0.0;
   int Config::N = 20;
   double Config::reference_velocity_ = 2.0; // Is updated based on rqt_reconfigure
+  double Config::turning_radius_ = 0.5;     // Is updated based on rqt_reconfigure
 
   Config::Config()
   {
@@ -25,9 +26,6 @@ namespace GuidancePlanner
     rclcpp::Node *node = GET_STATIC_NODE_POINTER();
 #endif
 
-    // auto config = loadYAML("guidance_planner.yaml");
-
-    LOG_INFO("hi");
     retrieveParameter(node, "prm/debug_output", Config::debug_output_);
     retrieveParameter(node, "prm/debug_visuals", Config::debug_visuals_);
 
@@ -50,6 +48,7 @@ namespace GuidancePlanner
     retrieveParameter(node, "prm/view_angle_times_pi", view_angle_);
     view_angle_ *= M_PI;
 
+    retrieveParameter(node, "prm/turning_radius", Config::turning_radius_, 0.5);
     retrieveParameter(node, "prm/topology_comparison", topology_comparison_function_, std::string("Homology"));
     retrieveParameter(node, "prm/winding_pass_threshold", winding_pass_threshold_, 0.25);
     retrieveParameter(node, "prm/use_learning", use_learning, false);
@@ -66,6 +65,7 @@ namespace GuidancePlanner
     retrieveParameter(node, "prm/max_acceleration", max_acceleration_);
 
     retrieveParameter(node, "prm/connection_filters/forward", enable_forward_filter_);
+    retrieveParameter(node, "prm/connection_filters/velocity", enable_velocity_filter_);
     retrieveParameter(node, "prm/connection_filters/acceleration", enable_acceleration_filter_);
 
     retrieveParameter(node, "prm/spline_optimization/enable", optimize_splines_);
@@ -94,10 +94,5 @@ namespace GuidancePlanner
     retrieveParameter(node, "prm/enable/project_from_obstacles", project_from_obstacles_);
 
     retrieveParameter(node, "prm/test_node/continuous_replanning", debug_continuous_replanning_);
-
-    LOG_HOOK();
-    LOG_VALUE("Config::debug_output_", Config::debug_output_);
-    LOG_VALUE("Config::N", Config::N);
-    LOG_VALUE("Config::DT", Config::DT);
   }
 }

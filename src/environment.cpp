@@ -1,5 +1,7 @@
 #include "guidance_planner/environment.h"
 
+#include <guidance_planner/utils.h>
+
 #include <ros_tools/math.h>
 
 namespace GuidancePlanner
@@ -17,11 +19,6 @@ namespace GuidancePlanner
       if (RosTools::distance(obstacle.positions_[std::round(point.Time())], point.Pos()) < obstacle.radius_ + with_margin) // Note that the obstacle positions at k = 0 is the initial state
         return true;
     }
-
-    // // If the time is not integer, we need to also check
-    // if (point.Time() != (int)point.Time())
-    // {
-    // }
 
     for (auto &halfspace : static_obstacles_)
     {

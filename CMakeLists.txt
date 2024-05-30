@@ -71,8 +71,10 @@ add_library(${PROJECT_NAME} SHARED
   src/types/paths.cpp
   src/types/types.cpp
   src/types/node.cpp
+  src/types/connection.cpp
   src/environment.cpp
   src/cubic_spline.cpp
+  src/third_party/dubins.cpp
 )
 
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
