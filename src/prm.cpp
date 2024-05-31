@@ -105,6 +105,10 @@ namespace GuidancePlanner
       }
     }
 
+    // Sort the costs to have the best goals initially
+    std::sort(goals_.begin(), goals_.end(), [&](const Goal goal_a, const Goal goal_b)
+              { return goal_a.cost < goal_b.cost; });
+
     PRM_LOG(goals_.size() << " Collision-free goals were received");
 
     sampler_->SetRange(start_, goals_);
@@ -147,34 +151,89 @@ namespace GuidancePlanner
       bool sample_is_from_previous_iteration = i < (int)previous_nodes_.size();
 
       // Find the number of visible guards from this node
-      std::vector<Node *> visible_guards, visible_goals;
-      FindVisibleGuards(sample.point, visible_guards, visible_goals);
+      std::vector<Node *> visible_guards;
+      FindVisibleGuards(sample.point, visible_guards);
 
-      // If we see no goals and no guards,add a guard
-      if (visible_goals.size() == 0 && visible_guards.size() == 0)
+      // Find out if at least one goal is visible, if it is, save it
+      Node *goal_node = nullptr;
+      int goal_index = 0;
+      for (size_t g = 0; g < graph_->goal_nodes_.size(); g++)
+      {
+        if (IsGoalVisible(sample.point, g))
+        {
+          goal_node = graph_->goal_nodes_[g];
+          goal_index = g;
+          break;
+        }
+      }
+
+      bool goal_visible = goal_node != nullptr;
+
+      if (goal_visible)
+      {
+        PRM_LOG(visible_guards.size() << " guards and a goal visible");
+      }
+      else
+      {
+        PRM_LOG(visible_guards.size() << " guards and no goals visible");
+      }
+
+      // CREATE A GUARD: If we see no goals and no guards
+      if (!goal_visible && visible_guards.size() == 0)
       {
         AddGuard(i, sample.point);
         continue;
-      }
-
-      // First check if we found a connector, but one that only connects to a single goal
-      if (visible_goals.size() <= 1 && visible_goals.size() + visible_guards.size() == 2)
+      } // CREATE A CONNECTOR: If we found one guard and at least one goal
+      else if (visible_guards.size() == 2 && !goal_visible)
       {
-        for (auto &goal : visible_goals)
-          visible_guards.push_back(goal); // Add the goal to the visible guards if it exists
-
-        AddSample(i, sample.point, visible_guards, sample_is_from_previous_iteration); // single threaded
+        AddSample(i, sample.point, visible_guards, sample_is_from_previous_iteration);
       }
-      else if (visible_goals.size() > 1 && visible_guards.size() == 1) // We connect a guard with more than one goal
+      else if (goal_visible && visible_guards.size() == 1) // visible_goals.size() <= 1 && visible_goals.size() + visible_guards.size() == 2)
       {
-        PRM_LOG("New sample connects to more than one goal");
+
         Node new_node = sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i])
                                                           : Node(graph_->GetNodeID(), sample.point, NodeType::CONNECTOR);
 
-        Node *goal = FindTopologyDistinctGoalConnection(new_node, visible_guards, visible_goals);
-        if (goal != nullptr)
-          AddSample(i, sample.point, {visible_guards[0], goal}, sample_is_from_previous_iteration);
+        Node *valid_goal = nullptr;
+        int valid_goal_index = 0;
+        for (size_t g = goal_index; g < graph_->goal_nodes_.size() && valid_goal == nullptr; g++)
+        {
+          if (g != goal_index && !IsGoalVisible(sample.point, g))
+            continue;
+
+          valid_goal = CheckGoalConnection(new_node, visible_guards[0], graph_->goal_nodes_[g]);
+          valid_goal_index = g;
+        }
+
+        if (valid_goal == nullptr) // Add a connector if there was a valid goal
+          continue;
+
+        visible_guards.push_back(valid_goal);
+
+        AddSample(i, sample.point, visible_guards, sample_is_from_previous_iteration); // single threaded
+
+        // Swap goals if there are equal cost goals, to make the graph more robust
+        if (valid_goal_index == graph_->goal_nodes_.size() - 1)
+          continue;
+
+        if (Goal::FindGoalWithNode(goals_, graph_->goal_nodes_[valid_goal_index + 1]).cost == Goal::FindGoalWithNode(goals_, graph_->goal_nodes_[valid_goal_index]).cost)
+        {
+          // Swap the goals
+          auto *temp = graph_->goal_nodes_[valid_goal_index];
+          graph_->goal_nodes_[valid_goal_index] = graph_->goal_nodes_[valid_goal_index + 1];
+          graph_->goal_nodes_[valid_goal_index + 1] = temp;
+        }
       }
+      // else if (visible_goals.size() > 1 && visible_guards.size() == 1) // We connect a guard with more than one goal
+      // {
+      //   PRM_LOG("New sample connects to more than one goal");
+      //   Node new_node = sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i])
+      //                                                     : Node(graph_->GetNodeID(), sample.point, NodeType::CONNECTOR);
+
+      //   Node *goal = FindTopologyDistinctGoalConnection(new_node, visible_guards, visible_goals);
+      //   if (goal != nullptr)
+      //     AddSample(i, sample.point, {visible_guards[0], goal}, sample_is_from_previous_iteration);
+      // }
     }
 
     PRM_LOG("Visibility-PRM Graph Done.");
@@ -183,7 +242,18 @@ namespace GuidancePlanner
     return *graph_;
   }
 
-  void PRM::SampleNewPoints() // std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes)
+  // IsGoalValid
+  Node *PRM::CheckGoalConnection(Node &new_node, Node *guard, Node *goal) const
+  {
+    GeometricPath new_path({guard, &new_node, goal}); // Construct the path for this goal
+
+    if (new_path.isValid(config_, start_velocity_, orientation_))
+      return goal;
+
+    return nullptr;
+  }
+
+  void PRM::SampleNewPoints()
   {
 // First sample all the points in parallel
 #pragma omp parallel for num_threads(8)
@@ -211,23 +281,6 @@ namespace GuidancePlanner
           previous_nodes_[i].point_ = sample.point; // Update the previous node's position if necessary (for construction later)
       }
     }
-  }
-
-  Node *PRM::FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
-  {
-    // Sort the costs to have the best goals initially
-    std::sort(visible_goals.begin(), visible_goals.end(), [&](const Node *goal_a, const Node *goal_b)
-              { return Goal::FindGoalWithNode(goals_, goal_a).cost < Goal::FindGoalWithNode(goals_, goal_b).cost; });
-
-    for (auto &goal : visible_goals)
-    {
-      GeometricPath new_path({visible_guards[0], &new_node, goal}); // Construct the path for this goal
-
-      if (new_path.isValid(config_, start_velocity_, orientation_))
-        return goal;
-    }
-
-    return nullptr;
   }
 
   void PRM::AddSample(int i, SpaceTimePoint &sample, const std::vector<Node *> guards, bool sample_is_from_previous_iteration)
@@ -377,23 +430,43 @@ namespace GuidancePlanner
     }
   }
 
-  void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)
+  bool PRM::IsGoalVisible(SpaceTimePoint sample, int goal_index) const
+  {
+
+    Node *goal_node = graph_->goal_nodes_[goal_index];
+    return environment_->IsVisible(sample, goal_node->point_);
+    // int local_goal_index = 0;
+    // for (Node &node : graph_->nodes_)
+    // {
+    //   if (node.type_ == NodeType::GOAL)
+    //   {
+
+    // if (goal_index == local_goal_index)
+    // {
+    //   if (environment_->IsVisible(sample, node.point_))
+    //   {
+    //     if (node.type_ == NodeType::GUARD)
+    //       visible_guards.push_back(&node);
+    //     else
+    //       visible_goals.push_back(&node);
+    //   }
+    // }
+    // }
+    // }
+
+    // PRM_LOG(visible_guards.size() << " guards and " << visible_goals.size() << " goals visible");
+  }
+
+  void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards)
   {
     for (Node &node : graph_->nodes_)
     {
-      if (node.type_ == NodeType::GUARD || node.type_ == NodeType::GOAL)
+      if (node.type_ == NodeType::GUARD)
       {
         if (environment_->IsVisible(sample, node.point_))
-        {
-          if (node.type_ == NodeType::GUARD)
-            visible_guards.push_back(&node);
-          else
-            visible_goals.push_back(&node);
-        }
+          visible_guards.push_back(&node);
       }
     }
-
-    PRM_LOG(visible_guards.size() << " guards and " << visible_goals.size() << " goals visible");
   }
 
   void PRM::ReplaceConnector(Node &new_node, Node *neighbour, const std::vector<Node *> &visible_guards)

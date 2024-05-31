@@ -52,7 +52,6 @@ namespace GuidancePlanner
     int n_paths_;
     int path_after_samples_;
     double prefer_goal_over_smoothness_;
-    double view_angle_;
     double max_velocity_, max_acceleration_;
 
     double winding_pass_threshold_;
@@ -60,12 +59,11 @@ namespace GuidancePlanner
     int longitudinal_goals_, vertical_goals_;
 
     bool use_learning;
+    static bool use_non_passing_;
 
     // Topology
     std::string topology_comparison_function_;
-    std::string sampling_function_;
-    std::string rules_;
-    bool pass_left_;
+    std::string connection_type_;
 
     // Connection Filters
     bool enable_forward_filter_;

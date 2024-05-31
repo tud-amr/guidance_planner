@@ -14,8 +14,6 @@ namespace GuidancePlanner
 
     bool Connection::isValid(Config *config, double orientation) const
     {
-        /** @todo cache validity */
-
         // Check if the connection moves forward in the direction of the path
         if (config->enable_forward_filter_)
         {
@@ -99,7 +97,12 @@ namespace GuidancePlanner
         length_ = dubins_path_length(&path_);
 
         for (double s = 0.; s <= 1.0; s += 0.05)
+        {
             sampled_path_.push_back(this->operator()(s));
+
+            if (s > 0)
+                length_with_time_ += (sampled_path_.back().MapToTime() - sampled_path_[sampled_path_.size() - 2].MapToTime()).norm();
+        }
     }
 
     void DubinsConnection::getIntegrationNodes(bool is_first, std::vector<SpaceTimePoint> &nodes) const
@@ -136,8 +139,7 @@ namespace GuidancePlanner
 
     double DubinsConnection::lengthWithTime() const
     {
-        /** @todo! */
-        return length_;
+        return length_with_time_;
     }
 
 } // namespace GuidancePlanner

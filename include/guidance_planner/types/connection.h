@@ -84,6 +84,7 @@ namespace GuidancePlanner
 
         bool valid_{false};
         double length_{0.0};
+        double length_with_time_{0.0};
     };
 } // namespace GuidancePlanner
 

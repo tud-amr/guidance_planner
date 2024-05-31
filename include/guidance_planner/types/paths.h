@@ -7,8 +7,8 @@
 
 namespace GuidancePlanner
 {
-  // typedef StraightConnection PathConnection;
-  typedef DubinsConnection PathConnection;
+  typedef StraightConnection PathConnection;
+  // typedef DubinsConnection PathConnection;
 
   /** @brief A path that connects several nodes */
   struct GeometricPath

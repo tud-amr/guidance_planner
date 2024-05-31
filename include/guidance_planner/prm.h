@@ -95,24 +95,17 @@ namespace GuidancePlanner
     void saveData(RosTools::DataSaver &data_saver);
 
   private:
-    void SampleNewPoints(); // std::vector<SpaceTimePoint> &samples, std::vector<bool> &sample_succes); // Sample ALL new points
+    void SampleNewPoints();
 
-    /** @brief Sample a new random point */
-    // SpaceTimePoint SampleNewPoint();
-    // SpaceTimePoint SampleUniformly3D();
-
-    void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
-    Node *FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
+    void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards);
+    bool IsGoalVisible(SpaceTimePoint sample, int goal_index) const;
+    Node *CheckGoalConnection(Node &new_node, Node *guard, Node *goal) const;
+    // Node *FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
 
     void AddSample(int i, SpaceTimePoint &sample, const std::vector<Node *> guards, bool sample_is_from_previous_iteration);
     void AddGuard(int i, SpaceTimePoint &sample);
     void AddNewConnector(Node &new_node, const std::vector<Node *> &visible_guards);
     void ReplaceConnector(Node &new_node, Node *neighbour, const std::vector<Node *> &visible_guards);
-
-    /** @brief Check if the two given nodes may be connected */
-    // bool ConnectionIsValid(const Node *a, const Node *b, const SpaceTimePoint &new_point); // Three points
-    // bool ConnectionIsValid(const GeometricPath &path); // Three points
-    // bool ConnectionIsValid(const SpaceTimePoint &first_point, const SpaceTimePoint &second_point); // Two points
 
     /** @brief Propagate a node from this PRM instance "t" to the next instance "t+1". Specify a path if the node belonged to a path*/
     void PropagateNode(const Node &node, const GeometricPath *path = nullptr);
@@ -122,7 +115,6 @@ namespace GuidancePlanner
 
     /** Visualization functions */
     void VisualizeGraph();
-    // void VisualizeAllSamples();
 
   private:
     bool done_;
@@ -133,10 +125,7 @@ namespace GuidancePlanner
     std::unique_ptr<Graph> graph_;                            // PRM Graph
     std::unique_ptr<HomotopyComparison> topology_comparison_; // H-invariant or UVD comparison
 
-    // SamplingFunction sampling_function_; /** @note Samples are relative to start position and orientation */
     std::shared_ptr<Sampler> sampler_;
-
-    // RosTools::RandomGenerator random_generator_; // Used to generate samples
 
     std::vector<Node> previous_nodes_; // Save nodes from previous iterations to enforce consistency between multiple iterations
 
@@ -146,14 +135,6 @@ namespace GuidancePlanner
     double orientation_;
 
     std::vector<Goal> goals_;
-    // double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
-
-    // std::vector<SpaceTimePoint> samples_;
-    // std::vector<bool> sample_succes_;
-
-    // Debugging variables
-    // std::vector<SpaceTimePoint> all_samples_; // For visualizing the sampling algorithm
-    // std::unique_ptr<RosTools::Benchmarker> debug_benchmarker_;
   };
 
 } // namespace Homotopy

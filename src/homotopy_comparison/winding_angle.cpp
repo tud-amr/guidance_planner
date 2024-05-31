@@ -29,23 +29,26 @@ namespace GuidancePlanner
         const std::vector<Eigen::Vector2d> a_positions = a.GetKParameterized();
         const std::vector<Eigen::Vector2d> b_positions = b.GetKParameterized();
 
+        int total_a_passes = 0;
+        int total_b_passes = 0;
+
         // For each obstacle
         for (size_t obstacle_id = 0; obstacle_id < obstacles.size(); obstacle_id++)
         {
             const auto &obstacle = obstacles[obstacle_id];
 
             // Ignore obstacles far away
-            if (RosTools::distance(obstacle.positions_[0], a_positions[0]) > 20. &&
-                RosTools::distance(obstacle.positions_.back(), a_positions.back()) > 20.)
-            {
-                continue;
-            }
+            // if (RosTools::distance(obstacle.positions_[0], a_positions[0]) > 20. &&
+            //     RosTools::distance(obstacle.positions_.back(), a_positions.back()) > 20.)
+            // {
+            //     continue;
+            // }
 
-            if (RosTools::distance(obstacle.positions_[0], b_positions[0]) > 20. &&
-                RosTools::distance(obstacle.positions_.back(), b_positions.back()) > 20.)
-            {
-                continue;
-            }
+            // if (RosTools::distance(obstacle.positions_[0], b_positions[0]) > 20. &&
+            //     RosTools::distance(obstacle.positions_.back(), b_positions.back()) > 20.)
+            // {
+            //     continue;
+            // }
 
             double lambda_a = ComputeWindingAngle(obstacle_id, cached_a, a_positions, obstacle.positions_);
             double lambda_b = ComputeWindingAngle(obstacle_id, cached_b, b_positions, obstacle.positions_);
@@ -53,20 +56,10 @@ namespace GuidancePlanner
             // Winding angles must be large enough to indicate passing
             bool a_passes = std::abs(lambda_a) >= pass_threshold_;
             bool b_passes = std::abs(lambda_b) >= pass_threshold_;
-
-            /** @brief Distinction between passing / not-passing trajectories
-            if (a_passes != b_passes) // One of the two trajectories passes
-            {
-                return false;
-            }
-            else if (a_passes) // If both pass
-            {
-                // If winding angles are different for any obstacle, then the paths are not equivalent
-                if (RosTools::sgn(lambda_a) != RosTools::sgn(lambda_b))
-                {
-                    return false;
-                }
-            }*/
+            if (a_passes)
+                total_a_passes++;
+            if (b_passes)
+                total_b_passes++;
 
             if (a_passes && b_passes)
             {
@@ -75,6 +68,15 @@ namespace GuidancePlanner
                     return false;
                 }
             }
+        }
+
+        if (Config::use_non_passing_) // A path that passes no obstacles is distinct from ones that do
+        {
+            if (total_a_passes == 0 && total_b_passes != 0)
+                return false;
+
+            if (total_b_passes == 0 && total_a_passes != 0)
+                return false;
         }
 
         return true; // If all winding angles are the same for all obstacles, then the paths are equivalent
