@@ -221,9 +221,9 @@ namespace GuidancePlanner
         std::vector<Eigen::Vector3d> result;
 
         for (auto &connection : connections_)
-            result.emplace_back(connection->getStart()->point_);
+            result.emplace_back(connection->getStart()->point_.PosTime());
 
-        result.emplace_back(GetEnd()->point_);
+        result.emplace_back(GetEnd()->point_.PosTime());
         return result;
     }
 

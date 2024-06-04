@@ -23,7 +23,6 @@ namespace GuidancePlanner
         max_ = start;
 
         // Compute the range of the planning space (between start and goals)
-        // double min_x = start(0), max_x = start(0), min_y = start(1), max_y = start(1);
         for (auto &goal : goals)
         {
             for (int i = 0; i < SpaceTimePoint::numPositions(); i++)
@@ -66,31 +65,32 @@ namespace GuidancePlanner
 
     void Sampler::Clear()
     {
-        // all_samples_.clear();
         samples_.clear();
-
         samples_.resize(config_->n_samples_);
     }
 
     Sample &Sampler::SampleUniformly(int sample_index)
     {
-
         Sample &sample = samples_[sample_index];
 
         // Sample positions uniformly
         for (int i = 0; i < SpaceTimePoint::numPositions(); i++)
-        {
             sample.point(i) = min_(i) + random_generator_.Double() * range_(i);
-        }
 
         // Sample time [DISCRETE TIME]
         sample.point.SetTime(random_generator_.Int(Config::N - 2) + 1);
 
         return sample;
+    }
 
-        // return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
-        //                       min_y_ + random_generator_.Double() * range_y_,
-        //                       random_generator_.Int(Config::N - 2) + 1);
+    Sample &Sampler::SampleUniformlyWithOrientation(int sample_index)
+    {
+        SampleUniformly(sample_index);
+        Sample &sample = samples_[sample_index];
+
+        int orientation_index = SpaceTimePoint::numPositions(); // Assume orientation comes after the position
+        sample.point(orientation_index) = 0.785398 - 0.5 * M_PI + M_PI * random_generator_.Double();
+        return sample;
     }
 
 }

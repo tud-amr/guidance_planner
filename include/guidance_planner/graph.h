@@ -2,6 +2,8 @@
 #define __HOMOTOPY_H__
 
 #include <guidance_planner/config.h>
+#include <guidance_planner/types/type_define.h>
+#include <guidance_planner/types/space_time_point.h>
 
 #include <string>
 #include <vector>
@@ -25,8 +27,8 @@ namespace GuidancePlanner
     Config *config_;
 
     /** @brief Initialize the graph with a start and goal */
-    void Initialize(const Eigen::Vector2d &start, const Eigen::Vector2d &goal);
-    void Initialize(const Eigen::Vector2d &start, std::vector<Goal> &goals);
+    void Initialize(const SpaceTimePoint::TVector &start, const Goal &goal);
+    void Initialize(const SpaceTimePoint::TVector &start, std::vector<Goal> &goals);
 
     /**
      * @brief Adds a node to the graph and returns a pointer to the node in the new list

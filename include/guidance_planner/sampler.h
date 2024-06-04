@@ -30,6 +30,7 @@ namespace GuidancePlanner
         void SetRange(const SpaceTimePoint::PVector &start, const std::vector<Goal> &goals);
 
         Sample &SampleUniformly(int sample_index);
+        Sample &SampleUniformlyWithOrientation(int sample_index);
 
         Sample &GetSample(int sample_index) { return samples_[sample_index]; }
 
@@ -45,12 +46,7 @@ namespace GuidancePlanner
 
         SpaceTimePoint::PVector min_, max_, range_;
 
-        // double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
-        // int sample_index_;
         std::vector<Sample> samples_;
-        // std::vector<bool> sample_succes_;
-
-        // std::vector<SpaceTimePoint> all_samples_; // For visualizing the sampling algorithm
     };
 
 } // namespace GuidancePlanner

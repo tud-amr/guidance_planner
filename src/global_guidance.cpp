@@ -49,19 +49,24 @@ namespace GuidancePlanner
     color_ = other.color_;
   }
 
-  GlobalGuidance::OutputTrajectory &GlobalGuidance::OutputTrajectory::Empty(const Eigen::Vector2d &start, Config *config)
+  GlobalGuidance::OutputTrajectory &GlobalGuidance::OutputTrajectory::Empty(const SpaceTimePoint::TVector &start, Config *config)
   {
     static std::unique_ptr<OutputTrajectory> empty_trajectory;
 
     // Make an explicit path in the x direction
+    SpaceTimePoint::TVector mid = start;
+    mid(0) += 10;
+
+    SpaceTimePoint::TVector end = start;
+    end(0) += 20;
+
     StandaloneGeometricPath path({
-        Node(1e5, SpaceTimePoint(start(0), start(1), 0), NodeType::GUARD),
-        Node(1e5 + 1, SpaceTimePoint(start(0) + 10., start(1), Config::N / 2), NodeType::GUARD),
-        Node(1e5 + 2, SpaceTimePoint(start(0) + 20., start(1), Config::N), NodeType::GUARD),
+        Node(1e5, SpaceTimePoint(start, 0), NodeType::GUARD),
+        Node(1e5 + 1, SpaceTimePoint(mid, Config::N / 2), NodeType::GUARD),
+        Node(1e5 + 2, SpaceTimePoint(end, Config::N), NodeType::GUARD),
     });
 
     empty_trajectory.reset(new OutputTrajectory(path, CubicSpline3D::Empty(start, config)));
-    // empty_trajectory.reset(new OutputTrajectory(GeometricPath(), CubicSpline3D::Empty(start, config)));
     return *empty_trajectory;
   }
 
@@ -167,6 +172,8 @@ namespace GuidancePlanner
       // Compute the normal vector to the reference path
       Eigen::Vector2d line_point = reference_path->getPoint(s);
       Eigen::Vector2d normal = reference_path->getVelocity(s).normalized();
+      double angle = reference_path->getPathAngle(s);
+
       normal = Eigen::Vector2d(-normal(1), normal(0));
 
       // Place goals orthogonally to the path
@@ -177,7 +184,16 @@ namespace GuidancePlanner
 
         double lat_cost = std::abs(j) * 1.; // Higher cost, the further away from the center line
         double cost = long_cost + lat_cost;
-        goals_.emplace_back(line_point + normal * (current_v_offset - offset + ((double)j) * v_step), cost); // Add the goal
+
+        Eigen::Vector2d res = line_point + normal * (current_v_offset - offset + ((double)j) * v_step);
+        SpaceTimePoint::TVector result;
+
+        result(0) = res(0);
+        result(1) = res(1);
+        if (SpaceTimePoint::numStates() == 3)
+          result(2) = angle;
+
+        goals_.emplace_back(result, cost);
       }
     }
   }

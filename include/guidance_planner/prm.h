@@ -68,7 +68,7 @@ namespace GuidancePlanner
     /** @brief Propagate the graph to the next iteration by lowering the time axis */
     void PropagateGraph(const std::vector<GeometricPath> &paths);
 
-    Eigen::Vector2d GetStart() const { return start_; };
+    SpaceTimePoint::TVector GetStart() const { return start_; };
     Eigen::Vector2d GetStartVelocity() const { return start_velocity_; };
     std::vector<Goal> *GetGoals() { return &goals_; }
 
@@ -131,7 +131,9 @@ namespace GuidancePlanner
 
     // Real-time data
     std::shared_ptr<Environment> environment_;
-    Eigen::Vector2d start_, start_velocity_;
+    SpaceTimePoint::TVector start_;
+    Eigen::Vector2d start_velocity_;
+
     double orientation_;
 
     std::vector<Goal> goals_;

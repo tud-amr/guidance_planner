@@ -44,7 +44,7 @@ guidance_planner:
     vertical: 3 # Number of goals in direction orthogonal to the path
 
   spline_optimization: # Settings when the splines are optimized and used as reference trajectory
-    enable: true #false
+    enable: true
     num_points: 10 # -1 = N
     geometric: 25.
     smoothness: 10.

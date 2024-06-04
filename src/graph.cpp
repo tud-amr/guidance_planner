@@ -12,25 +12,25 @@
 namespace GuidancePlanner
 {
 
-    void Graph::Initialize(const Eigen::Vector2d &start, const Eigen::Vector2d &goal)
+    void Graph::Initialize(const SpaceTimePoint::TVector &start, const Goal &goal)
     {
-        nodes_.emplace_back(-1, SpaceTimePoint(start(0), start(1), 0), NodeType::GUARD); // Add start
+        nodes_.emplace_back(-1, SpaceTimePoint(start, 0), NodeType::GUARD); // Add start
         start_node_ = &nodes_.back();
 
         goal_nodes_.clear();
-        nodes_.emplace_back(-2, SpaceTimePoint(goal(0), goal(1), Config::N), NodeType::GUARD); // Add goal
+        nodes_.emplace_back(-2, SpaceTimePoint(goal.pos, Config::N), NodeType::GUARD); // Add goal
         goal_nodes_.push_back(&nodes_.back());
     }
 
-    void Graph::Initialize(const Eigen::Vector2d &start, std::vector<Goal> &goals)
+    void Graph::Initialize(const SpaceTimePoint::TVector &start, std::vector<Goal> &goals)
     {
-        nodes_.emplace_back(-1, SpaceTimePoint(start(0), start(1), 0), NodeType::GUARD); // Add start
+        nodes_.emplace_back(-1, SpaceTimePoint(start, 0), NodeType::GUARD); // Add start
         start_node_ = &nodes_.back();
 
         goal_nodes_.clear();
         for (auto &goal : goals) // Create multiple goals
         {
-            nodes_.emplace_back(-(int)goal_nodes_.size() - 2, SpaceTimePoint(goal.pos(0), goal.pos(1), Config::N), NodeType::GOAL); // Add goal
+            nodes_.emplace_back(-(int)goal_nodes_.size() - 2, SpaceTimePoint(goal.pos, Config::N), NodeType::GOAL); // Add goal
             goal_nodes_.push_back(&nodes_.back());
             goal.node = &nodes_.back();
         }

@@ -59,8 +59,8 @@ namespace GuidancePlanner
 
       // Connect end points of a and b
       {
-        gsl_params_[0].start = a.GetEnd()->point_;
-        gsl_params_[0].end = b.GetEnd()->point_;
+        gsl_params_[0].start = a.GetEnd()->point_.PosTime();
+        gsl_params_[0].end = b.GetEnd()->point_.PosTime();
 
         // double result = 0.;
         // NumericalIntegration(result, &gsl_params_[0]);
@@ -110,8 +110,8 @@ namespace GuidancePlanner
 
       // Connect end points of a and b
       {
-        gsl_params_[0].start = a.GetEnd()->point_;
-        gsl_params_[0].end = b.GetEnd()->point_;
+        gsl_params_[0].start = a.GetEnd()->point_.PosTime();
+        gsl_params_[0].end = b.GetEnd()->point_.PosTime();
 
         double result, error;
 
@@ -300,8 +300,8 @@ namespace GuidancePlanner
       // #else
       // int thread_id = 0;
       // #endif
-      gsl_params_[thread_id].start = integration_points[n - 1];
-      gsl_params_[thread_id].end = integration_points[n];
+      gsl_params_[thread_id].start = integration_points[n - 1].PosTime();
+      gsl_params_[thread_id].end = integration_points[n].PosTime();
 
       // NumericalIntegration(results[n - 1], &gsl_params_[thread_id]);
 

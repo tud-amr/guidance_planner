@@ -79,9 +79,9 @@ namespace GuidancePlanner
     {
         Node *node = nullptr;
         double cost;
-        Eigen::Vector2d pos;
+        SpaceTimePoint::TVector pos;
 
-        Goal(const Eigen::Vector2d &_pos, const double _cost)
+        Goal(const SpaceTimePoint::TVector &_pos, const double _cost)
         {
 
             pos = _pos;

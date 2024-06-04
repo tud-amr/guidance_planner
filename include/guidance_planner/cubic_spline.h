@@ -4,6 +4,7 @@
 #include <ros_tools/spline.h>
 
 #include <guidance_planner/types/type_define.h>
+#include <guidance_planner/types/space_time_point.h>
 
 #include <vector>
 #include <Eigen/Dense>
@@ -165,7 +166,7 @@ namespace GuidancePlanner
         CubicSpline3D(const CubicSpline3D &other) = default;
 
         /** @brief Static function when an empty trajectory is needed */
-        static CubicSpline3D &Empty(const Eigen::Vector2d &start, Config *config);
+        static CubicSpline3D &Empty(const SpaceTimePoint::TVector &start, Config *config);
 
         void PadStart(const SpaceTimePoint &start_padding, const Eigen::Vector2d &previous_velocity);
 

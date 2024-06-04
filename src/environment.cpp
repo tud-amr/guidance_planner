@@ -53,8 +53,8 @@ namespace GuidancePlanner
     double A;
     double dist;
 
-    a = point_one;
-    b = point_two - point_one;
+    a = point_one.PosTime();
+    b = (point_two - point_one).PosTime();
 
     for (auto &obstacle : dynamic_obstacles_)
     {
@@ -96,18 +96,18 @@ namespace GuidancePlanner
     /** @note stepwise implementation: scales with space which is suboptimal */
     double step_size = 0.1;
 
-    Eigen::Vector3d unit_vec = Eigen::Vector3d(point_two - point_one).normalized();        // Line ab
-    int num_steps = std::floor(Eigen::Vector3d(point_two - point_one).norm() / step_size); // Step size
+    SpaceTimePoint unit_vec = point_two - point_one;
+    unit_vec.Normalize();                                                   // Line ab
+    int num_steps = std::floor((point_two - point_one).Norm() / step_size); // Step size
 
-    Eigen::Vector3d cur_vec = point_one;
+    // SpaceTimePoint cur_vec = point_one;
 
     bool result = true;
     // #pragma omp parallel for num_threads(8)
     for (int i = 1; i < num_steps; i++) // Check collision for each step in the direction a->b
     {
-      if (InCollision(SpaceTimePoint(cur_vec + unit_vec * (float)i * step_size)))
+      if (InCollision(SpaceTimePoint(SpaceTimePoint::Vector(point_one) + SpaceTimePoint::Vector(unit_vec) * (float)i * step_size)))
       {
-        // result = false;
         return false;
       }
     }
@@ -332,7 +332,6 @@ namespace GuidancePlanner
 
     for (auto &obstacle : dynamic_obstacles_)
     {
-      PRM_LOG("Obstacle path len: " << obstacle.positions_.size());
       for (int k = 0; k < Config::N + 1; k++)
         grid_.InsertObstacle((int)k, SingleObstacle(obstacle.positions_[k], obstacle.radius_));
     }

@@ -17,9 +17,15 @@ namespace GuidancePlanner
         // Check if the connection moves forward in the direction of the path
         if (config->enable_forward_filter_)
         {
-            auto projection_vec = Eigen::Vector2d(1., 0.).transpose() * RosTools::rotationMatrixFromHeading(orientation);
+            // Check if the vector from a to b is in the direction of the robot
+            Eigen::Vector2d vec_ab = b_->point_.Pos() - a_->point_.Pos();
+            Eigen::Vector2d vec_path(std::cos(orientation), std::sin(orientation));
 
-            bool forward_connection = projection_vec * b_->point_.Pos() > projection_vec * a_->point_.Pos();
+            vec_ab.normalize();
+            vec_path.normalize();
+            double dot_product = vec_ab.dot(vec_path);
+
+            bool forward_connection = dot_product >= 0.0; // This means angle <= 90 degrees
 
             if (!forward_connection)
             {
@@ -80,8 +86,16 @@ namespace GuidancePlanner
 
     DubinsConnection::DubinsConnection(Node *a, Node *b) : Connection(a, b)
     {
-        double q0[] = {a->point_.Pos()(0), a->point_.Pos()(1), 0.0};
-        double q1[] = {b->point_.Pos()(0), b->point_.Pos()(1), 0.0};
+        double angle_a = 0.; // Could use the start orientation
+        double angle_b = 0.;
+        if (a_->point_.numStates() == 3)
+        {
+            angle_a = a->point_.State()(2);
+            angle_b = b->point_.State()(2);
+        }
+
+        double q0[] = {a->point_.Pos()(0), a->point_.Pos()(1), angle_a};
+        double q1[] = {b->point_.Pos()(0), b->point_.Pos()(1), angle_b};
         double turning_radius = Config::turning_radius_; // 1.0;
 
         int result = dubins_shortest_path(&path_, q0, q1, turning_radius);
@@ -121,7 +135,22 @@ namespace GuidancePlanner
 
         double time = RosTools::InterpolateLinearly(0., length_, s, a_->point_.Time(), b_->point_.Time());
 
-        return SpaceTimePoint(out[0], out[1], time);
+        SpaceTimePoint result;
+
+        result(0) = out[0];
+        result(1) = out[1];
+
+        if (a_->point_.numStates() == 3)
+        {
+            result(2) = out[2]; // Orientation
+            result(3) = time;
+        }
+        else
+        {
+            result(2) = time;
+        }
+
+        return result;
     }
 
     bool DubinsConnection::isValid(Config *config, double orientation) const

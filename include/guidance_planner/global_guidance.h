@@ -127,7 +127,7 @@ namespace GuidancePlanner
 
     Config *GetConfig() const { return config_.get(); };
 
-    Eigen::Vector2d GetStart() const { return prm_.GetStart(); };                 /** @brief Get the start position */
+    SpaceTimePoint::TVector GetStart() const { return prm_.GetStart(); };         /** @brief Get the start position */
     Eigen::Vector2d GetStartVelocity() const { return prm_.GetStartVelocity(); }; /** @brief Get the start velocity */
 
   private:

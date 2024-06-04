@@ -638,12 +638,19 @@ void ControlPoints::PadEnd(const SpaceTimePoint &end_padding)
   t_end_.push_back(end_padding.Time() * Config::DT);
 }
 
-CubicSpline3D &CubicSpline3D::Empty(const Eigen::Vector2d &start, Config *config)
+CubicSpline3D &CubicSpline3D::Empty(const SpaceTimePoint::TVector &start, Config *config)
 {
   // Get some points close to the start
   static Node a(-1, {start(0), start(1), 0.}, NodeType::NONE);
   static Node mid(-1, {start(0) + 0.005, start(1), (double)Config::N / 2}, NodeType::NONE);
   static Node b(-1, {start(0) + 0.01, start(1), (double)Config::N}, NodeType::NONE); // Small forward deviation to make the path valid
+  // static Node a(-1, {start(0), start(1), 0., 0.}, NodeType::NONE);
+  // static Node mid(-1, {start(0) + 0.005, start(1), 0., (double)Config::N / 2}, NodeType::NONE);
+  // static Node b(-1, {start(0) + 0.01, start(1), 0., (double)Config::N}, NodeType::NONE); // Small forward deviation to make the path valid
+
+  // static Node a(-1, SpaceTimePoint(start, 0), NodeType::NONE);
+  // static Node mid(-1, SpaceTimePoint(start + SpaceTimePoint::TVector::Ones(SpaceTimePoint::numStates()) * 0.005, Config::N / 2), NodeType::NONE);
+  // static Node b(-1, SpaceTimePoint(start + SpaceTimePoint::TVector::Ones(SpaceTimePoint::numStates()) * 0.01, Config::N), NodeType::NONE); // Small forward deviation to make the path valid
 
   // Create a path
   std::vector<Node *> nodes;

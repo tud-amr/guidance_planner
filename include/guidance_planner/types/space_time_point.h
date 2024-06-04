@@ -17,14 +17,23 @@ namespace GuidancePlanner
         typedef Eigen::Matrix<double, T, 1> TVector;
         typedef Eigen::Matrix<double, P, 1> PVector;
 
+        typedef Eigen::Matrix<double, P + 1, 1> PosTimeVector;
+
     private:
         Vector _vec; // Last element is time [s]
 
     public:
         SpaceTimePointDim(){};
 
-        // SpaceTimePointDim(const Eigen::Matrix<double, T, 1> &vector) { _vec = vector; } // From vector
         SpaceTimePointDim(const Vector &vector) { _vec = vector; } // From vector
+
+        SpaceTimePointDim(const TVector &state_vector, int time)
+        {
+            for (int i = 0; i < T; i++)
+                _vec(i) = state_vector(i);
+
+            _vec(T) = time;
+        }
 
         // Variable number of doubles
         template <typename... Args>
@@ -55,6 +64,13 @@ namespace GuidancePlanner
         TVector State() const { return _vec.block(0, 0, T - 1, 1); }
         void SetState(const TVector &val) const { _vec.block(0, 0, T - 1, 1) = val; }
 
+        PosTimeVector PosTime() const
+        {
+            PosTimeVector result = _vec.block(0, 0, P + 1, 1); // Retrieve Position + 1 State or Time
+            result(P) = _vec(T);                               // Set Time to be the last
+            return result;
+        }
+
         PVector Pos() const { return _vec.block(0, 0, P, 1); }
         void SetPos(const PVector &val) { _vec.block(0, 0, P, 1) = val; }
 
@@ -63,6 +79,7 @@ namespace GuidancePlanner
         void SetTime(double time) { _vec(T) = time; }
 
         double Norm() const { return _vec.norm(); }
+        void Normalize() { _vec.normalize(); }
 
         double &operator()(int i) { return _vec(i); }
 
@@ -90,10 +107,10 @@ namespace GuidancePlanner
         }
 
         // Const version (scale this vectors time axis with DT), i.e., map to time in seconds
-        Vector MapToTime() const
+        PosTimeVector MapToTime() const
         {
-            Vector copied_vec = _vec;
-            copied_vec(T) *= Config::DT;
+            PosTimeVector copied_vec = PosTime();
+            copied_vec(P) *= Config::DT;
             return copied_vec;
         }
 

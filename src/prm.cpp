@@ -28,6 +28,7 @@ namespace GuidancePlanner
     config_ = config;
 
     graph_.reset(new Graph(config));
+
     environment_ = std::make_shared<Environment>();
     environment_->Init();
 
@@ -77,14 +78,19 @@ namespace GuidancePlanner
     }
 
     /* Start */
-    start_ = start;
     orientation_ = orientation;
     start_velocity_ = velocity;
 
-    SpaceTimePoint start_point(start_(0), start_(1), 0.);
-    environment_->ProjectToFreeSpace(start_point, 0.1);
-    start_(0) = start_point.Pos()(0);
-    start_(1) = start_point.Pos()(1);
+    SpaceTimePoint start_copy;
+    start_copy.SetPos(start);
+    start_copy.SetTime(0);
+
+    if (SpaceTimePoint::numStates() == 3)
+      start_copy(2) = orientation;
+
+    environment_->ProjectToFreeSpace(start_copy, 0.1);
+
+    start_ = start_copy.State();
 
     /* Goal */
     // Add goals that are collision free
@@ -95,15 +101,16 @@ namespace GuidancePlanner
       for (auto &goal : goals)
       {
 
-        Eigen::Vector2d goal_copy = goal.pos;                        // Need to copy, because goal is const
-        environment_->ProjectToFreeSpace(goal_copy, Config::N, 0.5); // Project the goal if it is in collision
-        if (environment_->InCollision(SpaceTimePoint(goal_copy(0), goal_copy(1), Config::N)))
+        SpaceTimePoint goal_copy(goal.pos, Config::N); // Copy
+
+        environment_->ProjectToFreeSpace(goal_copy, 0.5); // Project the goal if it is in collision
+        if (environment_->InCollision(goal_copy))
         {
           PRM_LOG("Rejecting a goal (it is in collision after projection).");
         }
         else
         {
-          goals_.emplace_back(goal_copy, goal.cost);
+          goals_.emplace_back(goal_copy.State(), goal.cost);
         }
         goal_i++;
       }
@@ -115,7 +122,7 @@ namespace GuidancePlanner
 
     PRM_LOG(goals_.size() << " Collision-free goals were received");
 
-    sampler_->SetRange(start_, goals_);
+    sampler_->SetRange(Eigen::Vector2d(start_(0), start_(1)), goals_);
   }
 
   Graph &PRM::Update()
@@ -257,7 +264,8 @@ namespace GuidancePlanner
 
       // Get a new sample (either from the previous iteration, or a new one)
       // Sample &sample = sample_is_from_previous_iteration ? prev_node : sampler_->SampleUniformly(i);
-      Sample &sample = sampler_->SampleUniformly(i);
+      Sample &sample = SpaceTimePoint::numStates() == 3 ? sampler_->SampleUniformlyWithOrientation(i) : sampler_->SampleUniformly(i);
+
       if (sample_is_from_previous_iteration)
         sample.point = previous_nodes_[i].point_;
 
