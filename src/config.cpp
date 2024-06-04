@@ -16,6 +16,7 @@ namespace GuidancePlanner
   int Config::N = 20;
 
   bool Config::use_non_passing_ = false;
+  bool Config::use_dubins_path_ = false;
   double Config::reference_velocity_ = 2.0; // Is updated based on rqt_reconfigure
   double Config::turning_radius_ = 0.5;     // Is updated based on rqt_reconfigure
 
@@ -54,6 +55,7 @@ namespace GuidancePlanner
     retrieveParameter(node, "guidance_planner/predictions_are_constant_velocity", assume_constant_velocity_);
 
     retrieveParameter(node, "guidance_planner/dynamics/connections", connection_type_, std::string("Straight"));
+    Config::use_dubins_path_ = connection_type_ == "Dubins";
     retrieveParameter(node, "guidance_planner/dynamics/turning_radius", Config::turning_radius_, 0.5);
 
     retrieveParameter(node, "guidance_planner/goals/longitudinal", longitudinal_goals_);

@@ -740,7 +740,7 @@ namespace GuidancePlanner
   void GlobalGuidance::VisualizePath(RosTools::ROSLine &line, GeometricPath &path)
   {
     for (auto &connection : path.GetConnections())
-      line.addLine(connection.getStart()->point_.MapToTime(), connection.getEnd()->point_.MapToTime());
+      line.addLine(connection->getStart()->point_.MapToTime(), connection->getEnd()->point_.MapToTime());
   }
 
   void GlobalGuidance::VisualizeGeometricPaths(int path_nr)

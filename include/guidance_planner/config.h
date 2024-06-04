@@ -60,6 +60,7 @@ namespace GuidancePlanner
 
     bool use_learning;
     static bool use_non_passing_;
+    static bool use_dubins_path_;
 
     // Topology
     std::string topology_comparison_function_;

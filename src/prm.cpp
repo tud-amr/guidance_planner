@@ -33,6 +33,11 @@ namespace GuidancePlanner
 
     sampler_ = std::make_shared<Sampler>(config_);
 
+    if (Config::use_dubins_path_)
+      LOG_VALUE("Connection Type", "Dubins Path");
+    else
+      LOG_VALUE("Connection Type", "Straight Path");
+
     if (config_->topology_comparison_function_ == "UVD")
     {
       topology_comparison_.reset(new UVD());
@@ -54,7 +59,6 @@ namespace GuidancePlanner
       topology_comparison_.reset(new Homology(config_->assume_constant_velocity_));
       LOG_VALUE("Topology Comparison", "Homology");
     }
-    // debug_benchmarker_.reset(new RosTools::Benchmarker("Homology Comparison"));
 
     done_ = false;
   }
@@ -224,16 +228,6 @@ namespace GuidancePlanner
           graph_->goal_nodes_[valid_goal_index + 1] = temp;
         }
       }
-      // else if (visible_goals.size() > 1 && visible_guards.size() == 1) // We connect a guard with more than one goal
-      // {
-      //   PRM_LOG("New sample connects to more than one goal");
-      //   Node new_node = sample_is_from_previous_iteration ? Node(graph_->GetNodeID(), previous_nodes_[i])
-      //                                                     : Node(graph_->GetNodeID(), sample.point, NodeType::CONNECTOR);
-
-      //   Node *goal = FindTopologyDistinctGoalConnection(new_node, visible_guards, visible_goals);
-      //   if (goal != nullptr)
-      //     AddSample(i, sample.point, {visible_guards[0], goal}, sample_is_from_previous_iteration);
-      // }
     }
 
     PRM_LOG("Visibility-PRM Graph Done.");
@@ -384,43 +378,18 @@ namespace GuidancePlanner
     propagated_node.point_.Time() = node.point_.Time() - (Config::CONTROL_DT / Config::DT); // Drop by however much discrete steps we
                                                                                             // are moving in one control iteration
 
-    // if (propagated_node.point_.Pos()(0) < start_(0))
-    // {
-    // previous_nodes_.pop_back();
-    // return;
-    // }
-
     // If a node hits the floor when it belongs to a path, then we should resample to ensure that the path remains valid
     if (propagated_node.point_.Time() < 1)
     {
       if (propagated_node.type_ == NodeType::CONNECTOR && path != nullptr) // Resample connectors
       {
-        // Find the first node in the path that is not our current node
-        // bool found_first_node = false;
-        // int first_node_id = 1; // Skip the start
-        // for (; first_node_id < (int)path->nodes_.size(); first_node_id++)
-        // {
-        //   if (path->nodes_[first_node_id]->id_ != node.id_)
-        //   {
-        //     found_first_node = true;
-        //     break;
-        //   }
-        // }
-        // ROSTOOLS_ASSERT(found_first_node, "Did not find the first next node in the path when resampling a previous node");
+
         int first_node_id = 2; // Cannot be the start, cannot be the first connector
-        // auto *next_node = path->nodes_[first_node_id];
-        auto *next_node = path->GetConnections()[0].getEnd();
+        auto *next_node = path->GetConnections()[0]->getEnd();
 
         // Sample halfway up to the next node (0.5(T2 + T1) / (T_end - T_start)) \in [0, 1]
         propagated_node.point_ = (*path)((0.5 * (next_node->point_.Time() + node.point_.Time())) /
                                          (path->EndTimeIndex() - path->StartTimeIndex()));
-
-        // Node replacement_node(graph_->GetNodeID(), new_sample, NodeType::CONNECTOR); // Replace the node
-        // replacement_node.belongs_to_path_ = propagated_node.belongs_to_path_;
-
-        // // Remove the previous node and add the replacement
-        // previous_nodes_.pop_back();
-        // previous_nodes_.push_back(replacement_node);
       }
       else
       {
@@ -432,29 +401,8 @@ namespace GuidancePlanner
 
   bool PRM::IsGoalVisible(SpaceTimePoint sample, int goal_index) const
   {
-
     Node *goal_node = graph_->goal_nodes_[goal_index];
     return environment_->IsVisible(sample, goal_node->point_);
-    // int local_goal_index = 0;
-    // for (Node &node : graph_->nodes_)
-    // {
-    //   if (node.type_ == NodeType::GOAL)
-    //   {
-
-    // if (goal_index == local_goal_index)
-    // {
-    //   if (environment_->IsVisible(sample, node.point_))
-    //   {
-    //     if (node.type_ == NodeType::GUARD)
-    //       visible_guards.push_back(&node);
-    //     else
-    //       visible_goals.push_back(&node);
-    //   }
-    // }
-    // }
-    // }
-
-    // PRM_LOG(visible_guards.size() << " guards and " << visible_goals.size() << " goals visible");
   }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards)

@@ -16,12 +16,13 @@ namespace GuidancePlanner
         std::sort(sorted_nodes.begin(), sorted_nodes.end(), [](const Node *a, const Node *b)
                   { return a->point_.Time() < b->point_.Time(); });
 
-        // nodes_ = sorted_nodes;
-
         for (size_t i = 1; i < sorted_nodes.size(); i++)
         {
             // Connect the nodes
-            connections_.emplace_back(sorted_nodes[i - 1], sorted_nodes[i]);
+            if (Config::use_dubins_path_)
+                connections_.push_back(std::make_shared<DubinsConnection>(sorted_nodes[i - 1], sorted_nodes[i]));
+            else
+                connections_.push_back(std::make_shared<StraightConnection>(sorted_nodes[i - 1], sorted_nodes[i]));
         }
 
         ComputeDistanceVector();
@@ -43,8 +44,8 @@ namespace GuidancePlanner
             if (s <= aggregated_distances_[c + 1])
             {
                 double local_s = s - aggregated_distances_[c];
-                local_s = local_s / connections_[c].length();
-                return connections_[c].operator()(local_s);
+                local_s = local_s / connections_[c]->length();
+                return connections_[c]->operator()(local_s);
             }
         }
 
@@ -65,7 +66,7 @@ namespace GuidancePlanner
         // Check all connections
         for (auto &connection : connections_)
         {
-            if (!connection.isValid(config, start_orientation))
+            if (!connection->isValid(config, start_orientation))
             {
                 valid_ = false;
                 return false;
@@ -90,15 +91,15 @@ namespace GuidancePlanner
 
             std::vector<double> x = {
                 GetStart()->point_.Pos()(0),
-                connections_[0].getEnd()->point_.Pos()(0),
+                connections_[0]->getEnd()->point_.Pos()(0),
                 GetEnd()->point_.Pos()(0)};
             std::vector<double> y = {
                 GetStart()->point_.Pos()(1),
-                connections_[0].getEnd()->point_.Pos()(1),
+                connections_[0]->getEnd()->point_.Pos()(1),
                 GetEnd()->point_.Pos()(1)};
             std::vector<double> t = {
                 GetStart()->point_.Time() * Config::DT,
-                connections_[0].getEnd()->point_.Time() * Config::DT,
+                connections_[0]->getEnd()->point_.Time() * Config::DT,
                 GetEnd()->point_.Time() * Config::DT};
 
             // Construct a spline (with initial velocity if starting at t = 0)
@@ -130,9 +131,9 @@ namespace GuidancePlanner
         std::vector<Node *> nodes;
         for (auto &connection : connections_)
         {
-            nodes.push_back(connection.getStart());
+            nodes.push_back(connection->getStart());
         }
-        nodes.push_back(connections_.back().getEnd());
+        nodes.push_back(connections_.back()->getEnd());
 
         return nodes;
     }
@@ -142,7 +143,7 @@ namespace GuidancePlanner
         std::vector<SpaceTimePoint> integration_nodes;
         for (size_t c = 0; c < connections_.size(); c++)
         {
-            connections_[c].getIntegrationNodes(c == 0, integration_nodes);
+            connections_[c]->getIntegrationNodes(c == 0, integration_nodes);
         }
         return integration_nodes;
     }
@@ -157,14 +158,14 @@ namespace GuidancePlanner
 
         for (size_t i = 0; i < connections_.size(); i++)
         {
-            while (cur_k < connections_[i].getEnd()->point_.Time())
+            while (cur_k < connections_[i]->getEnd()->point_.Time())
             {
                 points.emplace_back(RosTools::InterpolateLinearly(
-                    connections_[i].getStart()->point_.Time(),
-                    connections_[i].getEnd()->point_.Time(),
+                    connections_[i]->getStart()->point_.Time(),
+                    connections_[i]->getEnd()->point_.Time(),
                     cur_k,
-                    connections_[i].getStart()->point_.Pos(),
-                    connections_[i].getEnd()->point_.Pos()));
+                    connections_[i]->getStart()->point_.Pos(),
+                    connections_[i]->getEnd()->point_.Pos()));
 
                 cur_k++;
             }
@@ -183,7 +184,7 @@ namespace GuidancePlanner
     {
         double length = 0.;
         for (auto &connection : connections_)
-            length += connection.lengthWithTime(); // Length including the time dimension
+            length += connection->lengthWithTime(); // Length including the time dimension
         return length;
     }
 
@@ -220,7 +221,7 @@ namespace GuidancePlanner
         std::vector<Eigen::Vector3d> result;
 
         for (auto &connection : connections_)
-            result.emplace_back(connection.getStart()->point_);
+            result.emplace_back(connection->getStart()->point_);
 
         result.emplace_back(GetEnd()->point_);
         return result;
@@ -230,7 +231,7 @@ namespace GuidancePlanner
     {
         for (auto &connection : connections_)
         {
-            if (connection.getStart()->id_ == node.id_)
+            if (connection->getStart()->id_ == node.id_)
                 return true;
         }
         if (GetEnd()->id_ == node.id_)
@@ -251,13 +252,13 @@ namespace GuidancePlanner
         double cur_dist = 0.;
         for (auto &connection : connections_)
         {
-            cur_dist += connection.length();
+            cur_dist += connection->length();
             aggregated_distances_.push_back(cur_dist);
         }
     }
 
-    Node *GeometricPath::GetStart() const { return connections_[0].getStart(); }
-    Node *GeometricPath::GetEnd() const { return connections_.back().getEnd(); }
+    Node *GeometricPath::GetStart() const { return connections_[0]->getStart(); }
+    Node *GeometricPath::GetEnd() const { return connections_.back()->getEnd(); }
 
     bool operator==(const GeometricPath &a, const GeometricPath &b)
     {
@@ -268,15 +269,15 @@ namespace GuidancePlanner
         for (size_t i = 0; i < a.GetConnections().size(); i++)
         {
             // If we do not have two goals (they are always equal)
-            if (!(a.GetConnections()[i].getStart()->type_ == NodeType::GOAL &&
-                  b.GetConnections()[i].getStart()->type_ == NodeType::GOAL))
+            if (!(a.GetConnections()[i]->getStart()->type_ == NodeType::GOAL &&
+                  b.GetConnections()[i]->getStart()->type_ == NodeType::GOAL))
             {
-                if (a.GetConnections()[i].getStart()->id_ != b.GetConnections()[i].getStart()->id_) // Then if they do not have the same ID, these are not the same paths!
+                if (a.GetConnections()[i]->getStart()->id_ != b.GetConnections()[i]->getStart()->id_) // Then if they do not have the same ID, these are not the same paths!
                     return false;
 
                 if (i == a.GetConnections().size() - 1)
                 {
-                    if (a.GetConnections()[i].getEnd()->id_ != b.GetConnections()[i].getEnd()->id_) // Then if they do not have the same ID, these are not the same paths!
+                    if (a.GetConnections()[i]->getEnd()->id_ != b.GetConnections()[i]->getEnd()->id_) // Then if they do not have the same ID, these are not the same paths!
                         return false;
                 }
             }
@@ -290,7 +291,7 @@ namespace GuidancePlanner
         stream << "Path: [";
         for (auto &connection : path.GetConnections())
         {
-            stream << *connection.getStart() << ", ";
+            stream << *connection->getStart() << ", ";
         }
         stream << *path.GetEnd() << ", ";
         stream << "\b\b]";

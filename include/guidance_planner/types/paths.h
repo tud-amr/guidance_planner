@@ -7,8 +7,6 @@
 
 namespace GuidancePlanner
 {
-  typedef StraightConnection PathConnection;
-  // typedef DubinsConnection PathConnection;
 
   /** @brief A path that connects several nodes */
   struct GeometricPath
@@ -56,7 +54,7 @@ namespace GuidancePlanner
     Node *GetStart() const;
     Node *GetEnd() const;
 
-    const std::vector<PathConnection> &GetConnections() const { return connections_; }
+    const std::vector<std::shared_ptr<Connection>> &GetConnections() const { return connections_; }
     std::vector<Node *> GetNodes() const;
     std::vector<SpaceTimePoint> GetIntegrationNodes() const;
 
@@ -74,7 +72,7 @@ namespace GuidancePlanner
 
     void ComputeDistanceVector();
 
-    std::vector<PathConnection> connections_;
+    std::vector<std::shared_ptr<Connection>> connections_;
     bool validity_checked_{false};
     bool valid_{false};
   };
