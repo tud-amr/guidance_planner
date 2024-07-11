@@ -31,6 +31,8 @@ namespace GuidancePlanner
 
     if (config_->sampling_function_ == "Uniform")
       sampling_function_ = &PRM::SampleUniformly3D;
+    else if (config_->sampling_function_ == "Uniform Path")
+      sampling_function_ = &PRM::SampleUniformly3DReferencePath;
 
     if (config_->topology_comparison_function_ == "UVD")
     {
@@ -125,6 +127,17 @@ namespace GuidancePlanner
       LOG_WARN("The x range of sampling is zero (goal and start on a line) please use config_->sample_margin_ > 0.");
     if (std::abs(range_y_) < 1e-3 && config_->sample_margin_ == 0.)
       LOG_WARN("The y range of sampling is zero please use config_->sample_margin_ > 0.");
+  }
+
+  void PRM::LoadReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
+                              const double cur_s, const double max_s, const double width)
+  {
+    reference_path_ = reference_path;
+    min_s_ = cur_s;
+    range_s_ = max_s - cur_s;
+
+    min_lat_ = -width / 2.;
+    range_lat_ = width;
   }
 
   Graph &PRM::Update()
@@ -406,6 +419,20 @@ namespace GuidancePlanner
     return SpaceTimePoint(min_x_ + random_generator_.Double() * range_x_,
                           min_y_ + random_generator_.Double() * range_y_,
                           random_generator_.Int(Config::N - 2) + 1);
+  }
+  SpaceTimePoint PRM::SampleUniformly3DReferencePath()
+  {
+    if (reference_path_ == nullptr)
+    {
+      LOG_WARN("Reference path not supplied for sampling");
+      return SampleUniformly3D();
+    }
+    double s = min_s_ + random_generator_.Double() * range_s_;
+    double y_dev = min_lat_ + random_generator_.Double() * range_lat_;
+
+    Eigen::Vector2d point = reference_path_->getPoint(s) + reference_path_->getOrthogonal(s) * y_dev;
+
+    return SpaceTimePoint(point(0), point(1), random_generator_.Int(Config::N - 2) + 1);
   }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals)

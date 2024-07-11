@@ -61,6 +61,9 @@ namespace GuidancePlanner
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals);
 
+    void LoadReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path, const double cur_s,
+                           const double max_s, const double width);
+
     void SetPRMSamplingFunction(SamplingFunction sampling_function) { sampling_function_ = sampling_function; }
 
     void DoNotPropagateNodes() { do_not_propagate_nodes_ = true; };
@@ -100,7 +103,7 @@ namespace GuidancePlanner
     /** @brief Sample a new random point */
     SpaceTimePoint SampleNewPoint();
     SpaceTimePoint SampleUniformly3D();
-
+    SpaceTimePoint SampleUniformly3DReferencePath();
     void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
     Node *FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
 
@@ -133,6 +136,8 @@ namespace GuidancePlanner
     std::unique_ptr<Graph> graph_;                            // PRM Graph
     std::unique_ptr<TopologyComparison> topology_comparison_; // H-invariant or UVD comparison
 
+    std::shared_ptr<RosTools::Spline2D> reference_path_;
+
     SamplingFunction sampling_function_; /** @note Samples are relative to start position and orientation */
 
     RosTools::RandomGenerator random_generator_; // Used to generate samples
@@ -146,6 +151,7 @@ namespace GuidancePlanner
 
     std::vector<Goal> goals_;
     double min_x_ = 0, min_y_ = 0, range_x_ = 1, range_y_ = 1;
+    double min_s_ = 0, min_lat_ = 0, range_s_ = 1, range_lat_ = 1;
 
     std::vector<SpaceTimePoint> samples_;
     std::vector<bool> sample_succes_;

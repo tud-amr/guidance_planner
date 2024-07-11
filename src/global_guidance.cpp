@@ -115,6 +115,15 @@ namespace GuidancePlanner
     static_obstacles_ = static_obstacles;
   }
 
+  void GlobalGuidance::SupplyReferencePath(double spline_start,
+                                           const std::shared_ptr<RosTools::Spline2D> &reference_path,
+                                           double road_width)
+  {
+    double s_best = spline_start + Config::DT * (double)Config::N * config_->reference_velocity_;
+
+    prm_.LoadReferencePath(reference_path, spline_start, s_best, road_width);
+  }
+
   void GlobalGuidance::LoadReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width)
   {
     LoadReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
@@ -175,6 +184,8 @@ namespace GuidancePlanner
         goals_.emplace_back(line_point + normal * (current_v_offset - offset + ((double)j) * v_step), cost); // Add the goal
       }
     }
+
+    prm_.LoadReferencePath(reference_path, s_start, s_best, width);
   }
 
   void GlobalGuidance::SetGoals(const std::vector<Goal> &goals)
