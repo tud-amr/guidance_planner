@@ -47,7 +47,7 @@ namespace GuidancePlanner
 
     /** @brief Additional configuration */
     // void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
-    void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = reference_velocity; }
+    void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = std::max(reference_velocity, 0.25); }
     void SetTrackOnlyTheSelectedHomology() { config_->track_selected_homology_only_ = true; }
     void SetPlanningFrequency(double f) { config_->CONTROL_DT = 1. / f; }
     void DoNotPropagateNodes() { prm_.DoNotPropagateNodes(); }
