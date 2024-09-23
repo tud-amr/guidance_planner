@@ -1,37 +1,5 @@
-// #include <ros/ros.h>
-// #include <guidance_planner/types/types.h>
-// #include <guidance_planner/types/paths.h>
-
-// using namespace GuidancePlanner;
-
-// int main(int argc, char **argv)
-// {
-//     ros::init(argc, argv, ros::this_node::getName());
-
-//     SpaceTimePoint a(0, 0, 0);
-//     SpaceTimePoint b(1., 0, 5);
-//     SpaceTimePoint c(5., 0, 20);
-
-//     Node node_a(1, a, NodeType::GUARD);
-//     Node node_b(2, b, NodeType::CONNECTOR);
-//     Node node_c(3, c, NodeType::GOAL);
-
-//     std::cout << node_a << std::endl;
-//     std::cout << node_b << std::endl;
-//     std::cout << node_c << std::endl;
-
-//     GeometricPath p({&node_a, &node_b, &node_c});
-//     std::cout << p.Length2D() << std::endl;
-//     std::cout << p.Length3D() << std::endl;
-// }
-/** @brief ======================= */
-
 #include <ros/ros.h>
-
 #include <guidance_planner/global_guidance.h>
-
-// Reading from file
-// #include <20_ts/read_scenario.h>
 
 #include <ros_tools/profiling.h>
 #include <ros_tools/logging.h>
@@ -47,10 +15,6 @@ bool replan_ = false;
 
 std::string obstacle_source = "Random";
 // std::string obstacle_source = "Manual";
-// std::string obstacle_source = "File";
-
-int count = 0;
-int file_id = 15;
 
 /** @brief Define obstacles manually */
 void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
@@ -89,22 +53,6 @@ void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
     }
 }
 
-void FileObstacles(GlobalGuidance &guidance, std::vector<GuidancePlanner::Obstacle> &obstacles)
-{
-    int num_files = 80;
-    obstacles.clear();
-
-    if (count % 10 == 0)
-    {
-        file_id++;
-        if (file_id >= num_files)
-            file_id = file_id % num_files;
-    }
-    // ReadFile("scenario_" + std::to_string(file_id) + ".bin", guidance, obstacles);
-
-    count++;
-}
-
 int main(int argc, char **argv)
 {
 
@@ -125,34 +73,39 @@ int main(int argc, char **argv)
     std::vector<Obstacle> obstacles;
 
     /** @brief Static obstacles: Ax <= b */
-    std::vector<Halfspace> static_obstacles;
-    static_obstacles.resize(2);
-    static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
-    static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
+    std::vector<Halfspace> static_obstacles; /** @todo: Fix! */
+    // static_obstacles.resize(2);
+    // static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
+    // static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
 
     /** @brief Set the robot position */
     guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.); // Position, yaw angle, velocity magnitude
 
     /** @brief Set the goals for the planner */
-    std::vector<Goal> goals;
+    bool use_reference_path = true;
 
-    // Using explicit goals
-    // goals.emplace_back(Eigen::Vector2d(6., 0.), 1.); // x = 6, y = 0, cost = 1
-    // goals.emplace_back(Eigen::Vector2d(8., 0.), 1.); // x = 8, y = 0, cost = 1
-    // guidance.SetGoals(goals);
-
-    // Using a reference path
-    // Construct a spline in x, y
-    if (obstacle_source != "File")
+    if (use_reference_path)
     {
+        // Using a reference path in 2D as a RosTools::Spline2D object
+        // Construct a spline in x, y
         std::vector<double> xx, yy;
         xx = {0., 2., 4., 6., 8., 10.};
         yy = {0., 0., 0., 0., 0., 0.};
         std::shared_ptr<RosTools::Spline2D> reference_path = std::make_shared<RosTools::Spline2D>(xx, yy);
 
-        double distance_on_spline = 0.;
-        guidance.LoadReferencePath(distance_on_spline, reference_path, 6.);
+        double distance_on_spline = 0.; // Where we are on the spline
+        double road_width = 6.;
+        guidance.LoadReferencePath(distance_on_spline, reference_path, road_width);
     }
+    else
+    {
+        // Using explicit goals as a set of 2D points with costs
+        std::vector<Goal> goals;
+        goals.emplace_back(Eigen::Vector2d(6., 0.), 1.); // x = 6, y = 0, cost = 1
+        goals.emplace_back(Eigen::Vector2d(8., 0.), 1.); // x = 8, y = 0, cost = 1
+        guidance.SetGoals(goals);
+    }
+
     // ----------------------------
     auto &benchmarker = BENCHMARKERS.getBenchmarker("Guidance Planning");
 
@@ -163,23 +116,17 @@ int main(int argc, char **argv)
         ROS_WARN("Updating Guidance");
         if (obstacle_source == "Random")
             RandomizeObstacles(obstacles);
-        else if (obstacle_source == "File")
-        {
-            FileObstacles(guidance, obstacles);
-            ros::spinOnce();
-            rate.sleep();
-
-            continue;
-        }
         else
             ManualObstacles(obstacles);
 
         benchmarker.start();
-        // Normally: load the start and goals in each timestep
+
+        // Normally: load here the start and goals in each timestep
+
         // Then, load the obstacles
         guidance.LoadObstacles(obstacles, static_obstacles);
 
-        // Update (i.e., compute) the guidance trajectories
+        // Compute the guidance trajectories
         guidance.Update();
 
         benchmarker.stop();
@@ -200,7 +147,8 @@ int main(int argc, char **argv)
             }
             RosTools::Spline2D guidance_path = guidance_spline.GetPath(); // Retrieves the path: s -> (x, y)
 
-            /** @note If you decide on a used path, you can provide this feedback to the guidance planner and it will remember which path is best */
+            /** @note If you decide on a trajectory to execute, you can provide this feedback to the guidance planner
+             *  and it will remember which path is best and prioritize finding it in the next iteration.*/
             // int used_trajectory_id = guidance.GetUsedTrajectory()
             // guidance.SetUsedTrajectory(int spline_id);
         }
