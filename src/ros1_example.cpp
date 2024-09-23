@@ -73,10 +73,9 @@ int main(int argc, char **argv)
     std::vector<Obstacle> obstacles;
 
     /** @brief Static obstacles: Ax <= b */
-    std::vector<Halfspace> static_obstacles; /** @todo: Fix! */
-    // static_obstacles.resize(2);
-    // static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
-    // static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
+    std::vector<Halfspace> static_obstacles;
+    static_obstacles.emplace_back(Eigen::Vector2d(0., 1.), 10.);  // y <= 10
+    static_obstacles.emplace_back(Eigen::Vector2d(0., -1.), 10.); // y >= -10
 
     /** @brief Set the robot position */
     guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.); // Position, yaw angle, velocity magnitude
