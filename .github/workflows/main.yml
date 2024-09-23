@@ -1,0 +1,39 @@
+name: ROS CI - Build Specific Node
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      ROS_DISTRO: "noetic"
+    
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Step 2: Set up ROS environment
+      - name: Setup ROS
+        run: |
+          sudo apt update -qq
+          sudo apt install -y curl gnupg2 lsb-release
+          sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros-latest.list'
+          sudo curl -sSL http://repo.ros2.org/repos.key | sudo apt-key add -
+          sudo apt update -qq
+          sudo apt install -y ros-noetic-desktop-full
+          source /opt/ros/noetic/setup.bash
+          sudo apt install -y python-rosdep
+          sudo rosdep init || true
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+          
+      # Build using catkin_make (for ROS1)
+      - name: Build the ROS node (ROS1)
+        run: |
+          source /opt/ros/noetic/setup.bash
+          catkin_make --pkg guidance_planner
+
+
+
