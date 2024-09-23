@@ -7,37 +7,36 @@ on: # rebuild any PRs and main branch changes
       - main
 
 jobs:
-  build:
+  industrial_ci:
+    name: ROS ${{ matrix.ROS_DISTRO }} (${{ matrix.ROS_REPO }})
     runs-on: ubuntu-latest
-    
-    env:
-      ROS_DISTRO: "noetic"
-    
+    strategy:
+      fail-fast: false # uncomment if failing jobs should not cancel the others immediately
+      matrix: # matrix is the product of entries
+        ROS_DISTRO: [noetic]
+        ROS_REPO: [main]
+        # exclude: # specific configuration can be excludes
+        #   - {ROS_DISTRO: melodic, ROS_REPO: testing}
+        # include: # add additional configurations
+          # - {ROS_DISTRO: kinetic, ROS_REPO: testing}
+    # env:
+    #   CCACHE_DIR: "${{ github.workspace }}/.ccache" # directory for ccache (and how we enable ccache in industrial_ci)
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      # Step 2: Set up ROS environment
-      - name: Setup ROS
-        run: |
-          sudo apt update -qq
-          sudo apt install -y curl gnupg2 lsb-release
-          sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-          curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-          sudo apt update -qq
-          sudo apt install -y ros-noetic-desktop-full
-          source /opt/ros/noetic/setup.bash
-          # sudo apt install -y python-rosdep
-          sudo rosdep init || true
-          rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
-          
-      # Build using catkin_make (for ROS1)
-      - name: Build the ROS node (ROS1)
-        run: |
-          source /opt/ros/noetic/setup.bash
-          catkin_make --pkg guidance_planner
-
+      - uses: actions/checkout@v4 # clone target repository
+      # - uses: actions/cache@v2 # fetch/store the directory used by ccache before/after the ci run
+      #   with:
+      #     path: ${{ env.CCACHE_DIR }}
+      #     # This configuration will always create a new ccache cache starting off from the previous one (if any).
+      #     # In this simple version it will be shared between all builds of the same ROS_REPO and ROS_REPO
+      #     # and might need some fine-tuning to match the use case
+      #     key: ccache-${{ matrix.ROS_DISTRO }}-${{ matrix.ROS_REPO }}-${{github.run_id}}
+      #     restore-keys: |
+      #       ccache-${{ matrix.ROS_DISTRO }}-${{ matrix.ROS_REPO }}-
+      - uses: 'ros-industrial/industrial_ci@master' # run industrial_ci
+        env: # either pass all entries explicitly
+          ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
+          ROS_REPO: ${{ matrix.ROS_REPO }}
+        # with: # or pass the full matrix as config
+        #    config: ${{toJSON(matrix)}}
 
 
