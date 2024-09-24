@@ -1,15 +1,24 @@
+![CI](https://github.com/oscardegroot/guidance_planner/actions/workflows/main.yml/badge.svg)
+
+
 # Guidance Planner 
 
 This repository provides a Visibility-PRM implementation that computes topology distinct trajectories in 2D dynamic environments. The code is associated with the following publications:
 
-O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* IEEE Transactions on Robotics 2024. Preprint: http://arxiv.org/abs/2401.06021
+**Journal Paper:** O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* IEEE Transactions on Robotics 2024. Preprint: http://arxiv.org/abs/2401.06021
 
 
-O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Globally Guided Trajectory Optimization in Dynamic Environments.* IEEE International Conference on Robotics and Automation (ICRA) 2023. Available: https://doi.org/10.1109/ICRA48891.2023.10160379
+**Conference Paper:** O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Globally Guided Trajectory Optimization in Dynamic Environments.* IEEE International Conference on Robotics and Automation (ICRA) 2023. Available: https://doi.org/10.1109/ICRA48891.2023.10160379
 
 This guidance planner is the high-level component in Topology-Driven MPC, see `https://github.com/tud-amr/mpc_planner`.
 
-![Example](docs/example.png)
+---
+
+<p>Standalone with randomized obstacles</p>            |  <p>T-MPC  with `mpc_planner` (`guidance_planner` used as high-level planner)</p>
+:-------------------------:|:-------------------------:
+<img src="docs/example2.gif" width="800"> | <img src="docs/tmpc.gif" width="400">
+
+---
 
 ## Table of Contents
 1. [Features](#features) 
@@ -63,7 +72,20 @@ roslaunch guidance_planner ros1_example.launch
 
 This opens RViz and computes several distinct trajectories around some randomized obstacles (see video).
 
-![Example](docs/example.png)
+---
+
+<img src="docs/example2.gif" width="800">
+
+---
+
+This **visualization** denotes:
+
+- All samples (blue dots)
+- The Visibility-PRM graph (black lines and dots)
+- Obstacle predictions in 3D (x, y, time) as colored cylinders.
+- Smoothed output trajectories (colored 3D lines).
+
+More visuals are available by setting `debug/visuals: true` in `config/params.yaml`.
 
 ## Configuration
 To change planner settings, see `config/params.yaml`. Important settings are:
@@ -85,7 +107,7 @@ This project is licensed under the Apache 2.0 license - see the LICENSE file for
 ### Acknowledgements
 
 ## Citing
-This repository was developed at the Cognitive Robotics group of Delft University of Technology by [Oscar de Groot](https://github.com/oscardegroot) in partial collaboration with [Dennis Benders](https://github.com/dbenders1) and [Thijs Niesten](https://github.com/thijs83) and under supervision of Dr. Laura Ferranti, Dr. Javier Alonso-Mora and Prof. Dariu Gavrila.
+This repository was developed at the Cognitive Robotics group of Delft University of Technology by [Oscar de Groot](https://github.com/oscardegroot) under supervision of Dr. Laura Ferranti, Dr. Javier Alonso-Mora and Prof. Dariu Gavrila.
 
 If you found this repository useful, please cite the following paper:
 

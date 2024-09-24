@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     auto &benchmarker = BENCHMARKERS.getBenchmarker("Guidance Planning");
 
     /** @brief Mimic a control loop */
-    ros::Rate rate(1. / 3.); // 3s
+    ros::Rate rate(1. / 1.); // 1s
     while (!ros::isShuttingDown())
     {
         ROS_WARN("Updating Guidance");
