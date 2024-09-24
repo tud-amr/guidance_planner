@@ -1,4 +1,4 @@
-name: ROS CI - Build Specific Node
+name: ROS CI - Build Guidance Planner
 
 on: # rebuild any PRs and main branch changes
   pull_request:
