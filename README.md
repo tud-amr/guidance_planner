@@ -1,22 +1,21 @@
 ![CI](https://github.com/oscardegroot/guidance_planner/actions/workflows/main.yml/badge.svg)
 
-
 # Guidance Planner 
 
-This repository provides a Visibility-PRM implementation that computes topology distinct trajectories in 2D dynamic environments. The code is associated with the following publications:
+This repository provides a Visibility-PRM implementation that computes topology distinct trajectories in 2D dynamic environments (i.e., each computed trajectory passes the obstacles differently) for motion planning of ground robots. This code is associated with the following publications:
 
 **Journal Paper:** O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* IEEE Transactions on Robotics 2024. Preprint: http://arxiv.org/abs/2401.06021
 
 
 **Conference Paper:** O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Globally Guided Trajectory Optimization in Dynamic Environments.* IEEE International Conference on Robotics and Automation (ICRA) 2023. Available: https://doi.org/10.1109/ICRA48891.2023.10160379
 
-This guidance planner is the high-level component in Topology-Driven MPC, see `https://github.com/tud-amr/mpc_planner`.
+This guidance planner is the high-level planning component in Topology-Driven MPC, see `https://github.com/tud-amr/mpc_planner`. A containerized VSCode environment is available at https://github.com/tud-amr/mpc_planner_ws.
 
 ---
 
 Standalone example with randomized obstacles |  T-MPC  with `mpc_planner` (`guidance_planner` used as high-level planner) |
 | ------------- | ------------- |
-| <img src="docs/example2.gif" width="400"> | <img src="docs/tmpc.gif" width="500"> |
+| <img src="docs/example2.gif" width="100%"> | <img src="docs/tmpc.gif" width="100%"> |
 
 ---
 
@@ -35,7 +34,9 @@ This package is a fast C++ implementation of Visibility-PRM with topology compar
 - Winding angles 
 - UVD 
 
-For more information on these, see [1].
+For more information on these comparison functions, see Appendix A of [1].
+
+The goals of the guidance planner can be configured with a set of 2D points with their individual costs or as a reference path in 2D. For more information, see the [examples](#examples).
 
 ### Limitations
 The package was designed for 2D dynamic environments. Higher dimensional applications may be possible, but are not yet supported.
@@ -74,7 +75,7 @@ This opens RViz and computes several distinct trajectories around some randomize
 
 ---
 
-<img src="docs/example2.gif" width="800">
+<img src="docs/example2.gif" width="80%">
 
 ---
 
@@ -86,6 +87,11 @@ This **visualization** denotes:
 - Smoothed output trajectories (colored 3D lines).
 
 More visuals are available by setting `debug/visuals: true` in `config/params.yaml`.
+
+## Usage
+To use this planner in C++, use `#include <guidance_planner/global_guidance.h>` and follow the example in `src/ros1_example.cpp`.
+
+A ros server is also provided (see src/learning/guidance_server.cpp) for usage with Python but is not part of the main code and has not been tested extensively.
 
 ## Configuration
 To change planner settings, see `config/params.yaml`. Important settings are:
@@ -99,7 +105,6 @@ To change planner settings, see `config/params.yaml`. Important settings are:
 
 For profiling information (i.e., computation times) go to `chrome://tracing/` in google chrome. Then click `load` and select `guidance_planner/profiler.json`. This should show some timings:
 ![Timing](docs/timing.png)
-
 
 ## License
 This project is licensed under the Apache 2.0 license - see the LICENSE file for details.
