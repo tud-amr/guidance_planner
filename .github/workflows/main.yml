@@ -41,6 +41,7 @@ jobs:
           env: # either pass all entries explicitly
             ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
             ROS_REPO: ${{ matrix.ROS_REPO }}
+            UPSTREAM_WORKSPACE: github:oscardegroot/ros_tools#main
           # with: # or pass the full matrix as config
           #    config: ${{toJSON(matrix)}}
 
