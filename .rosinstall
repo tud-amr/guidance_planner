@@ -1,0 +1,4 @@
+- git:
+    local-name: ros_tools
+    uri: https://github.com/oscardegroot/ros_tools.git
+    version: main
