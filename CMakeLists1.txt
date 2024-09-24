@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 project(guidance_planner)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 find_package(OpenMP)
@@ -33,7 +33,9 @@ add_definitions(${EIGEN_DEFINITIONS})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(gsl REQUIRED gsl)
 
-generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
+generate_dynamic_reconfigure_options(
+  cfg/GuidancePlannerReconfigure.cfg
+)
 
 catkin_package(
   CATKIN_DEPENDS ${DEPENDENCIES}
@@ -50,9 +52,9 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}_homotopy SHARED
-  src/uvd.cpp
-  src/winding_angle.cpp
-  src/homology.cpp
+  src/homotopy_comparison/uvd.cpp
+  src/homotopy_comparison/winding_angle.cpp
+  src/homotopy_comparison/homology.cpp
 )
 add_dependencies(${PROJECT_NAME}_homotopy ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_homotopy
@@ -62,37 +64,39 @@ target_link_libraries(${PROJECT_NAME}_homotopy
 
 # Library
 add_library(${PROJECT_NAME} SHARED
+  src/config.cpp
   src/global_guidance.cpp
   src/prm.cpp
+  src/sampler.cpp
   src/graph.cpp
-  src/paths.cpp
-  src/types.cpp
-  src/environment.cpp
   src/graph_search.cpp
-  src/config.cpp
-
-  # src/homology.cpp
-  # src/winding_angle.cpp
-  # src/uvd.cpp
+  src/types/paths.cpp
+  src/types/types.cpp
+  src/types/node.cpp
+  src/types/connection.cpp
+  src/environment.cpp
   src/cubic_spline.cpp
+  src/third_party/dubins.cpp
 )
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}_homotopy
 )
 
+# Example
+add_executable(example
+  src/ros1_example.cpp
+)
+add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+target_link_libraries(example
+  ${PROJECT_NAME}_homotopy
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 add_definitions(-DMPC_PLANNER_ROS)
 
-# Example
-# add_executable(example
-# src/example.cpp
-# )
-# add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(example
-# ${PROJECT_NAME}
-# ${catkin_LIBRARIES}
-# )
 install(TARGETS
   ${PROJECT_NAME}_homotopy
   ${PROJECT_NAME}
