@@ -34,7 +34,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(gsl REQUIRED gsl)
 
 generate_dynamic_reconfigure_options(
-  cfg/reconfigure.cfg
+  cfg/GuidancePlannerReconfigure.cfg
 )
 
 catkin_package(
