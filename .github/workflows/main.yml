@@ -42,6 +42,8 @@ jobs:
             ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
             ROS_REPO: ${{ matrix.ROS_REPO }}
             TARGET_WORKSPACE: $TARGET_REPO_PATH github:oscardegroot/ros_tools#main
+            BEFORE_INSTALL_TARGET_DEPENDENCIES: cd /root/target_ws/src/guidance_planner && python3 switch_to_ros.py 2 && cd ../ros_tools && python3 switch_to_ros.py 2
+              
           # with: # or pass the full matrix as config
           #    config: ${{toJSON(matrix)}}
 
