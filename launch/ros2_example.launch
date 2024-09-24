@@ -2,13 +2,13 @@
 
 <launch>
 
-    <node pkg="guidance_planner" exec="example" name="example" cwd="node" respawn="false" output="screen">
-        <param from="$(find-pkg-share guidance_planner)/config/params.yaml"/>
-        <param name="clock_frequency" value="20"/>
+    <node pkg="guidance_planner" exec="example" name="example" output="screen">
+        <param from="$(find-pkg-share guidance_planner)/config/ros2_params.yaml"/>
+        <param name="clock_frequency" value="20.0"/>
     </node>
 
     <node pkg="rqt_reconfigure" exec="rqt_reconfigure" name="rqt_reconfigure" respawn="false"/>
 
-    <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share guidance_planner)/rviz/test.rviz" output="log"/>
+    <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share guidance_planner)/rviz/ros2_example.rviz" output="log"/>
 
 </launch>  

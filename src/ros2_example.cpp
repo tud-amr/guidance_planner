@@ -1,7 +1,10 @@
 #include <rclcpp/rclcpp.hpp>
 
-#include "guidance_planner/global_guidance.h"
-#include "guidance_planner/types.h"
+#include <guidance_planner/global_guidance.h>
+// #include "guidance_planner/types.h"
+
+#include <ros_tools/ros2_wrappers.h>
+#include <ros_tools/visuals.h>
 
 #include <string>
 #include <stdexcept>
@@ -55,15 +58,18 @@ int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     auto node = rclcpp::Node::make_shared("guidance_example");
-    RCLCPP_INFO(node->get_logger(), "Starting Guidance Planner Example");
 
-    // Some settings for the example only
-    node->declare_parameter("replan", false);
-    node->declare_parameter("continuous_replanning", false);
-    node->declare_parameter("example_rate", 1.);
+    STATIC_NODE_POINTER.init(node.get());
+    VISUALS.init(node.get());
+
+    RCLCPP_INFO(node->get_logger(), "Starting Guidance Planner Example");
 
     GlobalGuidance guidance;        // Initializes the guidance planner
     config_ = guidance.GetConfig(); // Retrieves the configuration file, if you need it
+
+    // Some settings for the example only
+    node->declare_parameter("replan", false);
+    node->declare_parameter("example_rate", 1.);
 
     /** @brief Load inputs for the guidance planner (you should do this for each computation) */
     RCLCPP_INFO(node->get_logger(), "Preparing Obstacles");
@@ -78,19 +84,26 @@ int main(int argc, char **argv)
     guidance.SetStart(Eigen::Vector2d(0., 0.), 0., 2.); // Position, yaw angle, velocity magnitude
 
     /** @brief Set the goals for the planner */
-    // Using explicit goals
-    // std::vector<Goal> goals;
-    // goals.emplace_back(Eigen::Vector2d(6., 0.), 1.); // x = 6, y = 0, cost = 1
-    // goals.emplace_back(Eigen::Vector2d(8., 0.), 1.); // x = 8, y = 0, cost = 1
-    // guidance.SetGoals(goals);
+    bool use_reference_path = true;
+    if (use_reference_path)
+    {
+        std::vector<double> xx, yy;
+        xx = {0., 2., 4., 6., 8., 10.};
+        yy = {0., 0., 0., 0., 0., 0.};
+        std::shared_ptr<RosTools::Spline2D> reference_path = std::make_shared<RosTools::Spline2D>(xx, yy);
 
-    std::vector<double> xx, yy;
-    xx = {0., 2., 4., 6., 8., 10.};
-    yy = {0., 0., 0., 0., 0., 0.};
-    std::shared_ptr<RosTools::Spline2D> reference_path = std::make_shared<RosTools::Spline2D>(xx, yy);
-
-    double distance_on_spline = 0.;
-    guidance.LoadReferencePath(distance_on_spline, reference_path);
+        double distance_on_spline = 0.;
+        double road_width = 6.;
+        guidance.LoadReferencePath(distance_on_spline, reference_path, road_width);
+    }
+    else
+    {
+        // Using explicit goals
+        std::vector<Goal> goals;
+        goals.emplace_back(Eigen::Vector2d(6., 0.), 1.); // x = 6, y = 0, cost = 1
+        goals.emplace_back(Eigen::Vector2d(8., 0.), 1.); // x = 8, y = 0, cost = 1
+        guidance.SetGoals(goals);
+    }
 
     // ----------------------------
     /** @brief Mimic a control loop */
@@ -145,7 +158,7 @@ int main(int argc, char **argv)
             replan_ = node->get_parameter("replan").as_bool();
 
             guidance.Visualize(); // Visualize the result in RVIZ
-            if (node->get_parameter("continuous_replanning").as_bool())
+            if (config_->debug_continuous_replanning_)
                 replan_ = true;
 
             rclcpp::spin_some(node);
