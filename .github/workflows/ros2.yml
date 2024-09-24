@@ -1,0 +1,28 @@
+name: ROS2 - Build Guidance Planner
+
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  industrial_ci:
+      name: ROS ${{ matrix.ROS_DISTRO }} (${{ matrix.ROS_REPO }})
+      runs-on: ubuntu-latest
+      strategy:
+        fail-fast: false # uncomment if failing jobs should not cancel the others immediately
+        matrix: # matrix is the product of entries
+          ROS_DISTRO: [humble]
+          ROS_REPO: [main]
+      steps:
+        - uses: actions/checkout@v4 # clone target repository
+        - uses: 'ros-industrial/industrial_ci@master' # run industrial_ci
+          env: # either pass all entries explicitly
+            ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
+            ROS_REPO: ${{ matrix.ROS_REPO }}
+            TARGET_WORKSPACE: $TARGET_REPO_PATH github:oscardegroot/ros_tools#main
+            BEFORE_INSTALL_TARGET_DEPENDENCIES: cd /root/target_ws/src/guidance_planner && python3 switch_to_ros.py 2 && cd ../ros_tools && python3 switch_to_ros.py 2
+
+
