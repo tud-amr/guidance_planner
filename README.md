@@ -21,9 +21,6 @@ Standalone example with randomized obstacles |  T-MPC  with `mpc_planner` (`guid
 
 ---
 
-<!-- <iframe src="https://drive.google.com/file/d/1Vjlfq_7cvmYj7M5RjyoJTzpCUrgvyz1u/view?usp=sharing/preview" width="100%"></iframe> -->
-<iframe src="https://drive.google.com/file/d/1Vjlfq_7cvmYj7M5RjyoJTzpCUrgvyz1u/preview" width="100%" allow="autoplay"></iframe>
-
 
 ## Table of Contents
 1. [Features](#features) 
