@@ -33,7 +33,9 @@ add_definitions(${EIGEN_DEFINITIONS})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(gsl REQUIRED gsl)
 
-generate_dynamic_reconfigure_options(cfg/reconfigure.cfg)
+generate_dynamic_reconfigure_options(
+  cfg/reconfigure.cfg
+)
 
 catkin_package(
   CATKIN_DEPENDS ${DEPENDENCIES}
@@ -77,7 +79,7 @@ add_library(${PROJECT_NAME} SHARED
   src/third_party/dubins.cpp
 )
 
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}_homotopy
@@ -87,7 +89,7 @@ target_link_libraries(${PROJECT_NAME}
 add_executable(example
   src/ros1_example.cpp
 )
-add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 target_link_libraries(example
   ${PROJECT_NAME}_homotopy
   ${PROJECT_NAME}

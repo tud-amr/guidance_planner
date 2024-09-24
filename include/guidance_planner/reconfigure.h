@@ -4,7 +4,8 @@
 
 #ifdef MPC_PLANNER_ROS
 #include <dynamic_reconfigure/server.h>
-#include <guidance_planner/GuidancePlannerConfig.h> // Included to define the reconfigure callback
+#include <guidance_planner/GuidancePlannerReconfigureConfig.h> // Included to define the reconfigure callback
+using namespace guidance_planner;
 namespace GuidancePlanner
 {
     class Reconfigure
@@ -16,12 +17,12 @@ namespace GuidancePlanner
         {
             first_reconfigure_callback_ = true;
             ros::NodeHandle nh_guidance("guidance_planner");
-            reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlannerConfig>(reconfig_mutex_, nh_guidance));
+            reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlannerReconfigureConfig>(reconfig_mutex_, nh_guidance));
             reconfigure_server_->setCallback(boost::bind(&Reconfigure::ReconfigureCallback, this, _1, _2));
         }
 
         /** @brief Add some of the settings to the rqt_reconfigure window */
-        void ReconfigureCallback(GuidancePlannerConfig &config, uint32_t level)
+        void ReconfigureCallback(GuidancePlannerReconfigureConfig &config, uint32_t level)
         {
             (void)level;
             if (first_reconfigure_callback_) // Set the reconfiguration parameters to match the yaml configuration at startup
@@ -47,7 +48,7 @@ namespace GuidancePlanner
     private:
         bool first_reconfigure_callback_;
 
-        boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerConfig>> reconfigure_server_;
+        boost::shared_ptr<dynamic_reconfigure::Server<GuidancePlannerReconfigureConfig>> reconfigure_server_;
         boost::recursive_mutex reconfig_mutex_;
 
         std::shared_ptr<Config> config_;
