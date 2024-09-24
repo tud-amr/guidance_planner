@@ -104,8 +104,6 @@ For profiling information (i.e., computation times) go to `chrome://tracing/` in
 ## License
 This project is licensed under the Apache 2.0 license - see the LICENSE file for details.
 
-### Acknowledgements
-
 ## Citing
 This repository was developed at the Cognitive Robotics group of Delft University of Technology by [Oscar de Groot](https://github.com/oscardegroot) under supervision of Dr. Laura Ferranti, Dr. Javier Alonso-Mora and Prof. Dariu Gavrila.
 
