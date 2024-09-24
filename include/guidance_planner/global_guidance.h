@@ -46,7 +46,6 @@ namespace GuidancePlanner
     void SetGoals(const std::vector<Goal> &goals);
 
     /** @brief Additional configuration */
-    // void SetPRMSamplingFunction(SamplingFunction sampling_function) { prm_.SetPRMSamplingFunction(sampling_function); }
     void SetReferenceVelocity(double reference_velocity) { config_->reference_velocity_ = std::max(reference_velocity, 0.25); }
     void SetTrackOnlyTheSelectedHomology() { config_->track_selected_homology_only_ = true; }
     void SetPlanningFrequency(double f) { config_->CONTROL_DT = 1. / f; }
@@ -63,10 +62,10 @@ namespace GuidancePlanner
     struct OutputTrajectory
     {
     public:
-      int topology_class;
-      int color_;
-      bool previously_selected_;
-      bool is_new_topology_;
+      int topology_class;        // Unique ID of the topology class
+      int color_;                // Color index of the class
+      bool previously_selected_; // True if this trajectory was previously selected
+      bool is_new_topology_;     // True if this is a new topology
 
       StandaloneGeometricPath path; // Geometric Path
       CubicSpline3D spline;         // Spline
@@ -182,6 +181,6 @@ namespace GuidancePlanner
     // Debugging variables
     bool no_message_sent_yet_;
   };
-} // namespace Homotopy
+}
 
 #endif // __GLOBAL_GUIDANCE_H__

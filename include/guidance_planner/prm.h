@@ -100,7 +100,6 @@ namespace GuidancePlanner
     void FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards);
     bool IsGoalVisible(SpaceTimePoint sample, int goal_index) const;
     Node *CheckGoalConnection(Node &new_node, Node *guard, Node *goal) const;
-    // Node *FindTopologyDistinctGoalConnection(Node &new_node, const std::vector<Node *> &visible_guards, std::vector<Node *> &visible_goals);
 
     void AddSample(int i, SpaceTimePoint &sample, const std::vector<Node *> guards, bool sample_is_from_previous_iteration);
     void AddGuard(int i, SpaceTimePoint &sample);
@@ -139,5 +138,5 @@ namespace GuidancePlanner
     std::vector<Goal> goals_;
   };
 
-} // namespace Homotopy
+}
 #endif // __PRM_H__
