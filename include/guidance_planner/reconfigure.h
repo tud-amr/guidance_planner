@@ -16,7 +16,7 @@ namespace GuidancePlanner
         {
             first_reconfigure_callback_ = true;
             ros::NodeHandle nh_guidance("guidance_planner");
-            reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlanner::GuidancePlannerConfig>(reconfig_mutex_, nh_guidance));
+            reconfigure_server_.reset(new dynamic_reconfigure::Server<GuidancePlannerConfig>(reconfig_mutex_, nh_guidance));
             reconfigure_server_->setCallback(boost::bind(&Reconfigure::ReconfigureCallback, this, _1, _2));
         }
 
