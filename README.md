@@ -14,9 +14,9 @@ This guidance planner is the high-level component in Topology-Driven MPC, see `h
 
 ---
 
-Standalone with randomized obstacles |  T-MPC  with `mpc_planner` (`guidance_planner` used as high-level planner)</ |
+Standalone example with randomized obstacles |  T-MPC  with `mpc_planner` (`guidance_planner` used as high-level planner) |
 | ------------- | ------------- |
-| <img src="docs/example2.gif" width="800"> | <img src="docs/tmpc.gif" width="400"> |
+| <img src="docs/example2.gif" width="400"> | <img src="docs/tmpc.gif" width="500"> |
 
 ---
 
