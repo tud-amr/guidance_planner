@@ -1,0 +1,30 @@
+name: ROS1 - Build Guidance Planner
+
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  industrial_ci:
+      name: ROS ${{ matrix.ROS_DISTRO }} (${{ matrix.ROS_REPO }})
+      runs-on: ubuntu-latest
+      strategy:
+        fail-fast: false # uncomment if failing jobs should not cancel the others immediately
+        matrix: # matrix is the product of entries
+          ROS_DISTRO: [noetic]
+          ROS_REPO: [main]
+          # exclude: # specific configuration can be excludes
+          #   - {ROS_DISTRO: melodic, ROS_REPO: testing}
+          # include: # add additional configurations
+            # - {ROS_DISTRO: kinetic, ROS_REPO: testing}
+      steps:
+        - uses: actions/checkout@v4 # clone target repository
+        - uses: 'ros-industrial/industrial_ci@master' # run industrial_ci
+          env: # either pass all entries explicitly
+            ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
+            ROS_REPO: ${{ matrix.ROS_REPO }}
+            TARGET_WORKSPACE: $TARGET_REPO_PATH github:oscardegroot/ros_tools#main
+

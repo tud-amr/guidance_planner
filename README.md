@@ -1,4 +1,5 @@
-![CI](https://github.com/oscardegroot/guidance_planner/actions/workflows/main.yml/badge.svg)
+![CI](https://github.com/oscardegroot/guidance_planner/actions/workflows/ros1.yml/badge.svg)
+![CI](https://github.com/oscardegroot/guidance_planner/actions/workflows/ros2.yml/badge.svg)
 
 # Guidance Planner 
 

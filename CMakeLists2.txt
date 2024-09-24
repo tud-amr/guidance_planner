@@ -35,29 +35,42 @@ include_directories(
   include
 )
 
-add_library(${PROJECT_NAME}_core SHARED
-  src/config.cpp
-  src/paths.cpp
-  src/types.cpp
+add_library(${PROJECT_NAME}_homotopy SHARED
+  src/homotopy_comparison/uvd.cpp
+  src/homotopy_comparison/winding_angle.cpp
+  src/homotopy_comparison/homology.cpp
 )
-target_include_directories(${PROJECT_NAME}_core PUBLIC
+target_include_directories(${PROJECT_NAME}_homotopy PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
-ament_target_dependencies(${PROJECT_NAME}_core ros_tools)
-target_link_libraries(${PROJECT_NAME}_core ${gsl_LIBRARIES})
+ament_target_dependencies(${PROJECT_NAME}_homotopy ros_tools)
+target_link_libraries(${PROJECT_NAME}_homotopy ${gsl_LIBRARIES})
 
 # Library
 add_library(${PROJECT_NAME} SHARED
+  # src/config.cpp
+  # src/paths.cpp
+  # src/types.cpp
+  # src/global_guidance.cpp
+  # src/prm.cpp
+  # src/graph.cpp
+  # src/environment.cpp
+  # src/graph_search.cpp
+  # src/cubic_spline.cpp
+  src/config.cpp
   src/global_guidance.cpp
   src/prm.cpp
+  src/sampler.cpp
   src/graph.cpp
-  src/environment.cpp
   src/graph_search.cpp
-  src/homology.cpp
-  src/uvd.cpp
-  src/winding_angle.cpp
+  src/types/paths.cpp
+  src/types/types.cpp
+  src/types/node.cpp
+  src/types/connection.cpp
+  src/environment.cpp
   src/cubic_spline.cpp
+  src/third_party/dubins.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
@@ -65,7 +78,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 ament_target_dependencies(${PROJECT_NAME} ${DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_core ${gsl_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_homotopy ${gsl_LIBRARIES})
 
 # Example
 add_executable(example src/ros2_example.cpp)
@@ -74,7 +87,7 @@ target_link_libraries(example ${PROJECT_NAME})
 ## INSTALL
 install(
   TARGETS 
-  ${PROJECT_NAME}_core
+  ${PROJECT_NAME}_homotopy
   ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
