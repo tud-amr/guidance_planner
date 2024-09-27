@@ -4,7 +4,9 @@
 
 # Guidance Planner 
 
-This repository provides a Visibility-PRM implementation that computes topology distinct trajectories in 2D dynamic environments (i.e., each computed trajectory passes the obstacles differently) for motion planning of ground robots. This code is associated with the following publications:
+This repository provides a sampling-based global planner implementation that computes topology distinct trajectories in 2D dynamic environments (i.e., each computed trajectory passes the obstacles differently) for motion planning of mobile robots. 
+
+This code is associated with the following publications:
 
 **Journal Paper:** O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* IEEE Transactions on Robotics 2024. Preprint: http://arxiv.org/abs/2401.06021
 
@@ -15,7 +17,7 @@ This guidance planner is the high-level planning component in Topology-Driven MP
 
 ---
 
-Standalone example with randomized obstacles |  T-MPC  with `mpc_planner` (`guidance_planner` used as high-level planner) |
+Standalone example with randomized obstacles |  [T-MPC](https://github.com/tud-amr/mpc_planner)  with `mpc_planner` (`guidance_planner` used as high-level planner) |
 | ------------- | ------------- |
 | <img src="docs/example2.gif" width="100%"> | <img src="docs/tmpc.gif" width="100%"> |
 
@@ -31,15 +33,17 @@ Standalone example with randomized obstacles |  T-MPC  with `mpc_planner` (`guid
 6. [Citing](#citing)
 
 ## Features
-This package is a fast C++ implementation of Visibility-PRM with topology comparison. The following topology comparison functions are provided:
+This package is a fast C++ implementation of Visibility-PRM with topology comparison. It takes obstacle predictions, the robot state and a set of goals as input and provides several distinct guidance trajectories as output.
 
-- H-signature 
-- Winding angles 
-- UVD 
+For differentiating trajectories, the following topology comparison functions are implemented:
+
+- H-signature (https://link.springer.com/article/10.1007/s10514-012-9304-1)
+- Winding angles (https://link.springer.com/article/10.1023/A:1010979823190)
+- UVD (https://ieeexplore.ieee.org/abstract/document/9196996)
 
 For more information on these comparison functions, see Appendix A of [1].
 
-The goals of the guidance planner can be configured with a set of 2D points with their individual costs or as a reference path in 2D. For more information, see the [examples](#examples).
+The goals can be configured as a set of 2D points along with their cost or as a reference path in 2D. For more information, see the [examples](#examples).
 
 ### Limitations
 The package was designed for 2D dynamic environments. Higher dimensional applications may be possible, but are not yet supported.
@@ -49,34 +53,31 @@ This package supports ROS1 (tested with Noetic) and ROS2 (tested with Humble). T
 
 From `catkin_ws/src/`:
 
-```
+```bash
 git clone https://github.com/tud-amr/guidance_planner.git
 git clone https://github.com/oscardegroot/ros_tools.git
 ```
 
 Install dependencies from your workspace, e.g., `catkin_ws/`:
 
-```
+```bash
 rosdep install --from-paths src --ignore-src -r -y
 ```
 
 Build with:
 
-```
+```bash
 catkin build guidance_planner
 ```
 
 ## Examples
-For a complete example, see `src/ros1_example.cpp`.
+For a complete example, see `src/ros1_example.cpp`. To run the example:
 
-To run the example:
-```
+```bash
 roslaunch guidance_planner ros1_example.launch
 ```
 
 This opens RViz and computes several distinct trajectories around some randomized obstacles (see video).
-
----
 
 <img src="docs/example2.gif" width="80%">
 
@@ -94,7 +95,7 @@ More visuals are available by setting `debug/visuals: true` in `config/params.ya
 ## Usage
 To use this planner in C++, use `#include <guidance_planner/global_guidance.h>` and follow the example in `src/ros1_example.cpp`.
 
-A ros server is also provided (see src/learning/guidance_server.cpp) for usage with Python but is not part of the main code and has not been tested extensively.
+A `ROS1` server is also provided (see `src/learning/guidance_server.cpp`) for usage with Python but is not part of the main code and has not been tested extensively.
 
 ## Configuration
 To change planner settings, see `config/params.yaml`. Important settings are:
@@ -115,6 +116,6 @@ This project is licensed under the Apache 2.0 license - see the LICENSE file for
 ## Citing
 This repository was developed at the Cognitive Robotics group of Delft University of Technology by [Oscar de Groot](https://github.com/oscardegroot) under supervision of Dr. Laura Ferranti, Dr. Javier Alonso-Mora and Prof. Dariu Gavrila.
 
-If you found this repository useful, please cite the following paper:
+If you found this repository useful, please cite our paper:
 
 - [1] **Topology-Driven Model Predictive Control (T-MPC)** O. de Groot, L. Ferranti, D. Gavrila, and J. Alonso-Mora, “Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.” arXiv, Jan. 11, 2024. [Online]. Available: http://arxiv.org/abs/2401.06021
