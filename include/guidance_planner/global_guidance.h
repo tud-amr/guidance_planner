@@ -43,7 +43,10 @@ namespace GuidancePlanner
     void LoadStaticObstacles(const std::vector<Halfspace> &static_obstacles);
 
     // Supply the reference path, but do not sample goals from it
-    void SampleAlongReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path, double road_width);
+    void SampleAlongReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path,
+                                  double road_width);
+    void SampleAlongReferencePath(double spline_start, const std::shared_ptr<RosTools::Spline2D> &reference_path,
+                                  double road_width_left, double road_width_right);
 
     // Supply the reference path and sample goals from it
     void LoadReferencePath(double spline_start, std::shared_ptr<RosTools::Spline2D> reference_path, double road_width = 4.);

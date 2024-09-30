@@ -31,11 +31,13 @@ namespace GuidancePlanner
     }
 
     void Sampler::SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
-                                           const double cur_s, const double max_s, const double width)
+                                           const double cur_s, const double max_s,
+                                           double road_width_left, double road_width_right)
     {
-        LOG_INFO_THROTTLE(50000, "Overriding uniform sampling method with sampling along the reference path");
         sample_function_ptr_ = std::bind(&Sampler::SampleAlongPath, this, std::placeholders::_1,
-                                         reference_path, cur_s, max_s - cur_s, -width / 2., width);
+                                         reference_path,
+                                         cur_s, max_s - cur_s,
+                                         -road_width_left, road_width_left + road_width_right);
     }
 
     void Sampler::SetRange(const SpaceTimePoint::PVector &start, const std::vector<Goal> &goals)

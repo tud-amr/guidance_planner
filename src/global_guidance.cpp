@@ -127,9 +127,16 @@ namespace GuidancePlanner
                                                 const std::shared_ptr<RosTools::Spline2D> &reference_path,
                                                 double road_width)
   {
+    SampleAlongReferencePath(spline_start, reference_path, road_width / 2., road_width / 2.);
+  }
+
+  void GlobalGuidance::SampleAlongReferencePath(double spline_start,
+                                                const std::shared_ptr<RosTools::Spline2D> &reference_path,
+                                                double road_width_left, double road_width_right)
+  {
     double s_best = spline_start + Config::DT * (double)Config::N * config_->reference_velocity_;
 
-    prm_.SampleAlongReferencePath(reference_path, spline_start, s_best, road_width);
+    prm_.SampleAlongReferencePath(reference_path, spline_start, s_best, road_width_left, road_width_right);
   }
 
   void GlobalGuidance::LoadReferencePath(double spline_start, std::shared_ptr<RosTools::Spline2D> reference_path, double road_width)
@@ -206,7 +213,7 @@ namespace GuidancePlanner
       }
     }
 
-    prm_.SampleAlongReferencePath(reference_path, s_start, s_best, width);
+    prm_.SampleAlongReferencePath(reference_path, s_start, s_best, road_width_left, road_width_right);
   }
 
   void GlobalGuidance::SetGoals(const std::vector<Goal> &goals)

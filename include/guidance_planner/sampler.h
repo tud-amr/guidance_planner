@@ -38,7 +38,8 @@ namespace GuidancePlanner
         void SetSampleMethod(const std::string &&method);
 
         void SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
-                                      double cur_s, double max_s, double width);
+                                      double cur_s, double max_s,
+                                      double road_width_left, double road_width_right);
 
         Sample &DrawSample(int sample_index);
 

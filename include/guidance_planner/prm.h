@@ -63,7 +63,8 @@ namespace GuidancePlanner
 
     /** @brief Load the reference path to sample along it */
     void SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
-                                  double cur_s, double max_s, double width);
+                                  double cur_s, double max_s,
+                                  double road_width_left, double road_width_right);
 
     void DoNotPropagateNodes()
     {

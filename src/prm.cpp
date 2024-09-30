@@ -130,9 +130,10 @@ namespace GuidancePlanner
   }
 
   void PRM::SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
-                                     double cur_s, double max_s, double width)
+                                     double cur_s, double max_s,
+                                     double road_width_left, double road_width_right)
   {
-    sampler_->SampleAlongReferencePath(reference_path, cur_s, max_s, width); // This enables sampling from the path
+    sampler_->SampleAlongReferencePath(reference_path, cur_s, max_s, road_width_left, road_width_right); // This enables sampling from the path
   }
 
   Graph &PRM::Update()
