@@ -6,11 +6,14 @@
 #include <guidance_planner/types/types.h>
 
 #include <ros_tools/random_generator.h>
+#include <ros_tools/spline.h>
 
 #include <vector>
+#include <string>
 
 namespace GuidancePlanner
 {
+
     struct Sample
     {
         SpaceTimePoint point;
@@ -27,12 +30,22 @@ namespace GuidancePlanner
         Sampler(Config *config);
 
     public:
+        // using SampleFunction = Sample &(Sampler::*)(int);
+        using SampleFunction = std::function<Sample &(int)>;
+
         void SetRange(const SpaceTimePoint::PVector &start, const std::vector<Goal> &goals);
 
-        Sample &SampleUniformly(int sample_index);
-        Sample &SampleUniformlyWithOrientation(int sample_index);
+        void SetSampleMethod(const std::string &&method);
 
-        Sample &GetSample(int sample_index) { return samples_[sample_index]; }
+        void SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
+                                      double cur_s, double max_s, double width);
+
+        Sample &DrawSample(int sample_index);
+
+        Sample &GetSample(int sample_index)
+        {
+            return samples_[sample_index];
+        }
 
         void Clear();
         void Reset();
@@ -47,6 +60,15 @@ namespace GuidancePlanner
         SpaceTimePoint::PVector min_, max_, range_;
 
         std::vector<Sample> samples_;
+
+        SampleFunction sample_function_ptr_;
+
+        Sample &SampleUniformly(int sample_index);
+        Sample &SampleUniformlyWithOrientation(int sample_index);
+        Sample &SampleAlongPath(int sample_index,
+                                std::shared_ptr<RosTools::Spline2D> reference_path,
+                                double min_s, double range_s,
+                                double min_lat, double range_lat);
     };
 
 } // namespace GuidancePlanner

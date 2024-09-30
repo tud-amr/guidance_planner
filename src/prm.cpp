@@ -32,7 +32,11 @@ namespace GuidancePlanner
     environment_ = std::make_shared<Environment>();
     environment_->Init();
 
-    sampler_ = std::make_shared<Sampler>(config_);
+    sampler_ = std::make_shared<Sampler>(config_); // Default: Uniform sampling
+    if (SpaceTimePoint::numStates() == 3)
+    {
+      sampler_->SetSampleMethod("UniformWithOrientation");
+    }
 
     if (Config::use_dubins_path_)
       LOG_VALUE("Connection Type", "Dubins Path");
@@ -123,6 +127,12 @@ namespace GuidancePlanner
     PRM_LOG(goals_.size() << " Collision-free goals were received");
 
     sampler_->SetRange(Eigen::Vector2d(start_(0), start_(1)), goals_);
+  }
+
+  void PRM::SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
+                                     double cur_s, double max_s, double width)
+  {
+    sampler_->SampleAlongReferencePath(reference_path, cur_s, max_s, width); // This enables sampling from the path
   }
 
   Graph &PRM::Update()
@@ -264,7 +274,7 @@ namespace GuidancePlanner
 
       // Get a new sample (either from the previous iteration, or a new one)
       // Sample &sample = sample_is_from_previous_iteration ? prev_node : sampler_->SampleUniformly(i);
-      Sample &sample = SpaceTimePoint::numStates() == 3 ? sampler_->SampleUniformlyWithOrientation(i) : sampler_->SampleUniformly(i);
+      Sample &sample = sampler_->DrawSample(i);
 
       if (sample_is_from_previous_iteration)
         sample.point = previous_nodes_[i].point_;
@@ -412,6 +422,20 @@ namespace GuidancePlanner
     Node *goal_node = graph_->goal_nodes_[goal_index];
     return environment_->IsVisible(sample, goal_node->point_);
   }
+  // SpaceTimePoint PRM::SampleUniformly3DReferencePath()
+  // {
+  //   if (reference_path_ == nullptr)
+  //   {
+  //     LOG_WARN("Reference path not supplied for sampling");
+  //     return SampleUniformly3D();
+  //   }
+  //   double s = min_s_ + random_generator_.Double() * range_s_;
+  //   double y_dev = min_lat_ + random_generator_.Double() * range_lat_;
+
+  //   Eigen::Vector2d point = reference_path_->getPoint(s) + reference_path_->getOrthogonal(s) * y_dev;
+
+  //   return SpaceTimePoint(point(0), point(1), random_generator_.Int(Config::N - 2) + 1);
+  // }
 
   void PRM::FindVisibleGuards(SpaceTimePoint sample, std::vector<Node *> &visible_guards)
   {

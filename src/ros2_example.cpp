@@ -1,10 +1,10 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <guidance_planner/global_guidance.h>
-// #include "guidance_planner/types.h"
 
 #include <ros_tools/ros2_wrappers.h>
 #include <ros_tools/visuals.h>
+#include <ros_tools/profiling.h>
 
 #include <string>
 #include <stdexcept>
@@ -61,6 +61,9 @@ int main(int argc, char **argv)
 
     STATIC_NODE_POINTER.init(node.get());
     VISUALS.init(node.get());
+
+    // Initialize profiling
+    RosTools::Instrumentor::Get().BeginSession("guidance_planner");
 
     RCLCPP_INFO(node->get_logger(), "Starting Guidance Planner Example");
 
@@ -167,5 +170,7 @@ int main(int argc, char **argv)
         node->set_parameter(rclcpp::Parameter("replan", false));
     }
 
-    return 0;
+    RosTools::Instrumentor::Get().EndSession();
+
+    return 1;
 }

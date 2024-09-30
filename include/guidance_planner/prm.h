@@ -61,9 +61,14 @@ namespace GuidancePlanner
     void LoadData(const std::vector<Obstacle> &obstacles, const std::vector<Halfspace> &static_obstacles, const Eigen::Vector2d &start, const double orientation,
                   const Eigen::Vector2d &velocity, const std::vector<Goal> &goals);
 
-    // void SetPRMSamplingFunction(SamplingFunction sampling_function) {} // sampling_function_ = sampling_function; }
+    /** @brief Load the reference path to sample along it */
+    void SampleAlongReferencePath(std::shared_ptr<RosTools::Spline2D> reference_path,
+                                  double cur_s, double max_s, double width);
 
-    void DoNotPropagateNodes() { do_not_propagate_nodes_ = true; };
+    void DoNotPropagateNodes()
+    {
+      do_not_propagate_nodes_ = true;
+    };
 
     /** @brief Propagate the graph to the next iteration by lowering the time axis */
     void PropagateGraph(const std::vector<GeometricPath> &paths);
