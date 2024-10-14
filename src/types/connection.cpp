@@ -38,7 +38,7 @@ namespace GuidancePlanner
         if (config->enable_velocity_filter_)
         {
 
-            double delta_dist = (a_->point_.Pos(), b_->point_.Pos()).norm();
+            double delta_dist = (a_->point_.Pos() - b_->point_.Pos()).norm();
             double delta_time = std::abs(a_->point_.Time() - b_->point_.Time()) * Config::DT;
             double vel = delta_dist / delta_time;
             bool vel_satisfies_limits = vel < config->max_velocity_;

@@ -27,17 +27,17 @@ guidance_planner:
     timeout: 200 # Timeout for PRM sampling [ms]
     margin: 5.0 # [m] sampled outside of goals 
 
-  max_velocity: 4.0 #3.0 #3.0 # Maximum velocity of connections between nodes
-  max_acceleration: 5.0 #3.0 # Maximum velocity of connections between nodes
+  max_velocity: 3.0 # Maximum velocity of connections between nodes
+  max_acceleration: 3.0 # Maximum velocity of connections between nodes
   connection_filters:
     forward: false
     velocity: true
     acceleration: true
   selection_weights: # Weights on the spline selection heuristic cost
     length: 1.
-    velocity: 0 #100.
-    acceleration: 0. #100.
-    consistency: 0 #0.24904675216524505  # How much better should a new trajectory be to be selected [%]
+    velocity: 0 
+    acceleration: 0.
+    consistency: 0  # How much better should a new trajectory be to be selected [%]
 
   goals: # Only used when `LoadReferencePath` is used to set the goals
     longitudinal: 6 # Number of goals in direction of the path
