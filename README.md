@@ -4,9 +4,7 @@
 
 # Guidance Planner 
 
-This repository provides a sampling-based global planner implementation that computes topology distinct trajectories in 2D dynamic environments (i.e., each computed trajectory passes the obstacles differently) for motion planning of mobile robots. 
-
-This code is associated with the following publications:
+This repository provides a sampling-based global planner implementation that computes topology distinct trajectories in 2D dynamic environments (i.e., each computed trajectory passes the obstacles differently) for motion planning of mobile robots. This code is associated with the following publications:
 
 **Journal Paper:** O. de Groot, L. Ferranti, D. M. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* **IEEE Transactions on Robotics (T-RO)** 2024. Available: https://doi.org/10.1109/TRO.2024.3475047
 
@@ -58,6 +56,8 @@ git clone https://github.com/tud-amr/guidance_planner.git
 git clone https://github.com/oscardegroot/ros_tools.git
 ```
 
+> **Note:** You can switch to `ROS2` by running in both packages: `python3 switch_to_ros.py 2`. This will switch out the build system files from `catkin` to `colcon`. By default both packages are in `ROS1` mode.
+
 Install dependencies from your workspace, e.g., `catkin_ws/`:
 
 ```bash
@@ -95,7 +95,7 @@ More visuals are available by setting `debug/visuals: true` in `config/params.ya
 ## Usage
 To use this planner in C++, use `#include <guidance_planner/global_guidance.h>` and follow the example in `src/ros1_example.cpp`.
 
-A `ROS1` server is also provided (see `src/learning/guidance_server.cpp`) for usage with Python but is not part of the main code and has not been tested extensively.
+> **Note:** A `ROS1` server is also provided (see `src/learning/guidance_server.cpp`) for usage with Python as a starting point but is not part of the main code and has not been tested extensively.
 
 ## Configuration
 To change planner settings, see `config/params.yaml`. Important settings are:
@@ -107,7 +107,7 @@ To change planner settings, see `config/params.yaml`. Important settings are:
 - `homotopy/n_paths` - Number of homotopy distinct trajectories to compute
 - `homotopy/comparison_function` - Homotopy comparison function to use
 
-For profiling information (i.e., computation times) go to `chrome://tracing/` in google chrome. Then click `load` and select `guidance_planner/profiler.json`. This should show some timings:
+For profiling information (i.e., computation times) go to `chrome://tracing/` in google chrome. Then click `load` and select `guidance_planner/profiler.json`. This shows the following timings:
 ![Timing](docs/timing.png)
 
 ## License
@@ -116,6 +116,6 @@ This project is licensed under the Apache 2.0 license - see the LICENSE file for
 ## Citing
 This repository was developed at the Cognitive Robotics group of Delft University of Technology by [Oscar de Groot](https://github.com/oscardegroot) under supervision of Dr. Laura Ferranti, Dr. Javier Alonso-Mora and Prof. Dariu Gavrila.
 
-If you found this repository useful, please cite our paper:
+If you found this repository useful, please cite our paper!
 
 - [1] **Journal Paper:** O. de Groot, L. Ferranti, D. M. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* **IEEE Transactions on Robotics (T-RO)** 2024. Available: https://doi.org/10.1109/TRO.2024.3475047
