@@ -29,6 +29,7 @@ Standalone example with randomized obstacles |  [T-MPC](https://github.com/tud-a
 4. [Configuration](#configuration) 
 5. [License](#license) 
 6. [Citing](#citing)
+7. [Contributing](#contributing)
 
 ## Features
 This package is a fast C++ implementation of Visibility-PRM with topology comparison. It takes obstacle predictions, the robot state and a set of goals as input and provides several distinct guidance trajectories as output.
@@ -119,3 +120,6 @@ This repository was developed at the Cognitive Robotics group of Delft Universit
 If you found this repository useful, please cite our paper!
 
 - [1] **Journal Paper:** O. de Groot, L. Ferranti, D. M. Gavrila, and J. Alonso-Mora, *Topology-Driven Parallel Trajectory Optimization in Dynamic Environments.* **IEEE Transactions on Robotics (T-RO)** 2024. Available: https://doi.org/10.1109/TRO.2024.3475047
+
+## Contributing
+We welcome issues and contributions! If you encounter any bugs, have suggestions for new features, or want to propose improvements, feel free to open an issue or pull request.
