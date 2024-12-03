@@ -4,6 +4,7 @@
 #include <ros_tools/profiling.h>
 #include <ros_tools/logging.h>
 #include <ros_tools/visuals.h>
+#include <ros_tools/convertions.h>
 
 #include <string>
 #include <stdexcept>
@@ -41,16 +42,39 @@ void ManualObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
 
 void RandomizeObstacles(std::vector<GuidancePlanner::Obstacle> &obstacles)
 {
+    auto &publisher = VISUALS.getPublisher("people");
+    auto &model = publisher.getNewModelMarker();
+    model.setColor(25. / 256., 138. / 256., 89. / 256.);
+
+    auto &line = publisher.getNewLine();
+    line.setColor(25. / 256., 138. / 256., 89. / 256., 1.0);
+    line.setScale(0.1, 0.1);
+
+    int num_obstacles = 4;
     obstacles.clear();
     RosTools::RandomGenerator obstacle_randomizer;
-    for (int i = 0; i < 6; i++)
+
+    for (int i = 0; i < num_obstacles; i++)
     {
-        Eigen::Vector2d start(2.0 + obstacle_randomizer.Double() * 4.0, -2. + 2. * obstacle_randomizer.Double());
-        Eigen::Vector2d goal(2.0 + obstacle_randomizer.Double() * 4.0, -2. + 2. * obstacle_randomizer.Double());
+        Eigen::Vector2d start(3.0 + obstacle_randomizer.Double() * 4.0, -3. + 6. * obstacle_randomizer.Double());
+        Eigen::Vector2d goal(-2.0 + obstacle_randomizer.Double() * 4.0, -3. + 6. * obstacle_randomizer.Double());
         Eigen::Vector2d vel = (goal - start).normalized();
 
         obstacles.emplace_back(i, start, vel, Config::DT, Config::N, 0.5);
+
+        model.setOrientation(RosTools::angleToQuaternion(std::atan2(vel(1), vel(0)) + M_PI_2));
+        model.addPointMarker(start);
+
+        Eigen::Vector3d cur(start(0), start(1), 0.);
+        Eigen::Vector3d prev = cur;
+        for (int k = 0; k < Config::N; k++)
+        {
+            cur += Eigen::Vector3d(vel(0) * Config::DT, vel(1) * Config::DT, Config::DT);
+            line.addLine(prev, cur);
+            prev = cur;
+        }
     }
+    publisher.publish();
 }
 
 int main(int argc, char **argv)

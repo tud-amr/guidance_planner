@@ -61,8 +61,8 @@ namespace GuidancePlanner
 
         operator Vector() const { return _vec; } // Cast to Vector
 
-        TVector State() const { return _vec.block(0, 0, T - 1, 1); }
-        void SetState(const TVector &val) const { _vec.block(0, 0, T - 1, 1) = val; }
+        TVector State() const { return _vec.block(0, 0, T, 1); }
+        void SetState(const TVector &val) const { _vec.block(0, 0, T, 1) = val; }
 
         PosTimeVector PosTime() const
         {
@@ -83,7 +83,7 @@ namespace GuidancePlanner
 
         double &operator()(int i) { return _vec(i); }
 
-        static int numStates() { return T - 1; }
+        static int numStates() { return T; }
         static int numPositions() { return P; }
 
         SpaceTimePointDim operator+(const SpaceTimePointDim &other) const

@@ -8,6 +8,6 @@
 
     <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="false"/>
 
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find guidance_planner)/rviz/ros1_example.rviz" output="log"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find guidance_planner)/rviz/ros1_clean.rviz" output="log"/>
 
 </launch>  

@@ -3,8 +3,8 @@ guidance_planner:
     output: false
     visuals: false
 
-  T: 4.8 # Time horizon [s]
-  N: 12  # Discrete time steps [#]
+  T: 4.0 # Time horizon [s]
+  N: 20  # Discrete time steps [#]
   seed: 1 # Seed of the visibility-PRM. -1 = random
 
   homotopy:
@@ -12,19 +12,19 @@ guidance_planner:
     comparison_function: Homology # Homology (default) Winding or UVD
     winding:
       pass_threshold: 1.74 # half of pi
-      use_non_passing: true
+      use_non_passing: false
     use_learning: false
     track_selected_homology_only: false
 
-  predictions_are_constant_velocity: false
+  predictions_are_constant_velocity: true
 
   dynamics:
     connections: Straight # Straight (default) or Dubins
     turning_radius: 0.305 # [m]
 
   sampling:
-    n_samples: 1000 # Max number of samples for PRM
-    timeout: 200 # Timeout for PRM sampling [ms]
+    n_samples: 50 #1000 # Max number of samples for PRM
+    timeout: 10 #200 # Timeout for PRM sampling [ms]
     margin: 5.0 # [m] sampled outside of goals 
 
   max_velocity: 3.0 # Maximum velocity of connections between nodes
@@ -40,7 +40,7 @@ guidance_planner:
     consistency: 0  # How much better should a new trajectory be to be selected [%]
 
   goals: # Only used when `LoadReferencePath` is used to set the goals
-    longitudinal: 6 # Number of goals in direction of the path
+    longitudinal: 3 # Number of goals in direction of the path
     vertical: 3 # Number of goals in direction orthogonal to the path
 
   spline_optimization: # Settings when the splines are optimized and used as reference trajectory
@@ -49,16 +49,16 @@ guidance_planner:
     geometric: 25.
     smoothness: 10.
     collision: 0.5
-    velocity_tracking: 0.0 #0.01
+    velocity_tracking: 0.01
 
   visuals:
-    transparency: 0.7 # The least transparent the obstacle visualization is (0-1)
-    visualize_all_samples: true # Visualizes all PRM samples
+    transparency: 0.97 # The least transparent the obstacle visualization is (0-1)
+    visualize_all_samples: false # Visualizes all PRM samples
     visualize_homology: false
     show_indices: false
 
   enable:
-    dynamically_propagate_nodes: false #true  # Propagate the nodes in time (dropping them)
+    dynamically_propagate_nodes: true   # Propagate the nodes in time (dropping them)
     project_from_obstacles: false # Project the guidance trajectory from obstacles if enabled (not necessary by default)
 
   test_node:

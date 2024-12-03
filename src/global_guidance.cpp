@@ -823,8 +823,9 @@ namespace GuidancePlanner
       for (int k = 0; k < Config::N; k++)
       {
         // Transparent
-        disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k + 2)) / (double)Config::N + 2, 2.), RosTools::Colormap::BRUNO);
-
+        // disc.setColorInt(obstacle.id_, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k + 2)) / (double)Config::N + 2, 2.), RosTools::Colormap::BRUNO);
+        // disc.setColorInt(2, (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k + 2)) / (double)Config::N + 2, 2.), RosTools::Colormap::BRUNO);
+        disc.setColor(25. / 256., 138. / 256., 89. / 256., (1. - config_->visuals_transparency_) * std::pow(((double)(Config::N - k + 2)) / (double)Config::N + 2, 2.));
         disc.addPointMarker(Eigen::Vector3d(obstacle.positions_[k](0), obstacle.positions_[k](1), (float)k * Config::DT));
       }
 

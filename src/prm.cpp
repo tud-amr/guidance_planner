@@ -79,6 +79,7 @@ namespace GuidancePlanner
       environment_->SetPosition(start);
       PRM_LOG("Static obstacles size: " << static_obstacles.size());
       environment_->LoadObstacles(obstacles, static_obstacles);
+      PRM_LOG("Obstacles loaded");
     }
 
     /* Start */
@@ -100,6 +101,7 @@ namespace GuidancePlanner
     // Add goals that are collision free
     {
       PROFILE_SCOPE("Setting goals");
+      PRM_LOG("Setting goals");
       goals_.clear();
       int goal_i = 0;
       for (auto &goal : goals)
