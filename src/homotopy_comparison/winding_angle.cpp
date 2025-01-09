@@ -101,7 +101,7 @@ namespace GuidancePlanner
             double angle = std::atan2(relative_position(1), relative_position(0)); // Current angle
 
             if (k > 1)
-                lambda += angle - prev_angle; // Relative angle
+                lambda += RosTools::angularDifference(prev_angle, angle); // angle - prev_angle, but safe
 
             prev_angle = angle;
         }
